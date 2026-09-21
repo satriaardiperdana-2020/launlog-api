@@ -1,5 +1,21 @@
 # Launlog Roadmap
 
+## Timeline
+
+The schedule is expressed as relative weeks from project kickoff. Phase B starts only after the Phase A release gate passes.
+
+| Period | Milestone | Scope |
+| --- | --- | --- |
+| Weeks 1–2 | Foundation | Requirements, repository setup, PostgreSQL migrations, ownership, sqlc, and OpenAPI generation |
+| Weeks 3–4 | Core access and catalog | Authentication, permissions, customers, services, and perfumes |
+| Weeks 5–7 | Order lifecycle | Orders, invoice numbers, status history, cancellations, and payments |
+| Weeks 8–9 | Operations and reporting | Expenses, dashboard, and reports |
+| Week 10 | Delivery features | Receipts, QR, WhatsApp templates, and printer settings |
+| Weeks 11–12 | Backend release gate | Integration tests, CI, security, and release preparation |
+| Weeks 13–14 | Frontend foundation | Vue foundation, API client, authentication, layout, and route guards |
+| Weeks 15–17 | Frontend operations | Dashboard, customers, services, perfumes, orders, payments, cancellations, and expenses |
+| Weeks 18–19 | Frontend completion | Reports, settings, QR scanning, printer integration, and WhatsApp sharing |
+
 ## Phase A: Backend
 
 1. Requirements and repository setup
