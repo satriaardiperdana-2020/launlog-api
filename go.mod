@@ -1,6 +1,6 @@
 module github.com/satriaardiperdana-2020/launlog-api
 
-go 1.21
+go 1.27.1
 
 require (
 	github.com/jackc/pgx/v5 v5.5.5
