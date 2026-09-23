@@ -100,7 +100,7 @@ WHERE business_id = sqlc.arg(business_id) AND id = sqlc.arg(order_id)
   AND (sqlc.arg(is_admin)::boolean OR outlet_id = ANY(sqlc.arg(outlet_ids)::bigint[]));
 
 -- name: GetOrderForUpdate :one
-SELECT o.id, o.business_id, o.outlet_id, o.status, o.payment_status, o.completed_at,
+SELECT o.id, o.business_id, o.outlet_id, o.status, o.payment_status, o.total_amount, o.completed_at,
        o.cancelled_at, o.cancelled_by, o.cancellation_reason, o.deleted_at
 FROM orders AS o
 JOIN outlets AS outlet ON outlet.business_id=o.business_id AND outlet.id=o.outlet_id AND outlet.is_active

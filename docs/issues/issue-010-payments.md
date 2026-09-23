@@ -2,23 +2,23 @@
 
 ## Goal
 
-Record cash, BCA transfer, and QRIS payments with partial-payment, void, and refund-safe accounting.
+Record confirmed cash, BCA transfer, and QRIS receipts, maintain order balances, and reconcile payment status safely.
 
 ## Scope
 
-In scope: payment recording/confirmation/voiding, refund records, payment-state recalculation, and transaction locking. Out of scope: automatic bank or QRIS provider reconciliation.
+In scope: confirmed receipt entry, partial settlement, payment history, balance calculation, idempotent recording, correction voids with reasons, payment-state recalculation, and order-level transaction locking. Out of scope: refunds, automatic bank/QRIS verification, and provider integration. The existing `payment_refunds` table remains unused until refund policy is approved.
 
 ## API/database changes
 
-Uses `payments` and `payment_refunds`; adds protected payment and refund endpoints with payment-date reporting fields.
+Uses the existing `payments` table and its `CASH`, `BCA_TRANSFER`, and `QRIS` method constraint; no separate payment-method configuration table exists. Adds migration 000013 for nullable idempotency key/hash on legacy-safe existing rows, plus payment receipt/list/void endpoints. `payment_refunds` is not exposed or written. There is no initial-payment field in the approved ISSUE-008 order contract, so order creation continues to start unpaid and payment is recorded separately.
 
 ## Acceptance criteria
 
-Confirmed net payments cannot exceed the order total, refunds cannot exceed their payment, order payment status is atomically derived, and income uses confirmation time.
+Confirmed payment amounts cannot exceed the order total; cash tender above the balance is returned as change while only the applied amount is stored as payment revenue. Non-cash overpayment fails. Order payment status and receipt, history, and audit records commit atomically. Payment and cancellation mutations serialize on the parent order.
 
 ## Test cases
 
-Partial payments, overpayment, void/refund limits, concurrent attempts, status reconciliation, permissions, and cross-business access.
+Partial payments, settlement, cash change, non-cash overpayment, idempotent replay and payload conflict, void/reconciliation, concurrent payment and cancellation, permissions, and cross-business access. No refund case is implemented until approved.
 
 ## Branch name
 
@@ -26,4 +26,4 @@ Partial payments, overpayment, void/refund limits, concurrent attempts, status r
 
 ## Definition of done
 
-Transactional PostgreSQL tests, OpenAPI, audit events, and reconciliation tests are complete.
+Transactional PostgreSQL concurrency tests, OpenAPI, payment-method/schema reconciliation, audit events, and balance reconciliation are complete.

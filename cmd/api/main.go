@@ -71,6 +71,7 @@ func run(logger *slog.Logger) error {
 	serviceHandler := handlers.NewServiceHandler(database)
 	perfumeHandler := handlers.NewPerfumeHandler(database)
 	orderHandler := handlers.NewOrderHandler(database)
+	paymentHandler := handlers.NewPaymentHandler(database)
 	authLimiter := launmiddleware.NewAuthLimiter(4096, 10, time.Minute)
 	authBody := launmiddleware.AuthBodyLimit(4096)
 	e.GET("/livez", healthHandler.Live)
@@ -123,6 +124,9 @@ func run(logger *slog.Logger) error {
 	orders.PATCH("/:orderId/status", orderHandler.TransitionStatus, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("ORDERS_UPDATE"))
 	orders.POST("/:orderId/cancel", orderHandler.Cancel, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("ORDERS_UPDATE"))
 	orders.GET("/:orderId/status-history", orderHandler.StatusHistory, launmiddleware.RequirePermission("ORDERS_READ"))
+	orders.GET("/:orderId/payments", paymentHandler.List, launmiddleware.RequirePermission("PAYMENTS_READ"))
+	orders.POST("/:orderId/payments", paymentHandler.Record, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("PAYMENTS_RECORD"))
+	orders.POST("/:orderId/payments/:paymentId/void", paymentHandler.Void, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("PAYMENTS_RECORD"))
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress(),

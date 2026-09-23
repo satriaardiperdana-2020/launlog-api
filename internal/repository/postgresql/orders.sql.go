@@ -513,7 +513,7 @@ func (q *Queries) GetOrderByIdempotencyKey(ctx context.Context, arg GetOrderById
 }
 
 const getOrderForUpdate = `-- name: GetOrderForUpdate :one
-SELECT o.id, o.business_id, o.outlet_id, o.status, o.payment_status, o.completed_at,
+SELECT o.id, o.business_id, o.outlet_id, o.status, o.payment_status, o.total_amount, o.completed_at,
        o.cancelled_at, o.cancelled_by, o.cancellation_reason, o.deleted_at
 FROM orders AS o
 JOIN outlets AS outlet ON outlet.business_id=o.business_id AND outlet.id=o.outlet_id AND outlet.is_active
@@ -542,6 +542,7 @@ type GetOrderForUpdateRow struct {
 	OutletID           int64              `json:"outlet_id"`
 	Status             string             `json:"status"`
 	PaymentStatus      string             `json:"payment_status"`
+	TotalAmount        int64              `json:"total_amount"`
 	CompletedAt        pgtype.Timestamptz `json:"completed_at"`
 	CancelledAt        pgtype.Timestamptz `json:"cancelled_at"`
 	CancelledBy        pgtype.Int8        `json:"cancelled_by"`
@@ -563,6 +564,7 @@ func (q *Queries) GetOrderForUpdate(ctx context.Context, arg GetOrderForUpdatePa
 		&i.OutletID,
 		&i.Status,
 		&i.PaymentStatus,
+		&i.TotalAmount,
 		&i.CompletedAt,
 		&i.CancelledAt,
 		&i.CancelledBy,

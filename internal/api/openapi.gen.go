@@ -173,6 +173,48 @@ func (e OrderStatusTransitionInputStatus) Valid() bool {
 	}
 }
 
+// Defines values for PaymentStatus.
+const (
+	CONFIRMED PaymentStatus = "CONFIRMED"
+	PENDING   PaymentStatus = "PENDING"
+	VOIDED    PaymentStatus = "VOIDED"
+)
+
+// Valid indicates whether the value is a known member of the PaymentStatus enum.
+func (e PaymentStatus) Valid() bool {
+	switch e {
+	case CONFIRMED:
+		return true
+	case PENDING:
+		return true
+	case VOIDED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PaymentMethod.
+const (
+	BCATRANSFER PaymentMethod = "BCA_TRANSFER"
+	CASH        PaymentMethod = "CASH"
+	QRIS        PaymentMethod = "QRIS"
+)
+
+// Valid indicates whether the value is a known member of the PaymentMethod enum.
+func (e PaymentMethod) Valid() bool {
+	switch e {
+	case BCATRANSFER:
+		return true
+	case CASH:
+		return true
+	case QRIS:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ServiceUnit.
 const (
 	KILOGRAM    ServiceUnit = "KILOGRAM"
@@ -518,6 +560,25 @@ type OrderList struct {
 // OrderPaymentStatus defines model for OrderPaymentStatus.
 type OrderPaymentStatus string
 
+// OrderPaymentSummary defines model for OrderPaymentSummary.
+type OrderPaymentSummary struct {
+	Items []Payment `json:"items"`
+
+	// OrderId Database identifier backed by a PostgreSQL BIGINT.
+	OrderId EntityId `json:"order_id"`
+
+	// OrderTotal Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+	OrderTotal RupiahAmount `json:"order_total"`
+
+	// OutstandingAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+	OutstandingAmount RupiahAmount   `json:"outstanding_amount"`
+	Pagination        PaginationMeta `json:"pagination"`
+
+	// PaidAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+	PaidAmount    RupiahAmount       `json:"paid_amount"`
+	PaymentStatus OrderPaymentStatus `json:"payment_status"`
+}
+
 // OrderStatus defines model for OrderStatus.
 type OrderStatus string
 
@@ -651,6 +712,65 @@ type PaginationMeta struct {
 	TotalPages int32 `json:"totalPages"`
 }
 
+// Payment defines model for Payment.
+type Payment struct {
+	// Amount Positive exact whole-rupiah amount.
+	Amount      RupiahAmountPositive `json:"amount"`
+	ConfirmedAt *JakartaDateTime     `json:"confirmed_at"`
+
+	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	CreatedAt JakartaDateTime `json:"created_at"`
+
+	// CreatedBy Database identifier backed by a PostgreSQL BIGINT.
+	CreatedBy         EntityId `json:"created_by"`
+	ExternalReference *string  `json:"external_reference"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id EntityId `json:"id"`
+
+	// Method Values match the existing payments.method CHECK constraint; the database has no separate payment-method configuration table.
+	Method     PaymentMethod    `json:"method"`
+	Notes      *string          `json:"notes"`
+	Status     PaymentStatus    `json:"status"`
+	VoidReason *string          `json:"void_reason,omitempty"`
+	VoidedAt   *JakartaDateTime `json:"voided_at,omitempty"`
+	VoidedBy   *EntityId        `json:"voided_by,omitempty"`
+}
+
+// PaymentStatus defines model for Payment.Status.
+type PaymentStatus string
+
+// PaymentMethod Values match the existing payments.method CHECK constraint; the database has no separate payment-method configuration table.
+type PaymentMethod string
+
+// PaymentRecordResult defines model for PaymentRecordResult.
+type PaymentRecordResult struct {
+	// ChangeAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+	ChangeAmount RupiahAmount `json:"change_amount"`
+
+	// OutstandingAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+	OutstandingAmount RupiahAmount `json:"outstanding_amount"`
+
+	// PaidAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+	PaidAmount    RupiahAmount       `json:"paid_amount"`
+	Payment       Payment            `json:"payment"`
+	PaymentStatus OrderPaymentStatus `json:"payment_status"`
+
+	// TenderedAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+	TenderedAmount RupiahAmount `json:"tendered_amount"`
+}
+
+// PaymentVoidResult defines model for PaymentVoidResult.
+type PaymentVoidResult struct {
+	// OutstandingAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+	OutstandingAmount RupiahAmount `json:"outstanding_amount"`
+
+	// PaidAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+	PaidAmount    RupiahAmount       `json:"paid_amount"`
+	Payment       Payment            `json:"payment"`
+	PaymentStatus OrderPaymentStatus `json:"payment_status"`
+}
+
 // Perfume defines model for Perfume.
 type Perfume struct {
 	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
@@ -699,6 +819,17 @@ type PermissionList struct {
 	Items []Permission `json:"items"`
 }
 
+// RecordPaymentInput defines model for RecordPaymentInput.
+type RecordPaymentInput struct {
+	// Amount Positive exact whole-rupiah amount.
+	Amount            RupiahAmountPositive `json:"amount"`
+	ExternalReference *string              `json:"externalReference,omitempty"`
+
+	// Method Values match the existing payments.method CHECK constraint; the database has no separate payment-method configuration table.
+	Method PaymentMethod `json:"method"`
+	Notes  *string       `json:"notes,omitempty"`
+}
+
 // RefreshRequest defines model for RefreshRequest.
 type RefreshRequest struct {
 	// RefreshToken Opaque refresh token issued by the login or refresh operation.
@@ -707,6 +838,9 @@ type RefreshRequest struct {
 
 // RupiahAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
 type RupiahAmount = int64
+
+// RupiahAmountPositive Positive exact whole-rupiah amount.
+type RupiahAmountPositive = int64
 
 // Service defines model for Service.
 type Service struct {
@@ -831,6 +965,11 @@ type UpdateServiceInput struct {
 // UserRole defines model for UserRole.
 type UserRole string
 
+// VoidPaymentInput defines model for VoidPaymentInput.
+type VoidPaymentInput struct {
+	Reason string `json:"reason"`
+}
+
 // Page defines model for Page.
 type Page = int32
 
@@ -907,6 +1046,21 @@ type CreateOrderParams struct {
 	IdempotencyKey string `json:"Idempotency-Key"`
 }
 
+// ListOrderPaymentsParams defines parameters for ListOrderPayments.
+type ListOrderPaymentsParams struct {
+	// Page One-based page number.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of records per page, capped at 100.
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// RecordOrderPaymentParams defines parameters for RecordOrderPayment.
+type RecordOrderPaymentParams struct {
+	// IdempotencyKey Reusing the same key and request payload returns the existing receipt; a different payload returns 409.
+	IdempotencyKey string `json:"Idempotency-Key"`
+}
+
 // ListOutletsParams defines parameters for ListOutlets.
 type ListOutletsParams struct {
 	// Page One-based page number.
@@ -976,6 +1130,12 @@ type CreateOrderJSONRequestBody = CreateOrderInput
 
 // CancelOrderJSONRequestBody defines body for CancelOrder for application/json ContentType.
 type CancelOrderJSONRequestBody = CancelOrderInput
+
+// RecordOrderPaymentJSONRequestBody defines body for RecordOrderPayment for application/json ContentType.
+type RecordOrderPaymentJSONRequestBody = RecordPaymentInput
+
+// VoidOrderPaymentJSONRequestBody defines body for VoidOrderPayment for application/json ContentType.
+type VoidOrderPaymentJSONRequestBody = VoidPaymentInput
 
 // TransitionOrderStatusJSONRequestBody defines body for TransitionOrderStatus for application/json ContentType.
 type TransitionOrderStatusJSONRequestBody = OrderStatusTransitionInput
@@ -1060,6 +1220,15 @@ type ServerInterface interface {
 	// Cancel an unpaid order and retain it as soft-deleted history
 	// (POST /orders/{orderId}/cancel)
 	CancelOrder(ctx echo.Context, orderId EntityId) error
+	// List payment receipts and outstanding balance for an order
+	// (GET /orders/{orderId}/payments)
+	ListOrderPayments(ctx echo.Context, orderId EntityId, params ListOrderPaymentsParams) error
+	// Record a confirmed cash, BCA transfer, or QRIS receipt
+	// (POST /orders/{orderId}/payments)
+	RecordOrderPayment(ctx echo.Context, orderId EntityId, params RecordOrderPaymentParams) error
+	// Void an erroneous confirmed receipt entry
+	// (POST /orders/{orderId}/payments/{paymentId}/void)
+	VoidOrderPayment(ctx echo.Context, orderId EntityId, paymentId EntityId) error
 	// Advance an order through its allowed lifecycle
 	// (PATCH /orders/{orderId}/status)
 	TransitionOrderStatus(ctx echo.Context, orderId EntityId) error
@@ -1437,6 +1606,106 @@ func (w *ServerInterfaceWrapper) CancelOrder(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.CancelOrder(ctx, orderId)
+	return err
+}
+
+// ListOrderPayments converts echo context to params.
+func (w *ServerInterfaceWrapper) ListOrderPayments(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "orderId" -------------
+	var orderId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orderId", ctx.Param("orderId"), &orderId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter orderId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrderPaymentsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListOrderPayments(ctx, orderId, params)
+	return err
+}
+
+// RecordOrderPayment converts echo context to params.
+func (w *ServerInterfaceWrapper) RecordOrderPayment(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "orderId" -------------
+	var orderId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orderId", ctx.Param("orderId"), &orderId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter orderId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RecordOrderPaymentParams
+
+	headers := ctx.Request().Header
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey string
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for Idempotency-Key, got %d", n))
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Idempotency-Key: %s", err))
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+	} else {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Header parameter Idempotency-Key is required, but not found"))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RecordOrderPayment(ctx, orderId, params)
+	return err
+}
+
+// VoidOrderPayment converts echo context to params.
+func (w *ServerInterfaceWrapper) VoidOrderPayment(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "orderId" -------------
+	var orderId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orderId", ctx.Param("orderId"), &orderId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter orderId: %s", err))
+	}
+
+	// ------------- Path parameter "paymentId" -------------
+	var paymentId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "paymentId", ctx.Param("paymentId"), &paymentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter paymentId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.VoidOrderPayment(ctx, orderId, paymentId)
 	return err
 }
 
@@ -1962,6 +2231,9 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.POST(options.BaseURL+"/orders", wrapper.CreateOrder, options.OperationMiddlewares["createOrder"]...)
 	router.GET(options.BaseURL+"/orders/:orderId", wrapper.GetOrder, options.OperationMiddlewares["getOrder"]...)
 	router.POST(options.BaseURL+"/orders/:orderId/cancel", wrapper.CancelOrder, options.OperationMiddlewares["cancelOrder"]...)
+	router.GET(options.BaseURL+"/orders/:orderId/payments", wrapper.ListOrderPayments, options.OperationMiddlewares["listOrderPayments"]...)
+	router.POST(options.BaseURL+"/orders/:orderId/payments", wrapper.RecordOrderPayment, options.OperationMiddlewares["recordOrderPayment"]...)
+	router.POST(options.BaseURL+"/orders/:orderId/payments/:paymentId/void", wrapper.VoidOrderPayment, options.OperationMiddlewares["voidOrderPayment"]...)
 	router.PATCH(options.BaseURL+"/orders/:orderId/status", wrapper.TransitionOrderStatus, options.OperationMiddlewares["transitionOrderStatus"]...)
 	router.GET(options.BaseURL+"/orders/:orderId/status-history", wrapper.GetOrderStatusHistory, options.OperationMiddlewares["getOrderStatusHistory"]...)
 	router.GET(options.BaseURL+"/outlets", wrapper.ListOutlets, options.OperationMiddlewares["listOutlets"]...)
@@ -3375,6 +3647,340 @@ type CancelOrder500JSONResponse struct {
 }
 
 func (response CancelOrder500JSONResponse) VisitCancelOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrderPaymentsRequestObject struct {
+	OrderId EntityId `json:"orderId"`
+	Params  ListOrderPaymentsParams
+}
+
+type ListOrderPaymentsResponseObject interface {
+	VisitListOrderPaymentsResponse(w http.ResponseWriter) error
+}
+
+type ListOrderPayments200JSONResponse OrderPaymentSummary
+
+func (response ListOrderPayments200JSONResponse) VisitListOrderPaymentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrderPayments401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListOrderPayments401JSONResponse) VisitListOrderPaymentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrderPayments403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListOrderPayments403JSONResponse) VisitListOrderPaymentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrderPayments404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListOrderPayments404JSONResponse) VisitListOrderPaymentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrderPayments409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ListOrderPayments409JSONResponse) VisitListOrderPaymentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrderPayments500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListOrderPayments500JSONResponse) VisitListOrderPaymentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordOrderPaymentRequestObject struct {
+	OrderId EntityId `json:"orderId"`
+	Params  RecordOrderPaymentParams
+	Body    *RecordOrderPaymentJSONRequestBody
+}
+
+type RecordOrderPaymentResponseObject interface {
+	VisitRecordOrderPaymentResponse(w http.ResponseWriter) error
+}
+
+type RecordOrderPayment201ResponseHeaders struct {
+	IdempotencyReplayed *string
+}
+
+type RecordOrderPayment201JSONResponse struct {
+	Body    PaymentRecordResult
+	Headers RecordOrderPayment201ResponseHeaders
+}
+
+func (response RecordOrderPayment201JSONResponse) VisitRecordOrderPaymentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.IdempotencyReplayed != nil {
+		w.Header().Set("Idempotency-Replayed", fmt.Sprint(*response.Headers.IdempotencyReplayed))
+	}
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordOrderPayment400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response RecordOrderPayment400JSONResponse) VisitRecordOrderPaymentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordOrderPayment401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response RecordOrderPayment401JSONResponse) VisitRecordOrderPaymentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordOrderPayment403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response RecordOrderPayment403JSONResponse) VisitRecordOrderPaymentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordOrderPayment404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response RecordOrderPayment404JSONResponse) VisitRecordOrderPaymentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordOrderPayment409JSONResponse struct{ ConflictJSONResponse }
+
+func (response RecordOrderPayment409JSONResponse) VisitRecordOrderPaymentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordOrderPayment500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response RecordOrderPayment500JSONResponse) VisitRecordOrderPaymentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VoidOrderPaymentRequestObject struct {
+	OrderId   EntityId `json:"orderId"`
+	PaymentId EntityId `json:"paymentId"`
+	Body      *VoidOrderPaymentJSONRequestBody
+}
+
+type VoidOrderPaymentResponseObject interface {
+	VisitVoidOrderPaymentResponse(w http.ResponseWriter) error
+}
+
+type VoidOrderPayment200JSONResponse PaymentVoidResult
+
+func (response VoidOrderPayment200JSONResponse) VisitVoidOrderPaymentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VoidOrderPayment400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response VoidOrderPayment400JSONResponse) VisitVoidOrderPaymentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VoidOrderPayment401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response VoidOrderPayment401JSONResponse) VisitVoidOrderPaymentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VoidOrderPayment403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response VoidOrderPayment403JSONResponse) VisitVoidOrderPaymentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VoidOrderPayment404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response VoidOrderPayment404JSONResponse) VisitVoidOrderPaymentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VoidOrderPayment409JSONResponse struct{ ConflictJSONResponse }
+
+func (response VoidOrderPayment409JSONResponse) VisitVoidOrderPaymentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VoidOrderPayment500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response VoidOrderPayment500JSONResponse) VisitVoidOrderPaymentResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -5640,6 +6246,15 @@ type StrictServerInterface interface {
 	// Cancel an unpaid order and retain it as soft-deleted history
 	// (POST /orders/{orderId}/cancel)
 	CancelOrder(ctx context.Context, request CancelOrderRequestObject) (CancelOrderResponseObject, error)
+	// List payment receipts and outstanding balance for an order
+	// (GET /orders/{orderId}/payments)
+	ListOrderPayments(ctx context.Context, request ListOrderPaymentsRequestObject) (ListOrderPaymentsResponseObject, error)
+	// Record a confirmed cash, BCA transfer, or QRIS receipt
+	// (POST /orders/{orderId}/payments)
+	RecordOrderPayment(ctx context.Context, request RecordOrderPaymentRequestObject) (RecordOrderPaymentResponseObject, error)
+	// Void an erroneous confirmed receipt entry
+	// (POST /orders/{orderId}/payments/{paymentId}/void)
+	VoidOrderPayment(ctx context.Context, request VoidOrderPaymentRequestObject) (VoidOrderPaymentResponseObject, error)
 	// Advance an order through its allowed lifecycle
 	// (PATCH /orders/{orderId}/status)
 	TransitionOrderStatus(ctx context.Context, request TransitionOrderStatusRequestObject) (TransitionOrderStatusResponseObject, error)
@@ -6149,6 +6764,96 @@ func (sh *strictHandler) CancelOrder(ctx echo.Context, orderId EntityId) error {
 		return err
 	} else if validResponse, ok := response.(CancelOrderResponseObject); ok {
 		return validResponse.VisitCancelOrderResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListOrderPayments operation middleware
+func (sh *strictHandler) ListOrderPayments(ctx echo.Context, orderId EntityId, params ListOrderPaymentsParams) error {
+	var request ListOrderPaymentsRequestObject
+
+	request.OrderId = orderId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOrderPayments(ctx.Request().Context(), request.(ListOrderPaymentsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOrderPayments")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListOrderPaymentsResponseObject); ok {
+		return validResponse.VisitListOrderPaymentsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RecordOrderPayment operation middleware
+func (sh *strictHandler) RecordOrderPayment(ctx echo.Context, orderId EntityId, params RecordOrderPaymentParams) error {
+	var request RecordOrderPaymentRequestObject
+
+	request.OrderId = orderId
+	request.Params = params
+
+	var body RecordOrderPaymentJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RecordOrderPayment(ctx.Request().Context(), request.(RecordOrderPaymentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RecordOrderPayment")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RecordOrderPaymentResponseObject); ok {
+		return validResponse.VisitRecordOrderPaymentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// VoidOrderPayment operation middleware
+func (sh *strictHandler) VoidOrderPayment(ctx echo.Context, orderId EntityId, paymentId EntityId) error {
+	var request VoidOrderPaymentRequestObject
+
+	request.OrderId = orderId
+	request.PaymentId = paymentId
+
+	var body VoidOrderPaymentJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.VoidOrderPayment(ctx.Request().Context(), request.(VoidOrderPaymentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VoidOrderPayment")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(VoidOrderPaymentResponseObject); ok {
+		return validResponse.VisitVoidOrderPaymentResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

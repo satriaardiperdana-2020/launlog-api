@@ -31,6 +31,8 @@ tags:
     description: Business-scoped optional perfume catalog for order items
   - name: Orders
     description: Transactional order creation, lifecycle, cancellation, invoices, and immutable item snapshots
+  - name: Payments
+    description: Confirmed cash, BCA transfer, and QRIS payment receipts and order balances
 
 paths:
   /orders:
@@ -195,6 +197,98 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /orders/{orderId}/payments:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/EntityId" }
+    get:
+      operationId: listOrderPayments
+      summary: List payment receipts and outstanding balance for an order
+      tags: [Payments]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Payment history and exact whole-rupiah balance.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrderPaymentSummary" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      operationId: recordOrderPayment
+      summary: Record a confirmed cash, BCA transfer, or QRIS receipt
+      description: "Idempotency keys are scoped to business, outlet, and order. Amount is an integer rupiah tendered/received. CASH applies at most the current outstanding balance and returns excess as change; only the applied amount is stored as order revenue. BCA_TRANSFER and QRIS amounts above the balance are rejected. Recording a receipt does not call a bank or QRIS provider."
+      tags: [Payments]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Reusing the same key and request payload returns the existing receipt; a different payload returns 409.
+          schema: { type: string, minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9._:-]+$" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecordPaymentInput" }
+      responses:
+        "201":
+          description: Confirmed receipt recorded, or existing receipt returned for an idempotent replay.
+          headers:
+            Idempotency-Replayed:
+              schema: { type: string, enum: ["true"] }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentRecordResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /orders/{orderId}/payments/{paymentId}/void:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/EntityId" }
+      - name: paymentId
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/EntityId" }
+    post:
+      operationId: voidOrderPayment
+      summary: Void an erroneous confirmed receipt entry
+      description: "Voiding is an accounting correction, not a refund or cash/bank transfer. It requires a reason, retains the payment row, and recalculates the order balance transactionally."
+      tags: [Payments]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VoidPaymentInput" }
+      responses:
+        "200":
+          description: Payment voided and outstanding balance recalculated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentVoidResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
   /perfumes:
@@ -1083,6 +1177,11 @@ components:
       minimum: 0
       example: 25000
       description: Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+    RupiahAmountPositive:
+      type: integer
+      format: int64
+      minimum: 1
+      description: Positive exact whole-rupiah amount.
 
     DecimalQuantity:
       type: string
@@ -1442,6 +1541,76 @@ components:
     OrderPaymentStatus:
       type: string
       enum: [UNPAID, PARTIALLY_PAID, PAID, REFUNDED]
+    PaymentMethod:
+      type: string
+      enum: [CASH, BCA_TRANSFER, QRIS]
+      description: Values match the existing payments.method CHECK constraint; the database has no separate payment-method configuration table.
+    RecordPaymentInput:
+      type: object
+      additionalProperties: false
+      required: [amount, method]
+      properties:
+        amount: { $ref: "#/components/schemas/RupiahAmountPositive" }
+        method: { $ref: "#/components/schemas/PaymentMethod" }
+        externalReference: { type: string, maxLength: 256, nullable: true }
+        notes: { type: string, maxLength: 2000, nullable: true }
+    Payment:
+      type: object
+      required: [id, amount, method, status, external_reference, notes, confirmed_at, created_by, created_at]
+      properties:
+        id: { $ref: "#/components/schemas/EntityId" }
+        amount: { $ref: "#/components/schemas/RupiahAmountPositive" }
+        method: { $ref: "#/components/schemas/PaymentMethod" }
+        status: { type: string, enum: [PENDING, CONFIRMED, VOIDED] }
+        external_reference: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        confirmed_at:
+          allOf: [{ $ref: "#/components/schemas/JakartaDateTime" }]
+          nullable: true
+        voided_at:
+          allOf: [{ $ref: "#/components/schemas/JakartaDateTime" }]
+          nullable: true
+        voided_by:
+          allOf: [{ $ref: "#/components/schemas/EntityId" }]
+          nullable: true
+        void_reason: { type: string, nullable: true }
+        created_by: { $ref: "#/components/schemas/EntityId" }
+        created_at: { $ref: "#/components/schemas/JakartaDateTime" }
+    VoidPaymentInput:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 2000 }
+    PaymentVoidResult:
+      type: object
+      required: [payment, payment_status, paid_amount, outstanding_amount]
+      properties:
+        payment: { $ref: "#/components/schemas/Payment" }
+        payment_status: { $ref: "#/components/schemas/OrderPaymentStatus" }
+        paid_amount: { $ref: "#/components/schemas/RupiahAmount" }
+        outstanding_amount: { $ref: "#/components/schemas/RupiahAmount" }
+    PaymentRecordResult:
+      type: object
+      required: [payment, payment_status, paid_amount, outstanding_amount, tendered_amount, change_amount]
+      properties:
+        payment: { $ref: "#/components/schemas/Payment" }
+        payment_status: { $ref: "#/components/schemas/OrderPaymentStatus" }
+        paid_amount: { $ref: "#/components/schemas/RupiahAmount" }
+        outstanding_amount: { $ref: "#/components/schemas/RupiahAmount" }
+        tendered_amount: { $ref: "#/components/schemas/RupiahAmount" }
+        change_amount: { $ref: "#/components/schemas/RupiahAmount" }
+    OrderPaymentSummary:
+      type: object
+      required: [order_id, order_total, payment_status, paid_amount, outstanding_amount, items, pagination]
+      properties:
+        order_id: { $ref: "#/components/schemas/EntityId" }
+        order_total: { $ref: "#/components/schemas/RupiahAmount" }
+        payment_status: { $ref: "#/components/schemas/OrderPaymentStatus" }
+        paid_amount: { $ref: "#/components/schemas/RupiahAmount" }
+        outstanding_amount: { $ref: "#/components/schemas/RupiahAmount" }
+        items: { type: array, items: { $ref: "#/components/schemas/Payment" } }
+        pagination: { $ref: "#/components/schemas/PaginationMeta" }
     CreateOrderInput:
       type: object
       additionalProperties: false
