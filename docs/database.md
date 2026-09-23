@@ -51,7 +51,7 @@ A business-wide customer record shared by its outlets. Names are indexed for sea
 
 ### `services`
 
-A business-owned laundry service. The unit is constrained to `KILOGRAM`, `PIECE`, `METER`, or `SQUARE_METER`; price is an exact rupiah `BIGINT`; estimated duration is stored in minutes. Services can be disabled or soft-deleted while historical order items continue to reference them.
+A business-shared laundry service: every outlet in its owning business can use it. It deliberately has no `outlet_id`; introducing outlet-specific services or pricing would conflict with the current ownership model and needs an approved future design. The existing `services.unit` column is constrained to `KILOGRAM`, `PIECE`, `METER`, or `SQUARE_METER`; price is an exact rupiah `BIGINT`; estimated duration is stored in minutes. Services can be disabled or soft-deleted while historical order items continue to reference them.
 
 ### `perfumes`
 
@@ -117,6 +117,7 @@ An immutable business audit stream. It records an optional outlet and actor, act
 4. `000004_payments`
 5. `000005_expenses`
 6. `000006_receipts_and_audit`
+7. `000007_ownership_hardening`
 
 Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run in reverse order because later domains reference earlier ownership and order tables.
 
@@ -125,6 +126,10 @@ Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run 
 Migrations are executed with the pinned golang-migrate CLI through `make migrate-up`, `make migrate-down`, and `make migrate-version`. `make migrate-verify` performs an up/down/up cycle and is run against an isolated PostgreSQL 16 service in CI. It must never be pointed at production as a smoke test.
 
 Applied migrations are immutable: correct a deployed schema with a later migration rather than editing an existing migration file. Generated sqlc output must be regenerated after every migration or query change.
+
+## Reconciliation note
+
+The repository's actual migration history already contains master-data, order, payment, expense, receipt, and audit tables in `000002` through `000006`, even though their HTTP and service-layer work belongs to later issues. Their presence is schema reservation only; it does not mark those issues complete. In particular, the pre-existing `payment_refunds` table is not changed or exposed by this issue; no refund behavior is approved or implemented here. ISSUE-002 therefore adds only the forward-safe `000007_ownership_hardening` migration: a non-partial session lookup index and ownership comments. It has no data-shape change and therefore no data backfill. Existing businesses, outlets, users, and refresh sessions are neither deleted nor rewritten.
 
 ## Deliberately excluded
 

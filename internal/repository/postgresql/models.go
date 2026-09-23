@@ -25,12 +25,16 @@ type AuditLog struct {
 	OccurredAt  pgtype.Timestamptz `json:"occurred_at"`
 }
 
+// Root tenant. All business-owned records are scoped to one business.
 type Business struct {
-	ID        int64              `json:"id"`
-	Name      string             `json:"name"`
-	Timezone  string             `json:"timezone"`
-	Phone     pgtype.Text        `json:"phone"`
-	Address   pgtype.Text        `json:"address"`
+	// Stable BIGINT tenant identifier.
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	// Business timezone; the application currently permits only Asia/Jakarta.
+	Timezone string      `json:"timezone"`
+	Phone    pgtype.Text `json:"phone"`
+	Address  pgtype.Text `json:"address"`
+	// False prevents the tenant from being used without deleting its records.
 	IsActive  bool               `json:"is_active"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
@@ -132,16 +136,20 @@ type OrderStatusHistory struct {
 	ChangedAt  pgtype.Timestamptz `json:"changed_at"`
 }
 
+// A physical or operational location owned by exactly one business.
 type Outlet struct {
-	ID         int64              `json:"id"`
-	BusinessID int64              `json:"business_id"`
-	Code       string             `json:"code"`
-	Name       string             `json:"name"`
-	Phone      pgtype.Text        `json:"phone"`
-	Address    pgtype.Text        `json:"address"`
-	IsActive   bool               `json:"is_active"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	ID int64 `json:"id"`
+	// Tenant owner; paired with id by tenant-aware foreign keys.
+	BusinessID int64 `json:"business_id"`
+	// Business-local outlet code, unique within business_id.
+	Code    string      `json:"code"`
+	Name    string      `json:"name"`
+	Phone   pgtype.Text `json:"phone"`
+	Address pgtype.Text `json:"address"`
+	// False disables new outlet activity without deleting historical records.
+	IsActive  bool               `json:"is_active"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Payment struct {
@@ -185,7 +193,9 @@ type Perfume struct {
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
 }
 
+// Global catalog of permission codes; grants remain tenant-scoped in user_permissions.
 type Permission struct {
+	// Stable uppercase permission identifier, not a tenant identifier.
 	Code        string             `json:"code"`
 	Description string             `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
@@ -206,20 +216,29 @@ type ReceiptTemplate struct {
 	DeletedAt               pgtype.Timestamptz `json:"deleted_at"`
 }
 
+// Revocable refresh sessions. token_hash stores a one-way hash, never a raw refresh token.
 type RefreshToken struct {
-	ID         int64              `json:"id"`
-	BusinessID int64              `json:"business_id"`
-	UserID     int64              `json:"user_id"`
-	TokenHash  string             `json:"token_hash"`
-	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
-	RevokedAt  pgtype.Timestamptz `json:"revoked_at"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	ID int64 `json:"id"`
+	// Tenant key paired with user_id for a tenant-aware session foreign key.
+	BusinessID int64 `json:"business_id"`
+	// Session owner; must belong to business_id.
+	UserID int64 `json:"user_id"`
+	// Unique one-way hash of the opaque refresh token.
+	TokenHash string `json:"token_hash"`
+	// Exclusive refresh-session expiry timestamp.
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	// Timestamp of revocation; NULL means the session has not been revoked.
+	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+// Business-shared service catalog. A service applies to every outlet in its business; outlet-specific pricing is not modelled.
 type Service struct {
-	ID                       int64              `json:"id"`
-	BusinessID               int64              `json:"business_id"`
-	Name                     string             `json:"name"`
+	ID int64 `json:"id"`
+	// Tenant owner. There is intentionally no outlet_id because services are shared across the business.
+	BusinessID int64  `json:"business_id"`
+	Name       string `json:"name"`
+	// Measurement type constrained to KILOGRAM, PIECE, METER, or SQUARE_METER.
 	Unit                     string             `json:"unit"`
 	UnitPriceAmount          int64              `json:"unit_price_amount"`
 	EstimatedDurationMinutes int32              `json:"estimated_duration_minutes"`
@@ -229,30 +248,44 @@ type Service struct {
 	DeletedAt                pgtype.Timestamptz `json:"deleted_at"`
 }
 
+// Authenticated account owned by one business; it is not a global operator account.
 type User struct {
-	ID           int64              `json:"id"`
-	BusinessID   int64              `json:"business_id"`
-	Email        string             `json:"email"`
-	FullName     string             `json:"full_name"`
-	PasswordHash string             `json:"password_hash"`
-	Role         string             `json:"role"`
-	IsActive     bool               `json:"is_active"`
-	LastLoginAt  pgtype.Timestamptz `json:"last_login_at"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	ID int64 `json:"id"`
+	// Tenant owner; prevents a user from belonging to multiple businesses.
+	BusinessID int64 `json:"business_id"`
+	// Case-insensitively unique login identifier; unique globally by design so login needs no business selector.
+	Email    string `json:"email"`
+	FullName string `json:"full_name"`
+	// One-way password hash only; plaintext passwords and reversible secrets are never stored.
+	PasswordHash string `json:"password_hash"`
+	// Coarse business role, constrained to ADMIN or LAUNDRY_STAFF.
+	Role string `json:"role"`
+	// False blocks authentication and authorization while preserving history.
+	IsActive    bool               `json:"is_active"`
+	LastLoginAt pgtype.Timestamptz `json:"last_login_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
+// Tenant-safe assignment of a user to an outlet in the same business.
 type UserOutlet struct {
-	BusinessID int64              `json:"business_id"`
-	UserID     int64              `json:"user_id"`
+	// Shared tenant key required by both user and outlet foreign keys.
+	BusinessID int64 `json:"business_id"`
+	// Assigned user; must belong to business_id.
+	UserID int64 `json:"user_id"`
+	// Assigned outlet; must belong to business_id.
 	OutletID   int64              `json:"outlet_id"`
 	AssignedAt pgtype.Timestamptz `json:"assigned_at"`
 }
 
+// Explicit tenant-scoped permission grant. Authorization still validates actor role and outlet scope.
 type UserPermission struct {
-	BusinessID     int64              `json:"business_id"`
-	UserID         int64              `json:"user_id"`
-	PermissionCode string             `json:"permission_code"`
-	GrantedBy      int64              `json:"granted_by"`
-	GrantedAt      pgtype.Timestamptz `json:"granted_at"`
+	// Shared tenant key for recipient and grantor foreign keys.
+	BusinessID int64 `json:"business_id"`
+	// Permission recipient; must belong to business_id.
+	UserID         int64  `json:"user_id"`
+	PermissionCode string `json:"permission_code"`
+	// Granting user; must belong to business_id. Whether the actor may grant is enforced by application authorization.
+	GrantedBy int64              `json:"granted_by"`
+	GrantedAt pgtype.Timestamptz `json:"granted_at"`
 }

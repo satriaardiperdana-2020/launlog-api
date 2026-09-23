@@ -54,6 +54,7 @@ make tools            # install pinned local generators into ./bin
 make generate          # regenerate OpenAPI and sqlc output
 make check             # formatting, generated-code drift, tests, vet, build
 make migrate-verify    # up, down, and up again; requires DATABASE_URL
+TEST_DATABASE_URL='...' make test-integration # PostgreSQL migration and tenant-isolation integration suite
 ```
 
 `make check` is the local equivalent of the quality CI job. The migration CI job uses an isolated PostgreSQL service and never uses developer or production credentials.
