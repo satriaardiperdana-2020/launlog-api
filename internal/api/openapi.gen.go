@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -161,12 +162,93 @@ type LogoutRequest struct {
 	RefreshToken *string `json:"refreshToken,omitempty"`
 }
 
+// Outlet defines model for Outlet.
+type Outlet struct {
+	Address *string `json:"address,omitempty"`
+
+	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
+	BusinessId EntityId `json:"business_id"`
+	Code       string   `json:"code"`
+
+	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	CreatedAt JakartaDateTime `json:"created_at"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id       EntityId `json:"id"`
+	IsActive bool     `json:"is_active"`
+	Name     string   `json:"name"`
+	Phone    *string  `json:"phone,omitempty"`
+
+	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	UpdatedAt JakartaDateTime `json:"updated_at"`
+}
+
+// OutletAssignmentRequest defines model for OutletAssignmentRequest.
+type OutletAssignmentRequest struct {
+	OutletIds []EntityId `json:"outletIds"`
+}
+
+// OutletAssignmentResponse defines model for OutletAssignmentResponse.
+type OutletAssignmentResponse struct {
+	OutletIds []EntityId `json:"outletIds"`
+
+	// UserId Database identifier backed by a PostgreSQL BIGINT.
+	UserId EntityId `json:"userId"`
+}
+
+// OutletCreate defines model for OutletCreate.
+type OutletCreate struct {
+	Address *string `json:"address,omitempty"`
+	Code    string  `json:"code"`
+	Name    string  `json:"name"`
+	Phone   *string `json:"phone,omitempty"`
+}
+
+// OutletList defines model for OutletList.
+type OutletList struct {
+	Items      []Outlet       `json:"items"`
+	Pagination PaginationMeta `json:"pagination"`
+}
+
+// OutletUpdate defines model for OutletUpdate.
+type OutletUpdate struct {
+	Address  *string `json:"address,omitempty"`
+	Code     string  `json:"code"`
+	IsActive bool    `json:"isActive"`
+	Name     string  `json:"name"`
+	Phone    *string `json:"phone,omitempty"`
+}
+
 // PaginationMeta defines model for PaginationMeta.
 type PaginationMeta struct {
 	Page       int32 `json:"page"`
 	PageSize   int32 `json:"pageSize"`
 	TotalItems int64 `json:"totalItems"`
 	TotalPages int32 `json:"totalPages"`
+}
+
+// Permission defines model for Permission.
+type Permission struct {
+	Code        string `json:"code"`
+	Description string `json:"description"`
+}
+
+// PermissionGrantSetRequest defines model for PermissionGrantSetRequest.
+type PermissionGrantSetRequest struct {
+	Permissions []string `json:"permissions"`
+}
+
+// PermissionGrantSetResponse defines model for PermissionGrantSetResponse.
+type PermissionGrantSetResponse struct {
+	Permissions []string `json:"permissions"`
+
+	// UserId Database identifier backed by a PostgreSQL BIGINT.
+	UserId EntityId `json:"userId"`
+}
+
+// PermissionList defines model for PermissionList.
+type PermissionList struct {
+	Items []Permission `json:"items"`
 }
 
 // RefreshRequest defines model for RefreshRequest.
@@ -177,6 +259,59 @@ type RefreshRequest struct {
 
 // RupiahAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
 type RupiahAmount = int64
+
+// Staff defines model for Staff.
+type Staff struct {
+	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
+	BusinessId EntityId            `json:"businessId"`
+	Email      openapi_types.Email `json:"email"`
+	FullName   string              `json:"fullName"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id          EntityId   `json:"id"`
+	IsActive    bool       `json:"isActive"`
+	OutletIds   []EntityId `json:"outletIds"`
+	Permissions []string   `json:"permissions"`
+	Role        UserRole   `json:"role"`
+}
+
+// StaffCreate defines model for StaffCreate.
+type StaffCreate struct {
+	Email     openapi_types.Email `json:"email"`
+	FullName  string              `json:"fullName"`
+	OutletIds []EntityId          `json:"outletIds"`
+
+	// Password New-password character policy; server additionally enforces bcrypt's 72 UTF-8 byte limit.
+	Password *string `json:"password,omitempty"`
+}
+
+// StaffList defines model for StaffList.
+type StaffList struct {
+	Items []struct {
+		// BusinessId Database identifier backed by a PostgreSQL BIGINT.
+		BusinessId EntityId `json:"business_id"`
+
+		// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+		CreatedAt *JakartaDateTime    `json:"created_at,omitempty"`
+		Email     openapi_types.Email `json:"email"`
+		FullName  string              `json:"full_name"`
+
+		// Id Database identifier backed by a PostgreSQL BIGINT.
+		Id       EntityId `json:"id"`
+		IsActive bool     `json:"is_active"`
+		Role     UserRole `json:"role"`
+
+		// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+		UpdatedAt *JakartaDateTime `json:"updated_at,omitempty"`
+	} `json:"items"`
+	Pagination PaginationMeta `json:"pagination"`
+}
+
+// StaffUpdate defines model for StaffUpdate.
+type StaffUpdate struct {
+	FullName string `json:"fullName"`
+	IsActive bool   `json:"isActive"`
+}
 
 // TokenPair defines model for TokenPair.
 type TokenPair struct {
@@ -202,11 +337,17 @@ type PageSize = int32
 // BadRequest defines model for BadRequest.
 type BadRequest = ErrorResponse
 
+// Conflict defines model for Conflict.
+type Conflict = ErrorResponse
+
 // Forbidden defines model for Forbidden.
 type Forbidden = ErrorResponse
 
 // InternalServerError defines model for InternalServerError.
 type InternalServerError = ErrorResponse
+
+// NotFound defines model for NotFound.
+type NotFound = ErrorResponse
 
 // RequestTooLarge defines model for RequestTooLarge.
 type RequestTooLarge = ErrorResponse
@@ -223,6 +364,24 @@ type Unauthorized = ErrorResponse
 // bearerAuthContextKey is the context key for BearerAuth security scheme
 type bearerAuthContextKey string
 
+// ListOutletsParams defines parameters for ListOutlets.
+type ListOutletsParams struct {
+	// Page One-based page number.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of records per page, capped at 100.
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// ListStaffParams defines parameters for ListStaff.
+type ListStaffParams struct {
+	// Page One-based page number.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of records per page, capped at 100.
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
 
@@ -231,6 +390,24 @@ type LogoutJSONRequestBody = LogoutRequest
 
 // RefreshTokenJSONRequestBody defines body for RefreshToken for application/json ContentType.
 type RefreshTokenJSONRequestBody = RefreshRequest
+
+// CreateOutletJSONRequestBody defines body for CreateOutlet for application/json ContentType.
+type CreateOutletJSONRequestBody = OutletCreate
+
+// UpdateOutletJSONRequestBody defines body for UpdateOutlet for application/json ContentType.
+type UpdateOutletJSONRequestBody = OutletUpdate
+
+// CreateStaffJSONRequestBody defines body for CreateStaff for application/json ContentType.
+type CreateStaffJSONRequestBody = StaffCreate
+
+// UpdateStaffJSONRequestBody defines body for UpdateStaff for application/json ContentType.
+type UpdateStaffJSONRequestBody = StaffUpdate
+
+// ReplaceStaffOutletsJSONRequestBody defines body for ReplaceStaffOutlets for application/json ContentType.
+type ReplaceStaffOutletsJSONRequestBody = OutletAssignmentRequest
+
+// ReplaceStaffPermissionsJSONRequestBody defines body for ReplaceStaffPermissions for application/json ContentType.
+type ReplaceStaffPermissionsJSONRequestBody = PermissionGrantSetRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -252,9 +429,42 @@ type ServerInterface interface {
 	// Check whether the HTTP process is live
 	// (GET /livez)
 	GetLiveness(ctx echo.Context) error
+	// List outlets in the authenticated business
+	// (GET /outlets)
+	ListOutlets(ctx echo.Context, params ListOutletsParams) error
+	// Create an outlet in the authenticated business
+	// (POST /outlets)
+	CreateOutlet(ctx echo.Context) error
+	// Get a business outlet
+	// (GET /outlets/{outletId})
+	GetOutlet(ctx echo.Context, outletId EntityId) error
+	// Update an outlet profile or active state
+	// (PUT /outlets/{outletId})
+	UpdateOutlet(ctx echo.Context, outletId EntityId) error
+	// List available action grants
+	// (GET /permissions)
+	ListPermissions(ctx echo.Context) error
 	// Check whether the API is ready to serve database-backed requests
 	// (GET /readyz)
 	GetReadiness(ctx echo.Context) error
+	// List users in the authenticated business
+	// (GET /staff)
+	ListStaff(ctx echo.Context, params ListStaffParams) error
+	// Create a LAUNDRY_STAFF account and assign active outlets
+	// (POST /staff)
+	CreateStaff(ctx echo.Context) error
+	// Get a staff account, active outlet assignments, and action grants
+	// (GET /staff/{userId})
+	GetStaff(ctx echo.Context, userId EntityId) error
+	// Update staff profile or active state
+	// (PUT /staff/{userId})
+	UpdateStaff(ctx echo.Context, userId EntityId) error
+	// Replace a staff member's active outlet assignments
+	// (PUT /staff/{userId}/outlets)
+	ReplaceStaffOutlets(ctx echo.Context, userId EntityId) error
+	// Replace a staff member's explicit action grants
+	// (PUT /staff/{userId}/permissions)
+	ReplaceStaffPermissions(ctx echo.Context, userId EntityId) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -320,12 +530,207 @@ func (w *ServerInterfaceWrapper) GetLiveness(ctx echo.Context) error {
 	return err
 }
 
+// ListOutlets converts echo context to params.
+func (w *ServerInterfaceWrapper) ListOutlets(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOutletsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListOutlets(ctx, params)
+	return err
+}
+
+// CreateOutlet converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateOutlet(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateOutlet(ctx)
+	return err
+}
+
+// GetOutlet converts echo context to params.
+func (w *ServerInterfaceWrapper) GetOutlet(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetOutlet(ctx, outletId)
+	return err
+}
+
+// UpdateOutlet converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateOutlet(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateOutlet(ctx, outletId)
+	return err
+}
+
+// ListPermissions converts echo context to params.
+func (w *ServerInterfaceWrapper) ListPermissions(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListPermissions(ctx)
+	return err
+}
+
 // GetReadiness converts echo context to params.
 func (w *ServerInterfaceWrapper) GetReadiness(ctx echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetReadiness(ctx)
+	return err
+}
+
+// ListStaff converts echo context to params.
+func (w *ServerInterfaceWrapper) ListStaff(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListStaffParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListStaff(ctx, params)
+	return err
+}
+
+// CreateStaff converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateStaff(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateStaff(ctx)
+	return err
+}
+
+// GetStaff converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStaff(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStaff(ctx, userId)
+	return err
+}
+
+// UpdateStaff converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateStaff(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateStaff(ctx, userId)
+	return err
+}
+
+// ReplaceStaffOutlets converts echo context to params.
+func (w *ServerInterfaceWrapper) ReplaceStaffOutlets(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ReplaceStaffOutlets(ctx, userId)
+	return err
+}
+
+// ReplaceStaffPermissions converts echo context to params.
+func (w *ServerInterfaceWrapper) ReplaceStaffPermissions(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ReplaceStaffPermissions(ctx, userId)
 	return err
 }
 
@@ -382,15 +787,30 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.POST(options.BaseURL+"/auth/refresh", wrapper.RefreshToken, options.OperationMiddlewares["refreshToken"]...)
 	router.GET(options.BaseURL+"/health", wrapper.GetHealth, options.OperationMiddlewares["getHealth"]...)
 	router.GET(options.BaseURL+"/livez", wrapper.GetLiveness, options.OperationMiddlewares["getLiveness"]...)
+	router.GET(options.BaseURL+"/outlets", wrapper.ListOutlets, options.OperationMiddlewares["listOutlets"]...)
+	router.POST(options.BaseURL+"/outlets", wrapper.CreateOutlet, options.OperationMiddlewares["createOutlet"]...)
+	router.GET(options.BaseURL+"/outlets/:outletId", wrapper.GetOutlet, options.OperationMiddlewares["getOutlet"]...)
+	router.PUT(options.BaseURL+"/outlets/:outletId", wrapper.UpdateOutlet, options.OperationMiddlewares["updateOutlet"]...)
+	router.GET(options.BaseURL+"/permissions", wrapper.ListPermissions, options.OperationMiddlewares["listPermissions"]...)
 	router.GET(options.BaseURL+"/readyz", wrapper.GetReadiness, options.OperationMiddlewares["getReadiness"]...)
+	router.GET(options.BaseURL+"/staff", wrapper.ListStaff, options.OperationMiddlewares["listStaff"]...)
+	router.POST(options.BaseURL+"/staff", wrapper.CreateStaff, options.OperationMiddlewares["createStaff"]...)
+	router.GET(options.BaseURL+"/staff/:userId", wrapper.GetStaff, options.OperationMiddlewares["getStaff"]...)
+	router.PUT(options.BaseURL+"/staff/:userId", wrapper.UpdateStaff, options.OperationMiddlewares["updateStaff"]...)
+	router.PUT(options.BaseURL+"/staff/:userId/outlets", wrapper.ReplaceStaffOutlets, options.OperationMiddlewares["replaceStaffOutlets"]...)
+	router.PUT(options.BaseURL+"/staff/:userId/permissions", wrapper.ReplaceStaffPermissions, options.OperationMiddlewares["replaceStaffPermissions"]...)
 
 }
 
 type BadRequestJSONResponse ErrorResponse
 
+type ConflictJSONResponse ErrorResponse
+
 type ForbiddenJSONResponse ErrorResponse
 
 type InternalServerErrorJSONResponse ErrorResponse
+
+type NotFoundJSONResponse ErrorResponse
 
 type RequestTooLargeJSONResponse ErrorResponse
 
@@ -815,6 +1235,435 @@ func (response GetLiveness200JSONResponse) VisitGetLivenessResponse(w http.Respo
 	return err
 }
 
+type ListOutletsRequestObject struct {
+	Params ListOutletsParams
+}
+
+type ListOutletsResponseObject interface {
+	VisitListOutletsResponse(w http.ResponseWriter) error
+}
+
+type ListOutlets200JSONResponse OutletList
+
+func (response ListOutlets200JSONResponse) VisitListOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOutlets401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListOutlets401JSONResponse) VisitListOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOutlets403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListOutlets403JSONResponse) VisitListOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOutlets500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListOutlets500JSONResponse) VisitListOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateOutletRequestObject struct {
+	Body *CreateOutletJSONRequestBody
+}
+
+type CreateOutletResponseObject interface {
+	VisitCreateOutletResponse(w http.ResponseWriter) error
+}
+
+type CreateOutlet201JSONResponse Outlet
+
+func (response CreateOutlet201JSONResponse) VisitCreateOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateOutlet400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateOutlet400JSONResponse) VisitCreateOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateOutlet401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateOutlet401JSONResponse) VisitCreateOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateOutlet403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateOutlet403JSONResponse) VisitCreateOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateOutlet409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateOutlet409JSONResponse) VisitCreateOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateOutlet500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateOutlet500JSONResponse) VisitCreateOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletRequestObject struct {
+	OutletId EntityId `json:"outletId"`
+}
+
+type GetOutletResponseObject interface {
+	VisitGetOutletResponse(w http.ResponseWriter) error
+}
+
+type GetOutlet200JSONResponse Outlet
+
+func (response GetOutlet200JSONResponse) VisitGetOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutlet401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetOutlet401JSONResponse) VisitGetOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutlet403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetOutlet403JSONResponse) VisitGetOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutlet404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetOutlet404JSONResponse) VisitGetOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutlet500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetOutlet500JSONResponse) VisitGetOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateOutletRequestObject struct {
+	OutletId EntityId `json:"outletId"`
+	Body     *UpdateOutletJSONRequestBody
+}
+
+type UpdateOutletResponseObject interface {
+	VisitUpdateOutletResponse(w http.ResponseWriter) error
+}
+
+type UpdateOutlet200JSONResponse Outlet
+
+func (response UpdateOutlet200JSONResponse) VisitUpdateOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateOutlet400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateOutlet400JSONResponse) VisitUpdateOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateOutlet401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateOutlet401JSONResponse) VisitUpdateOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateOutlet403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateOutlet403JSONResponse) VisitUpdateOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateOutlet404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateOutlet404JSONResponse) VisitUpdateOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateOutlet409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateOutlet409JSONResponse) VisitUpdateOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateOutlet500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateOutlet500JSONResponse) VisitUpdateOutletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPermissionsRequestObject struct {
+}
+
+type ListPermissionsResponseObject interface {
+	VisitListPermissionsResponse(w http.ResponseWriter) error
+}
+
+type ListPermissions200JSONResponse PermissionList
+
+func (response ListPermissions200JSONResponse) VisitListPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPermissions401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListPermissions401JSONResponse) VisitListPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPermissions403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListPermissions403JSONResponse) VisitListPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPermissions500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListPermissions500JSONResponse) VisitListPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetReadinessRequestObject struct {
 }
 
@@ -850,6 +1699,591 @@ func (response GetReadiness503JSONResponse) VisitGetReadinessResponse(w http.Res
 	return err
 }
 
+type ListStaffRequestObject struct {
+	Params ListStaffParams
+}
+
+type ListStaffResponseObject interface {
+	VisitListStaffResponse(w http.ResponseWriter) error
+}
+
+type ListStaff200JSONResponse StaffList
+
+func (response ListStaff200JSONResponse) VisitListStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListStaff401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListStaff401JSONResponse) VisitListStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListStaff403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListStaff403JSONResponse) VisitListStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListStaff500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListStaff500JSONResponse) VisitListStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateStaffRequestObject struct {
+	Body *CreateStaffJSONRequestBody
+}
+
+type CreateStaffResponseObject interface {
+	VisitCreateStaffResponse(w http.ResponseWriter) error
+}
+
+type CreateStaff201JSONResponse Staff
+
+func (response CreateStaff201JSONResponse) VisitCreateStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateStaff400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateStaff400JSONResponse) VisitCreateStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateStaff401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateStaff401JSONResponse) VisitCreateStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateStaff403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateStaff403JSONResponse) VisitCreateStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateStaff409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateStaff409JSONResponse) VisitCreateStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateStaff500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateStaff500JSONResponse) VisitCreateStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStaffRequestObject struct {
+	UserId EntityId `json:"userId"`
+}
+
+type GetStaffResponseObject interface {
+	VisitGetStaffResponse(w http.ResponseWriter) error
+}
+
+type GetStaff200JSONResponse Staff
+
+func (response GetStaff200JSONResponse) VisitGetStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStaff401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetStaff401JSONResponse) VisitGetStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStaff403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetStaff403JSONResponse) VisitGetStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStaff404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetStaff404JSONResponse) VisitGetStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStaff500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetStaff500JSONResponse) VisitGetStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateStaffRequestObject struct {
+	UserId EntityId `json:"userId"`
+	Body   *UpdateStaffJSONRequestBody
+}
+
+type UpdateStaffResponseObject interface {
+	VisitUpdateStaffResponse(w http.ResponseWriter) error
+}
+
+type UpdateStaff200JSONResponse Staff
+
+func (response UpdateStaff200JSONResponse) VisitUpdateStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateStaff400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateStaff400JSONResponse) VisitUpdateStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateStaff401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateStaff401JSONResponse) VisitUpdateStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateStaff403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateStaff403JSONResponse) VisitUpdateStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateStaff404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateStaff404JSONResponse) VisitUpdateStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateStaff409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateStaff409JSONResponse) VisitUpdateStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateStaff500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateStaff500JSONResponse) VisitUpdateStaffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffOutletsRequestObject struct {
+	UserId EntityId `json:"userId"`
+	Body   *ReplaceStaffOutletsJSONRequestBody
+}
+
+type ReplaceStaffOutletsResponseObject interface {
+	VisitReplaceStaffOutletsResponse(w http.ResponseWriter) error
+}
+
+type ReplaceStaffOutlets200JSONResponse OutletAssignmentResponse
+
+func (response ReplaceStaffOutlets200JSONResponse) VisitReplaceStaffOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffOutlets400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ReplaceStaffOutlets400JSONResponse) VisitReplaceStaffOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffOutlets401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ReplaceStaffOutlets401JSONResponse) VisitReplaceStaffOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffOutlets403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ReplaceStaffOutlets403JSONResponse) VisitReplaceStaffOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffOutlets404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReplaceStaffOutlets404JSONResponse) VisitReplaceStaffOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffOutlets409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ReplaceStaffOutlets409JSONResponse) VisitReplaceStaffOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffOutlets500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ReplaceStaffOutlets500JSONResponse) VisitReplaceStaffOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffPermissionsRequestObject struct {
+	UserId EntityId `json:"userId"`
+	Body   *ReplaceStaffPermissionsJSONRequestBody
+}
+
+type ReplaceStaffPermissionsResponseObject interface {
+	VisitReplaceStaffPermissionsResponse(w http.ResponseWriter) error
+}
+
+type ReplaceStaffPermissions200JSONResponse PermissionGrantSetResponse
+
+func (response ReplaceStaffPermissions200JSONResponse) VisitReplaceStaffPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffPermissions400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ReplaceStaffPermissions400JSONResponse) VisitReplaceStaffPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffPermissions401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ReplaceStaffPermissions401JSONResponse) VisitReplaceStaffPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffPermissions403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ReplaceStaffPermissions403JSONResponse) VisitReplaceStaffPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffPermissions404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReplaceStaffPermissions404JSONResponse) VisitReplaceStaffPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffPermissions409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ReplaceStaffPermissions409JSONResponse) VisitReplaceStaffPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceStaffPermissions500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ReplaceStaffPermissions500JSONResponse) VisitReplaceStaffPermissionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Authenticate a user
@@ -870,9 +2304,42 @@ type StrictServerInterface interface {
 	// Check whether the HTTP process is live
 	// (GET /livez)
 	GetLiveness(ctx context.Context, request GetLivenessRequestObject) (GetLivenessResponseObject, error)
+	// List outlets in the authenticated business
+	// (GET /outlets)
+	ListOutlets(ctx context.Context, request ListOutletsRequestObject) (ListOutletsResponseObject, error)
+	// Create an outlet in the authenticated business
+	// (POST /outlets)
+	CreateOutlet(ctx context.Context, request CreateOutletRequestObject) (CreateOutletResponseObject, error)
+	// Get a business outlet
+	// (GET /outlets/{outletId})
+	GetOutlet(ctx context.Context, request GetOutletRequestObject) (GetOutletResponseObject, error)
+	// Update an outlet profile or active state
+	// (PUT /outlets/{outletId})
+	UpdateOutlet(ctx context.Context, request UpdateOutletRequestObject) (UpdateOutletResponseObject, error)
+	// List available action grants
+	// (GET /permissions)
+	ListPermissions(ctx context.Context, request ListPermissionsRequestObject) (ListPermissionsResponseObject, error)
 	// Check whether the API is ready to serve database-backed requests
 	// (GET /readyz)
 	GetReadiness(ctx context.Context, request GetReadinessRequestObject) (GetReadinessResponseObject, error)
+	// List users in the authenticated business
+	// (GET /staff)
+	ListStaff(ctx context.Context, request ListStaffRequestObject) (ListStaffResponseObject, error)
+	// Create a LAUNDRY_STAFF account and assign active outlets
+	// (POST /staff)
+	CreateStaff(ctx context.Context, request CreateStaffRequestObject) (CreateStaffResponseObject, error)
+	// Get a staff account, active outlet assignments, and action grants
+	// (GET /staff/{userId})
+	GetStaff(ctx context.Context, request GetStaffRequestObject) (GetStaffResponseObject, error)
+	// Update staff profile or active state
+	// (PUT /staff/{userId})
+	UpdateStaff(ctx context.Context, request UpdateStaffRequestObject) (UpdateStaffResponseObject, error)
+	// Replace a staff member's active outlet assignments
+	// (PUT /staff/{userId}/outlets)
+	ReplaceStaffOutlets(ctx context.Context, request ReplaceStaffOutletsRequestObject) (ReplaceStaffOutletsResponseObject, error)
+	// Replace a staff member's explicit action grants
+	// (PUT /staff/{userId}/permissions)
+	ReplaceStaffPermissions(ctx context.Context, request ReplaceStaffPermissionsRequestObject) (ReplaceStaffPermissionsResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx echo.Context, request any) (any, error)
@@ -1043,6 +2510,139 @@ func (sh *strictHandler) GetLiveness(ctx echo.Context) error {
 	return nil
 }
 
+// ListOutlets operation middleware
+func (sh *strictHandler) ListOutlets(ctx echo.Context, params ListOutletsParams) error {
+	var request ListOutletsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOutlets(ctx.Request().Context(), request.(ListOutletsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOutlets")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListOutletsResponseObject); ok {
+		return validResponse.VisitListOutletsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateOutlet operation middleware
+func (sh *strictHandler) CreateOutlet(ctx echo.Context) error {
+	var request CreateOutletRequestObject
+
+	var body CreateOutletJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateOutlet(ctx.Request().Context(), request.(CreateOutletRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateOutlet")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateOutletResponseObject); ok {
+		return validResponse.VisitCreateOutletResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetOutlet operation middleware
+func (sh *strictHandler) GetOutlet(ctx echo.Context, outletId EntityId) error {
+	var request GetOutletRequestObject
+
+	request.OutletId = outletId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOutlet(ctx.Request().Context(), request.(GetOutletRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOutlet")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetOutletResponseObject); ok {
+		return validResponse.VisitGetOutletResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateOutlet operation middleware
+func (sh *strictHandler) UpdateOutlet(ctx echo.Context, outletId EntityId) error {
+	var request UpdateOutletRequestObject
+
+	request.OutletId = outletId
+
+	var body UpdateOutletJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateOutlet(ctx.Request().Context(), request.(UpdateOutletRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateOutlet")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateOutletResponseObject); ok {
+		return validResponse.VisitUpdateOutletResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListPermissions operation middleware
+func (sh *strictHandler) ListPermissions(ctx echo.Context) error {
+	var request ListPermissionsRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPermissions(ctx.Request().Context(), request.(ListPermissionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPermissions")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListPermissionsResponseObject); ok {
+		return validResponse.VisitListPermissionsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // GetReadiness operation middleware
 func (sh *strictHandler) GetReadiness(ctx echo.Context) error {
 	var request GetReadinessRequestObject
@@ -1060,6 +2660,178 @@ func (sh *strictHandler) GetReadiness(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(GetReadinessResponseObject); ok {
 		return validResponse.VisitGetReadinessResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListStaff operation middleware
+func (sh *strictHandler) ListStaff(ctx echo.Context, params ListStaffParams) error {
+	var request ListStaffRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListStaff(ctx.Request().Context(), request.(ListStaffRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListStaff")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListStaffResponseObject); ok {
+		return validResponse.VisitListStaffResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateStaff operation middleware
+func (sh *strictHandler) CreateStaff(ctx echo.Context) error {
+	var request CreateStaffRequestObject
+
+	var body CreateStaffJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateStaff(ctx.Request().Context(), request.(CreateStaffRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateStaff")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateStaffResponseObject); ok {
+		return validResponse.VisitCreateStaffResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStaff operation middleware
+func (sh *strictHandler) GetStaff(ctx echo.Context, userId EntityId) error {
+	var request GetStaffRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStaff(ctx.Request().Context(), request.(GetStaffRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStaff")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStaffResponseObject); ok {
+		return validResponse.VisitGetStaffResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateStaff operation middleware
+func (sh *strictHandler) UpdateStaff(ctx echo.Context, userId EntityId) error {
+	var request UpdateStaffRequestObject
+
+	request.UserId = userId
+
+	var body UpdateStaffJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateStaff(ctx.Request().Context(), request.(UpdateStaffRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateStaff")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateStaffResponseObject); ok {
+		return validResponse.VisitUpdateStaffResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ReplaceStaffOutlets operation middleware
+func (sh *strictHandler) ReplaceStaffOutlets(ctx echo.Context, userId EntityId) error {
+	var request ReplaceStaffOutletsRequestObject
+
+	request.UserId = userId
+
+	var body ReplaceStaffOutletsJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ReplaceStaffOutlets(ctx.Request().Context(), request.(ReplaceStaffOutletsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReplaceStaffOutlets")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ReplaceStaffOutletsResponseObject); ok {
+		return validResponse.VisitReplaceStaffOutletsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ReplaceStaffPermissions operation middleware
+func (sh *strictHandler) ReplaceStaffPermissions(ctx echo.Context, userId EntityId) error {
+	var request ReplaceStaffPermissionsRequestObject
+
+	request.UserId = userId
+
+	var body ReplaceStaffPermissionsJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ReplaceStaffPermissions(ctx.Request().Context(), request.(ReplaceStaffPermissionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReplaceStaffPermissions")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ReplaceStaffPermissionsResponseObject); ok {
+		return validResponse.VisitReplaceStaffPermissionsResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

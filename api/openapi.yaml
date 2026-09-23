@@ -21,6 +21,8 @@ tags:
     description: Application dependency status
   - name: Authentication
     description: Session and current-user operations
+  - name: Outlets and staff
+    description: Business-scoped outlet, staff, and permission administration (ADMIN only)
 
 paths:
   /livez:
@@ -193,6 +195,252 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /outlets:
+    get:
+      operationId: listOutlets
+      summary: List outlets in the authenticated business
+      tags: [Outlets and staff]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Business outlets and pagination metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutletList"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      operationId: createOutlet
+      summary: Create an outlet in the authenticated business
+      tags: [Outlets and staff]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OutletCreate" }
+      responses:
+        "201":
+          description: Outlet created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Outlet" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /outlets/{outletId}:
+    parameters:
+      - name: outletId
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/EntityId" }
+    get:
+      operationId: getOutlet
+      summary: Get a business outlet
+      tags: [Outlets and staff]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Outlet details.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Outlet" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    put:
+      operationId: updateOutlet
+      summary: Update an outlet profile or active state
+      tags: [Outlets and staff]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OutletUpdate" }
+      responses:
+        "200":
+          description: Outlet updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Outlet" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /staff:
+    get:
+      operationId: listStaff
+      summary: List users in the authenticated business
+      tags: [Outlets and staff]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Business staff and pagination metadata.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      operationId: createStaff
+      summary: Create a LAUNDRY_STAFF account and assign active outlets
+      tags: [Outlets and staff]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StaffCreate" }
+      responses:
+        "201":
+          description: Staff account created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Staff" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /staff/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/EntityId" }
+    get:
+      operationId: getStaff
+      summary: Get a staff account, active outlet assignments, and action grants
+      tags: [Outlets and staff]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Staff account details.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Staff" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    put:
+      operationId: updateStaff
+      summary: Update staff profile or active state
+      description: Role is immutable through this endpoint. An active administrator cannot be deactivated if they are the last active owner.
+      tags: [Outlets and staff]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StaffUpdate" }
+      responses:
+        "200":
+          description: Staff account updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Staff" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /staff/{userId}/outlets:
+    put:
+      operationId: replaceStaffOutlets
+      summary: Replace a staff member's active outlet assignments
+      description: Cross-business and inactive outlet IDs are rejected. Administrators cannot alter their own assignments here.
+      tags: [Outlets and staff]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/EntityId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OutletAssignmentRequest" }
+      responses:
+        "200":
+          description: Outlet assignments replaced.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OutletAssignmentResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /permissions:
+    get:
+      operationId: listPermissions
+      summary: List available action grants
+      tags: [Outlets and staff]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Permission code catalog.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PermissionList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /staff/{userId}/permissions:
+    put:
+      operationId: replaceStaffPermissions
+      summary: Replace a staff member's explicit action grants
+      description: Only LAUNDRY_STAFF accounts receive grants. Administrators cannot grant privileges to themselves.
+      tags: [Outlets and staff]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/EntityId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PermissionGrantSetRequest" }
+      responses:
+        "200":
+          description: Action grants replaced.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PermissionGrantSetResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
 components:
   securitySchemes:
     BearerAuth:
@@ -244,6 +492,18 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
     Forbidden:
       description: The authenticated user is not allowed to perform the operation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: The resource does not exist in the authenticated business.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: The request conflicts with a business invariant or unique constraint.
       content:
         application/json:
           schema:
@@ -529,3 +789,142 @@ components:
           $ref: "#/components/schemas/TokenPair"
         user:
           $ref: "#/components/schemas/CurrentUser"
+
+    Outlet:
+      type: object
+      required: [id, business_id, code, name, is_active, created_at, updated_at]
+      properties:
+        id: { $ref: "#/components/schemas/EntityId" }
+        business_id: { $ref: "#/components/schemas/EntityId" }
+        code: { type: string }
+        name: { type: string }
+        phone: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        is_active: { type: boolean }
+        created_at: { $ref: "#/components/schemas/JakartaDateTime" }
+        updated_at: { $ref: "#/components/schemas/JakartaDateTime" }
+    OutletCreate:
+      type: object
+      additionalProperties: false
+      required: [code, name]
+      properties:
+        code: { type: string, minLength: 1, maxLength: 64 }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        phone: { type: string, maxLength: 32, nullable: true }
+        address: { type: string, maxLength: 500, nullable: true }
+    OutletUpdate:
+      allOf:
+        - $ref: "#/components/schemas/OutletCreate"
+        - type: object
+          required: [isActive]
+          properties:
+            isActive: { type: boolean }
+    OutletList:
+      type: object
+      required: [items, pagination]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Outlet" } }
+        pagination: { $ref: "#/components/schemas/PaginationMeta" }
+    Staff:
+      type: object
+      required: [id, businessId, email, fullName, role, isActive, outletIds, permissions]
+      properties:
+        id: { $ref: "#/components/schemas/EntityId" }
+        businessId: { $ref: "#/components/schemas/EntityId" }
+        email: { type: string, format: email }
+        fullName: { type: string }
+        role: { $ref: "#/components/schemas/UserRole" }
+        isActive: { type: boolean }
+        outletIds: { type: array, items: { $ref: "#/components/schemas/EntityId" } }
+        permissions: { type: array, items: { type: string } }
+    StaffCreate:
+      type: object
+      additionalProperties: false
+      required: [email, fullName, password, outletIds]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        fullName: { type: string, minLength: 1, maxLength: 200 }
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 128
+          writeOnly: true
+          description: New-password character policy; server additionally enforces bcrypt's 72 UTF-8 byte limit.
+        outletIds:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/EntityId" }
+    StaffUpdate:
+      type: object
+      additionalProperties: false
+      required: [fullName, isActive]
+      properties:
+        fullName: { type: string, minLength: 1, maxLength: 200 }
+        isActive: { type: boolean }
+    StaffList:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, business_id, email, full_name, role, is_active]
+            properties:
+              id: { $ref: "#/components/schemas/EntityId" }
+              business_id: { $ref: "#/components/schemas/EntityId" }
+              email: { type: string, format: email }
+              full_name: { type: string }
+              role: { $ref: "#/components/schemas/UserRole" }
+              is_active: { type: boolean }
+              created_at: { $ref: "#/components/schemas/JakartaDateTime" }
+              updated_at: { $ref: "#/components/schemas/JakartaDateTime" }
+        pagination: { $ref: "#/components/schemas/PaginationMeta" }
+    OutletAssignmentRequest:
+      type: object
+      additionalProperties: false
+      required: [outletIds]
+      properties:
+        outletIds:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/EntityId" }
+    OutletAssignmentResponse:
+      type: object
+      required: [userId, outletIds]
+      properties:
+        userId: { $ref: "#/components/schemas/EntityId" }
+        outletIds:
+          type: array
+          items: { $ref: "#/components/schemas/EntityId" }
+    Permission:
+      type: object
+      required: [code, description]
+      properties:
+        code: { type: string, pattern: "^[A-Z][A-Z0-9_]*$" }
+        description: { type: string }
+    PermissionList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Permission" } }
+    PermissionGrantSetRequest:
+      type: object
+      additionalProperties: false
+      required: [permissions]
+      properties:
+        permissions:
+          type: array
+          uniqueItems: true
+          items: { type: string, pattern: "^[A-Z][A-Z0-9_]*$" }
+    PermissionGrantSetResponse:
+      type: object
+      required: [userId, permissions]
+      properties:
+        userId: { $ref: "#/components/schemas/EntityId" }
+        permissions:
+          type: array
+          items: { type: string, pattern: "^[A-Z][A-Z0-9_]*$" }

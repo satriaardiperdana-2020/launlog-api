@@ -66,6 +66,7 @@ func run(logger *slog.Logger) error {
 
 	healthHandler := handlers.NewHealthHandler(database, cfg.ReadinessTimeout)
 	authHandler := handlers.NewAuthHandler(database, jwtTokens, cfg.JWTRefreshTokenTTL)
+	managementHandler := handlers.NewManagementHandler(database)
 	authLimiter := launmiddleware.NewAuthLimiter(4096, 10, time.Minute)
 	authBody := launmiddleware.AuthBodyLimit(4096)
 	e.GET("/livez", healthHandler.Live)
@@ -75,6 +76,19 @@ func run(logger *slog.Logger) error {
 	e.POST("/auth/refresh", authHandler.Refresh, authBody, authLimiter.Middleware)
 	e.POST("/auth/logout", authHandler.Logout, authBody, launmiddleware.AuthenticateForLogout(database, jwtTokens))
 	e.GET("/auth/me", authHandler.Me, launmiddleware.Authenticate(database, jwtTokens))
+
+	owner := e.Group("", launmiddleware.Authenticate(database, jwtTokens), launmiddleware.RequireAdmin())
+	owner.GET("/outlets", managementHandler.ListOutlets)
+	owner.POST("/outlets", managementHandler.CreateOutlet)
+	owner.GET("/outlets/:outletId", managementHandler.GetOutlet)
+	owner.PUT("/outlets/:outletId", managementHandler.UpdateOutlet)
+	owner.GET("/staff", managementHandler.ListStaff)
+	owner.POST("/staff", managementHandler.CreateStaff)
+	owner.GET("/staff/:userId", managementHandler.GetStaff)
+	owner.PUT("/staff/:userId", managementHandler.UpdateStaff)
+	owner.PUT("/staff/:userId/outlets", managementHandler.ReplaceStaffOutlets)
+	owner.GET("/permissions", managementHandler.ListPermissions)
+	owner.PUT("/staff/:userId/permissions", managementHandler.ReplaceStaffPermissions)
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress(),

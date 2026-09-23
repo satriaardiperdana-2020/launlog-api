@@ -52,6 +52,11 @@ func newAuthFixture(t *testing.T) *authFixture {
 	f.echo.IPExtractor = echo.ExtractIPDirect()
 	t.Cleanup(func() {
 		// Delete only records created by this test, in foreign-key order.
+		// Management audit rows are intentionally immutable in production; the
+		// integration database is isolated and owned by the test role.
+		_, _ = pool.Exec(ctx, "ALTER TABLE audit_logs DISABLE TRIGGER audit_logs_immutable")
+		_, _ = pool.Exec(ctx, "DELETE FROM audit_logs WHERE business_id=$1", f.businessID)
+		_, _ = pool.Exec(ctx, "ALTER TABLE audit_logs ENABLE TRIGGER audit_logs_immutable")
 		_, _ = pool.Exec(ctx, "DELETE FROM refresh_tokens WHERE business_id=$1", f.businessID)
 		_, _ = pool.Exec(ctx, "DELETE FROM session_families WHERE business_id=$1", f.businessID)
 		_, _ = pool.Exec(ctx, "DELETE FROM user_outlets WHERE business_id=$1", f.businessID)
@@ -89,7 +94,28 @@ func newAuthFixture(t *testing.T) *authFixture {
 	f.echo.POST("/auth/refresh", handler.Refresh, bodyLimit, limiter.Middleware)
 	f.echo.POST("/auth/logout", handler.Logout, bodyLimit, authmiddleware.AuthenticateForLogout(database, tokens))
 	f.echo.GET("/auth/me", handler.Me, authmiddleware.Authenticate(database, tokens))
+	management := handlers.NewManagementHandler(database)
+	owner := f.echo.Group("", authmiddleware.Authenticate(database, tokens), authmiddleware.RequireAdmin())
+	owner.GET("/outlets", management.ListOutlets)
+	owner.POST("/outlets", management.CreateOutlet)
+	owner.GET("/outlets/:outletId", management.GetOutlet)
+	owner.PUT("/outlets/:outletId", management.UpdateOutlet)
+	owner.GET("/staff", management.ListStaff)
+	owner.POST("/staff", management.CreateStaff)
+	owner.GET("/staff/:userId", management.GetStaff)
+	owner.PUT("/staff/:userId", management.UpdateStaff)
+	owner.PUT("/staff/:userId/outlets", management.ReplaceStaffOutlets)
+	owner.GET("/permissions", management.ListPermissions)
+	owner.PUT("/staff/:userId/permissions", management.ReplaceStaffPermissions)
 	return f
+}
+
+func (f *authFixture) ownerLogin(t *testing.T) string {
+	t.Helper()
+	if _, err := f.pool.Exec(context.Background(), "UPDATE users SET role='ADMIN' WHERE id=$1 AND business_id=$2", f.userID, f.businessID); err != nil {
+		t.Fatal(err)
+	}
+	return f.login(t).Tokens.AccessToken
 }
 
 func (f *authFixture) request(path string, body any, bearer string) (int, []byte) {
@@ -101,6 +127,21 @@ func (f *authFixture) request(path string, body any, bearer string) (int, []byte
 	if path == "/auth/me" {
 		req.Method = http.MethodGet
 	}
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	if bearer != "" {
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+bearer)
+	}
+	rec := httptest.NewRecorder()
+	f.echo.ServeHTTP(rec, req)
+	return rec.Code, rec.Body.Bytes()
+}
+
+func (f *authFixture) managementRequest(method, path string, body any, bearer string) (int, []byte) {
+	var encoded []byte
+	if body != nil {
+		encoded, _ = json.Marshal(body)
+	}
+	req := httptest.NewRequest(method, path, bytes.NewReader(encoded))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	if bearer != "" {
 		req.Header.Set(echo.HeaderAuthorization, "Bearer "+bearer)

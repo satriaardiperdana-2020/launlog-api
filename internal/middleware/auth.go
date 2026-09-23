@@ -92,6 +92,23 @@ func RequirePermission(permission string) echo.MiddlewareFunc {
 		}
 	}
 }
+
+// RequireAdmin limits owner-management operations to ADMIN while relying on
+// Authenticate to validate the active tenant and current outlet assignments.
+func RequireAdmin() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			p, ok := handlers.PrincipalFromContext(c)
+			if !ok {
+				return unauthorized(c)
+			}
+			if p.Role != "ADMIN" {
+				return c.JSON(http.StatusForbidden, map[string]string{"code": "FORBIDDEN", "message": "Administrator access is required."})
+			}
+			return next(c)
+		}
+	}
+}
 func unauthorized(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderWWWAuthenticate, "Bearer")
 	return c.JSON(http.StatusUnauthorized, map[string]string{"code": "UNAUTHORIZED", "message": "Authentication is required."})

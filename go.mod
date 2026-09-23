@@ -3,7 +3,6 @@ module github.com/satriaardiperdana-2020/launlog-api
 go 1.27.1
 
 require (
-	github.com/getkin/kin-openapi v0.149.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/labstack/echo/v4 v4.15.1
@@ -12,8 +11,7 @@ require (
 )
 
 require (
-	github.com/go-openapi/jsonpointer v0.22.5 // indirect
-	github.com/go-openapi/swag/jsonname v0.25.5 // indirect
+	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
@@ -21,10 +19,6 @@ require (
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/oasdiff/yaml v0.1.1 // indirect
-	github.com/oasdiff/yaml3 v0.0.14 // indirect
-	github.com/rogpeppe/go-internal v1.16.0 // indirect
-	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	golang.org/x/net v0.48.0 // indirect
