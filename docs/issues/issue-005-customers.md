@@ -27,3 +27,7 @@ Create/update/search, repeated phone values, soft deactivation with preserved or
 ## Definition of done
 
 Contract, service behavior, repository queries, permissions, tests, and audit logging are complete.
+
+## Order-history dependency
+
+Closed by ISSUE-008: customer history reads actual persisted `orders` rows created through `POST /orders`, remains paginated, and includes retained cancelled orders while respecting current staff outlet assignments.

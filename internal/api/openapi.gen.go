@@ -22,22 +22,22 @@ const (
 
 // Defines values for CustomerOrderSummaryPaymentStatus.
 const (
-	PAID          CustomerOrderSummaryPaymentStatus = "PAID"
-	PARTIALLYPAID CustomerOrderSummaryPaymentStatus = "PARTIALLY_PAID"
-	REFUNDED      CustomerOrderSummaryPaymentStatus = "REFUNDED"
-	UNPAID        CustomerOrderSummaryPaymentStatus = "UNPAID"
+	CustomerOrderSummaryPaymentStatusPAID          CustomerOrderSummaryPaymentStatus = "PAID"
+	CustomerOrderSummaryPaymentStatusPARTIALLYPAID CustomerOrderSummaryPaymentStatus = "PARTIALLY_PAID"
+	CustomerOrderSummaryPaymentStatusREFUNDED      CustomerOrderSummaryPaymentStatus = "REFUNDED"
+	CustomerOrderSummaryPaymentStatusUNPAID        CustomerOrderSummaryPaymentStatus = "UNPAID"
 )
 
 // Valid indicates whether the value is a known member of the CustomerOrderSummaryPaymentStatus enum.
 func (e CustomerOrderSummaryPaymentStatus) Valid() bool {
 	switch e {
-	case PAID:
+	case CustomerOrderSummaryPaymentStatusPAID:
 		return true
-	case PARTIALLYPAID:
+	case CustomerOrderSummaryPaymentStatusPARTIALLYPAID:
 		return true
-	case REFUNDED:
+	case CustomerOrderSummaryPaymentStatusREFUNDED:
 		return true
-	case UNPAID:
+	case CustomerOrderSummaryPaymentStatusUNPAID:
 		return true
 	default:
 		return false
@@ -46,25 +46,25 @@ func (e CustomerOrderSummaryPaymentStatus) Valid() bool {
 
 // Defines values for CustomerOrderSummaryStatus.
 const (
-	CANCELLED      CustomerOrderSummaryStatus = "CANCELLED"
-	COMPLETED      CustomerOrderSummaryStatus = "COMPLETED"
-	PROCESSING     CustomerOrderSummaryStatus = "PROCESSING"
-	READYFORPICKUP CustomerOrderSummaryStatus = "READY_FOR_PICKUP"
-	RECEIVED       CustomerOrderSummaryStatus = "RECEIVED"
+	CustomerOrderSummaryStatusCANCELLED      CustomerOrderSummaryStatus = "CANCELLED"
+	CustomerOrderSummaryStatusCOMPLETED      CustomerOrderSummaryStatus = "COMPLETED"
+	CustomerOrderSummaryStatusPROCESSING     CustomerOrderSummaryStatus = "PROCESSING"
+	CustomerOrderSummaryStatusREADYFORPICKUP CustomerOrderSummaryStatus = "READY_FOR_PICKUP"
+	CustomerOrderSummaryStatusRECEIVED       CustomerOrderSummaryStatus = "RECEIVED"
 )
 
 // Valid indicates whether the value is a known member of the CustomerOrderSummaryStatus enum.
 func (e CustomerOrderSummaryStatus) Valid() bool {
 	switch e {
-	case CANCELLED:
+	case CustomerOrderSummaryStatusCANCELLED:
 		return true
-	case COMPLETED:
+	case CustomerOrderSummaryStatusCOMPLETED:
 		return true
-	case PROCESSING:
+	case CustomerOrderSummaryStatusPROCESSING:
 		return true
-	case READYFORPICKUP:
+	case CustomerOrderSummaryStatusREADYFORPICKUP:
 		return true
-	case RECEIVED:
+	case CustomerOrderSummaryStatusRECEIVED:
 		return true
 	default:
 		return false
@@ -95,6 +95,57 @@ const (
 func (e HealthUnavailableResponseStatus) Valid() bool {
 	switch e {
 	case Unavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrderPaymentStatus.
+const (
+	OrderPaymentStatusPAID          OrderPaymentStatus = "PAID"
+	OrderPaymentStatusPARTIALLYPAID OrderPaymentStatus = "PARTIALLY_PAID"
+	OrderPaymentStatusREFUNDED      OrderPaymentStatus = "REFUNDED"
+	OrderPaymentStatusUNPAID        OrderPaymentStatus = "UNPAID"
+)
+
+// Valid indicates whether the value is a known member of the OrderPaymentStatus enum.
+func (e OrderPaymentStatus) Valid() bool {
+	switch e {
+	case OrderPaymentStatusPAID:
+		return true
+	case OrderPaymentStatusPARTIALLYPAID:
+		return true
+	case OrderPaymentStatusREFUNDED:
+		return true
+	case OrderPaymentStatusUNPAID:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrderStatus.
+const (
+	OrderStatusCANCELLED      OrderStatus = "CANCELLED"
+	OrderStatusCOMPLETED      OrderStatus = "COMPLETED"
+	OrderStatusPROCESSING     OrderStatus = "PROCESSING"
+	OrderStatusREADYFORPICKUP OrderStatus = "READY_FOR_PICKUP"
+	OrderStatusRECEIVED       OrderStatus = "RECEIVED"
+)
+
+// Valid indicates whether the value is a known member of the OrderStatus enum.
+func (e OrderStatus) Valid() bool {
+	switch e {
+	case OrderStatusCANCELLED:
+		return true
+	case OrderStatusCOMPLETED:
+		return true
+	case OrderStatusPROCESSING:
+		return true
+	case OrderStatusREADYFORPICKUP:
+		return true
+	case OrderStatusRECEIVED:
 		return true
 	default:
 		return false
@@ -162,6 +213,32 @@ func (e UserRole) Valid() bool {
 type AuthSessionResponse struct {
 	Tokens TokenPair   `json:"tokens"`
 	User   CurrentUser `json:"user"`
+}
+
+// CreateOrderInput defines model for CreateOrderInput.
+type CreateOrderInput struct {
+	// CustomerId Database identifier backed by a PostgreSQL BIGINT.
+	CustomerId EntityId               `json:"customerId"`
+	DueAt      *JakartaDateTime       `json:"dueAt,omitempty"`
+	Items      []CreateOrderItemInput `json:"items"`
+	Notes      *string                `json:"notes,omitempty"`
+
+	// OutletId Database identifier backed by a PostgreSQL BIGINT.
+	OutletId EntityId `json:"outletId"`
+
+	// PerfumeId One optional perfume for the whole order; omission or null means no perfume.
+	PerfumeId *EntityId `json:"perfumeId,omitempty"`
+}
+
+// CreateOrderItemInput defines model for CreateOrderItemInput.
+type CreateOrderItemInput struct {
+	Notes *string `json:"notes,omitempty"`
+
+	// Quantity Positive decimal quantity with up to three fractional digits, encoded as a string for exact transport.
+	Quantity DecimalQuantity `json:"quantity"`
+
+	// ServiceId Database identifier backed by a PostgreSQL BIGINT.
+	ServiceId EntityId `json:"serviceId"`
 }
 
 // CreatePerfumeInput defines model for CreatePerfumeInput.
@@ -328,6 +405,114 @@ type LoginRequest struct {
 type LogoutRequest struct {
 	// RefreshToken Refresh token for the session that will be revoked.
 	RefreshToken *string `json:"refreshToken,omitempty"`
+}
+
+// Order defines model for Order.
+type Order struct {
+	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
+	BusinessId EntityId `json:"business_id"`
+
+	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	CreatedAt JakartaDateTime `json:"created_at"`
+
+	// CreatedBy Database identifier backed by a PostgreSQL BIGINT.
+	CreatedBy EntityId `json:"created_by"`
+
+	// CustomerId Database identifier backed by a PostgreSQL BIGINT.
+	CustomerId EntityId         `json:"customer_id"`
+	DueAt      *JakartaDateTime `json:"due_at"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id            EntityId    `json:"id"`
+	InvoiceNumber string      `json:"invoice_number"`
+	Items         []OrderItem `json:"items"`
+	Notes         *string     `json:"notes"`
+
+	// OutletId Database identifier backed by a PostgreSQL BIGINT.
+	OutletId      EntityId           `json:"outlet_id"`
+	PaymentStatus OrderPaymentStatus `json:"payment_status"`
+
+	// ReceivedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	ReceivedAt JakartaDateTime `json:"received_at"`
+	Status     OrderStatus     `json:"status"`
+
+	// TotalAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+	TotalAmount RupiahAmount `json:"total_amount"`
+
+	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	UpdatedAt JakartaDateTime `json:"updated_at"`
+}
+
+// OrderItem defines model for OrderItem.
+type OrderItem struct {
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id EntityId `json:"id"`
+
+	// LineTotalAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+	LineTotalAmount     RupiahAmount `json:"line_total_amount"`
+	Notes               *string      `json:"notes"`
+	PerfumeId           *EntityId    `json:"perfume_id"`
+	PerfumeNameSnapshot *string      `json:"perfume_name_snapshot"`
+
+	// Quantity Positive decimal quantity with up to three fractional digits, encoded as a string for exact transport.
+	Quantity DecimalQuantity `json:"quantity"`
+
+	// ServiceId Database identifier backed by a PostgreSQL BIGINT.
+	ServiceId           EntityId `json:"service_id"`
+	ServiceNameSnapshot string   `json:"service_name_snapshot"`
+
+	// ServiceUnitSnapshot Existing database unit codes; no separate service_type field.
+	ServiceUnitSnapshot ServiceUnit `json:"service_unit_snapshot"`
+
+	// UnitPriceAmountSnapshot Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+	UnitPriceAmountSnapshot RupiahAmount `json:"unit_price_amount_snapshot"`
+}
+
+// OrderList defines model for OrderList.
+type OrderList struct {
+	Items      []OrderSummary `json:"items"`
+	Pagination PaginationMeta `json:"pagination"`
+}
+
+// OrderPaymentStatus defines model for OrderPaymentStatus.
+type OrderPaymentStatus string
+
+// OrderStatus defines model for OrderStatus.
+type OrderStatus string
+
+// OrderSummary defines model for OrderSummary.
+type OrderSummary struct {
+	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
+	BusinessId EntityId `json:"business_id"`
+
+	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	CreatedAt JakartaDateTime `json:"created_at"`
+
+	// CreatedBy Database identifier backed by a PostgreSQL BIGINT.
+	CreatedBy EntityId `json:"created_by"`
+
+	// CustomerId Database identifier backed by a PostgreSQL BIGINT.
+	CustomerId EntityId         `json:"customer_id"`
+	DueAt      *JakartaDateTime `json:"due_at"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id            EntityId `json:"id"`
+	InvoiceNumber string   `json:"invoice_number"`
+	Notes         *string  `json:"notes"`
+
+	// OutletId Database identifier backed by a PostgreSQL BIGINT.
+	OutletId      EntityId           `json:"outlet_id"`
+	PaymentStatus OrderPaymentStatus `json:"payment_status"`
+
+	// ReceivedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	ReceivedAt JakartaDateTime `json:"received_at"`
+	Status     OrderStatus     `json:"status"`
+
+	// TotalAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+	TotalAmount RupiahAmount `json:"total_amount"`
+
+	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	UpdatedAt JakartaDateTime `json:"updated_at"`
 }
 
 // Outlet defines model for Outlet.
@@ -632,6 +817,25 @@ type GetCustomerOrderHistoryParams struct {
 	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 }
 
+// ListOrdersParams defines parameters for ListOrders.
+type ListOrdersParams struct {
+	// Page One-based page number.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of records per page, capped at 100.
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// OutletId Optional outlet filter; staff can query only currently assigned active outlets.
+	OutletId *EntityId    `form:"outletId,omitempty" json:"outletId,omitempty"`
+	Status   *OrderStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// CreateOrderParams defines parameters for CreateOrder.
+type CreateOrderParams struct {
+	// IdempotencyKey Client key scoped to the authenticated business and outlet. Reusing it with the same decoded payload returns the existing order; a different payload returns 409.
+	IdempotencyKey string `json:"Idempotency-Key"`
+}
+
 // ListOutletsParams defines parameters for ListOutlets.
 type ListOutletsParams struct {
 	// Page One-based page number.
@@ -695,6 +899,9 @@ type CreateCustomerJSONRequestBody = CustomerInput
 
 // UpdateCustomerJSONRequestBody defines body for UpdateCustomer for application/json ContentType.
 type UpdateCustomerJSONRequestBody = CustomerInput
+
+// CreateOrderJSONRequestBody defines body for CreateOrder for application/json ContentType.
+type CreateOrderJSONRequestBody = CreateOrderInput
 
 // CreateOutletJSONRequestBody defines body for CreateOutlet for application/json ContentType.
 type CreateOutletJSONRequestBody = OutletCreate
@@ -764,6 +971,15 @@ type ServerInterface interface {
 	// Check whether the HTTP process is live
 	// (GET /livez)
 	GetLiveness(ctx echo.Context) error
+	// List orders available to the authenticated user
+	// (GET /orders)
+	ListOrders(ctx echo.Context, params ListOrdersParams) error
+	// Create an order and allocate an invoice atomically
+	// (POST /orders)
+	CreateOrder(ctx echo.Context, params CreateOrderParams) error
+	// Get an order and its immutable item snapshots
+	// (GET /orders/{orderId})
+	GetOrder(ctx echo.Context, orderId EntityId) error
 	// List outlets in the authenticated business
 	// (GET /outlets)
 	ListOutlets(ctx echo.Context, params ListOutletsParams) error
@@ -1025,6 +1241,98 @@ func (w *ServerInterfaceWrapper) GetLiveness(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetLiveness(ctx)
+	return err
+}
+
+// ListOrders converts echo context to params.
+func (w *ServerInterfaceWrapper) ListOrders(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrdersParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "outletId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "outletId", ctx.QueryParams(), &params.OutletId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", ctx.QueryParams(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListOrders(ctx, params)
+	return err
+}
+
+// CreateOrder converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateOrder(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateOrderParams
+
+	headers := ctx.Request().Header
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey string
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for Idempotency-Key, got %d", n))
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Idempotency-Key: %s", err))
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+	} else {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Header parameter Idempotency-Key is required, but not found"))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateOrder(ctx, params)
+	return err
+}
+
+// GetOrder converts echo context to params.
+func (w *ServerInterfaceWrapper) GetOrder(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "orderId" -------------
+	var orderId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orderId", ctx.Param("orderId"), &orderId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter orderId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetOrder(ctx, orderId)
 	return err
 }
 
@@ -1510,6 +1818,9 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/customers/:customerId/orders", wrapper.GetCustomerOrderHistory, options.OperationMiddlewares["getCustomerOrderHistory"]...)
 	router.GET(options.BaseURL+"/health", wrapper.GetHealth, options.OperationMiddlewares["getHealth"]...)
 	router.GET(options.BaseURL+"/livez", wrapper.GetLiveness, options.OperationMiddlewares["getLiveness"]...)
+	router.GET(options.BaseURL+"/orders", wrapper.ListOrders, options.OperationMiddlewares["listOrders"]...)
+	router.POST(options.BaseURL+"/orders", wrapper.CreateOrder, options.OperationMiddlewares["createOrder"]...)
+	router.GET(options.BaseURL+"/orders/:orderId", wrapper.GetOrder, options.OperationMiddlewares["getOrder"]...)
 	router.GET(options.BaseURL+"/outlets", wrapper.ListOutlets, options.OperationMiddlewares["listOutlets"]...)
 	router.POST(options.BaseURL+"/outlets", wrapper.CreateOutlet, options.OperationMiddlewares["createOutlet"]...)
 	router.GET(options.BaseURL+"/outlets/:outletId", wrapper.GetOutlet, options.OperationMiddlewares["getOutlet"]...)
@@ -2514,6 +2825,308 @@ func (response GetLiveness200JSONResponse) VisitGetLivenessResponse(w http.Respo
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrdersRequestObject struct {
+	Params ListOrdersParams
+}
+
+type ListOrdersResponseObject interface {
+	VisitListOrdersResponse(w http.ResponseWriter) error
+}
+
+type ListOrders200JSONResponse OrderList
+
+func (response ListOrders200JSONResponse) VisitListOrdersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrders400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListOrders400JSONResponse) VisitListOrdersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrders401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListOrders401JSONResponse) VisitListOrdersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrders403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListOrders403JSONResponse) VisitListOrdersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrders500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListOrders500JSONResponse) VisitListOrdersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateOrderRequestObject struct {
+	Params CreateOrderParams
+	Body   *CreateOrderJSONRequestBody
+}
+
+type CreateOrderResponseObject interface {
+	VisitCreateOrderResponse(w http.ResponseWriter) error
+}
+
+type CreateOrder201ResponseHeaders struct {
+	IdempotencyReplayed *string
+}
+
+type CreateOrder201JSONResponse struct {
+	Body    Order
+	Headers CreateOrder201ResponseHeaders
+}
+
+func (response CreateOrder201JSONResponse) VisitCreateOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.IdempotencyReplayed != nil {
+		w.Header().Set("Idempotency-Replayed", fmt.Sprint(*response.Headers.IdempotencyReplayed))
+	}
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateOrder400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateOrder400JSONResponse) VisitCreateOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateOrder401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateOrder401JSONResponse) VisitCreateOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateOrder403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateOrder403JSONResponse) VisitCreateOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateOrder404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateOrder404JSONResponse) VisitCreateOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateOrder409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateOrder409JSONResponse) VisitCreateOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateOrder500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateOrder500JSONResponse) VisitCreateOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrderRequestObject struct {
+	OrderId EntityId `json:"orderId"`
+}
+
+type GetOrderResponseObject interface {
+	VisitGetOrderResponse(w http.ResponseWriter) error
+}
+
+type GetOrder200JSONResponse Order
+
+func (response GetOrder200JSONResponse) VisitGetOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrder400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetOrder400JSONResponse) VisitGetOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrder401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetOrder401JSONResponse) VisitGetOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrder403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetOrder403JSONResponse) VisitGetOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrder404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetOrder404JSONResponse) VisitGetOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrder500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetOrder500JSONResponse) VisitGetOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -4565,6 +5178,15 @@ type StrictServerInterface interface {
 	// Check whether the HTTP process is live
 	// (GET /livez)
 	GetLiveness(ctx context.Context, request GetLivenessRequestObject) (GetLivenessResponseObject, error)
+	// List orders available to the authenticated user
+	// (GET /orders)
+	ListOrders(ctx context.Context, request ListOrdersRequestObject) (ListOrdersResponseObject, error)
+	// Create an order and allocate an invoice atomically
+	// (POST /orders)
+	CreateOrder(ctx context.Context, request CreateOrderRequestObject) (CreateOrderResponseObject, error)
+	// Get an order and its immutable item snapshots
+	// (GET /orders/{orderId})
+	GetOrder(ctx context.Context, request GetOrderRequestObject) (GetOrderResponseObject, error)
 	// List outlets in the authenticated business
 	// (GET /outlets)
 	ListOutlets(ctx context.Context, request ListOutletsRequestObject) (ListOutletsResponseObject, error)
@@ -4956,6 +5578,87 @@ func (sh *strictHandler) GetLiveness(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(GetLivenessResponseObject); ok {
 		return validResponse.VisitGetLivenessResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListOrders operation middleware
+func (sh *strictHandler) ListOrders(ctx echo.Context, params ListOrdersParams) error {
+	var request ListOrdersRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOrders(ctx.Request().Context(), request.(ListOrdersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOrders")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListOrdersResponseObject); ok {
+		return validResponse.VisitListOrdersResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateOrder operation middleware
+func (sh *strictHandler) CreateOrder(ctx echo.Context, params CreateOrderParams) error {
+	var request CreateOrderRequestObject
+
+	request.Params = params
+
+	var body CreateOrderJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateOrder(ctx.Request().Context(), request.(CreateOrderRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateOrder")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateOrderResponseObject); ok {
+		return validResponse.VisitCreateOrderResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetOrder operation middleware
+func (sh *strictHandler) GetOrder(ctx echo.Context, orderId EntityId) error {
+	var request GetOrderRequestObject
+
+	request.OrderId = orderId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOrder(ctx.Request().Context(), request.(GetOrderRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOrder")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetOrderResponseObject); ok {
+		return validResponse.VisitGetOrderResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

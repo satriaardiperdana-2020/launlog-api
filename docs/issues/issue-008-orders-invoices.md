@@ -27,3 +27,12 @@ Concurrent invoice allocation, decimal and PIECE quantity validation, snapshot i
 ## Definition of done
 
 Transaction tests against PostgreSQL, contract, permission checks, and audit events are complete.
+
+## Implementation decisions
+
+- Migration `000012_order_idempotency` adds a business/outlet-scoped key and SHA-256 payload hash.
+- Invoice numbers are `<outlet-code>-<YYYYMMDD>-<sequence padded to at least six digits>`; allocation uses one counter upsert in the order transaction.
+- `NUMERIC(12,3)` quantity allows at most nine integer and three fractional digits. Piece quantities are integral. Each line is multiplied exactly and rounded to whole rupiah using PostgreSQL numeric rounding (half away from zero); the order total sums rounded lines.
+- Orders are created `UNPAID`; payment collection remains ISSUE-010. Request payloads cannot set a price.
+- One optional perfume is selected for all order items. Absence stores NULL perfume IDs and snapshots. Item snapshots preserve current catalog names/units/prices at creation.
+- Customer history from ISSUE-005 is now backed by orders created through this API.

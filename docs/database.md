@@ -65,13 +65,15 @@ A business-owned perfume catalog. Perfume names are unique among non-deleted rec
 
 ### `orders`
 
-The order header belongs to one business, outlet, and customer. Invoice numbers are unique per outlet. Status values follow `RECEIVED`, `PROCESSING`, `READY_FOR_PICKUP`, `COMPLETED`, or `CANCELLED`; payment state is `UNPAID`, `PARTIALLY_PAID`, `PAID`, or `REFUNDED`.
+The order header belongs to one business, outlet, and customer. Invoice numbers are allocated atomically per outlet and Asia/Jakarta date using `invoice_counters`, formatted `<outlet-code>-<YYYYMMDD>-<sequence padded to at least six digits>`. New orders start in `RECEIVED` with `UNPAID`; ISSUE-008 creates no payment record or initial payment. Status values follow `RECEIVED`, `PROCESSING`, `READY_FOR_PICKUP`, `COMPLETED`, or `CANCELLED`; payment state also allows `PARTIALLY_PAID`, `PAID`, or `REFUNDED` for later issues.
+
+Migration `000012_order_idempotency` adds nullable request key and SHA-256 request hash columns with a unique `(business_id, outlet_id, idempotency_key)` index. Creation serializes concurrent requests for the same key, returns the existing order for the same decoded payload, and rejects a changed payload with HTTP 409. Invoice allocation, order/items, initial status history, and audit log commit in one transaction.
 
 Cancellation is the order soft-delete operation. A cancelled row must have `cancelled_at`, `cancelled_by`, a non-empty reason, and `deleted_at`. Non-cancelled rows cannot carry cancellation metadata. Completed orders require `completed_at`.
 
 ### `order_items`
 
-An order line references its source service and optional perfume, while also storing immutable service name, unit, unit price, and perfume-name snapshots. No perfume selection is represented by NULL in both `perfume_id` and `perfume_name_snapshot`; a synthetic perfume record is not used. The agreed order behavior allows at most one selected perfume across the order; ISSUE-008 must validate that invariant transactionally because the current row-level schema allows a different perfume on each line. The order creation transaction writes the chosen perfume name snapshot to its item rows. Later catalog edits, deactivation, or soft deletion cannot rewrite historical snapshots. Quantity uses `NUMERIC(12,3)`, piece quantities must be integral, and the line total must equal the rounded snapshot price multiplied by quantity.
+An order line references its source service and optional perfume, while also storing immutable service name, unit, unit price, and perfume-name snapshots. No perfume selection is represented by NULL in both `perfume_id` and `perfume_name_snapshot`; a synthetic perfume record is not used. At most one perfume is selected for the whole order and that selection and its snapshot are applied consistently to its items. Later catalog edits, deactivation, or soft deletion cannot rewrite historical snapshots. Quantity uses `NUMERIC(12,3)` with up to nine integer and three fractional digits; piece quantities must be integral. Each line total is `round(quantity * unit_price_amount_snapshot)` in PostgreSQL numeric arithmetic, which rounds positive half-rupiah values away from zero. The order total is the sum of individually rounded line totals, all stored as whole-rupiah `BIGINT`.
 
 ### `order_status_history`
 
@@ -79,7 +81,7 @@ An append-oriented record of every order status transition, including actor and 
 
 ### `invoice_counters`
 
-Maintains the next invoice sequence per business, outlet, and date. Invoice generation must lock the counter row with `SELECT ... FOR UPDATE`, increment it, and create the order in the same transaction.
+Maintains the next invoice sequence per business, outlet, and date. Invoice generation uses an `INSERT ... ON CONFLICT DO UPDATE ... RETURNING` counter upsert so PostgreSQL serializes allocations for a counter key; it creates the order in the same transaction so failures roll back the allocated sequence.
 
 ## Payments
 
@@ -126,6 +128,7 @@ An immutable business audit stream. It records an optional outlet and actor, act
 9. `000009_permission_catalog`
 10. `000010_customer_phone_nonunique`
 11. `000011_service_description`
+12. `000012_order_idempotency`
 
 Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run in reverse order because later domains reference earlier ownership and order tables.
 

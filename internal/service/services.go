@@ -58,6 +58,8 @@ type ServiceFilter struct {
 type Actor struct {
 	BusinessID int64
 	UserID     int64
+	Role       string
+	OutletIDs  []int64
 	IP         *netip.Addr
 	UserAgent  string
 }
