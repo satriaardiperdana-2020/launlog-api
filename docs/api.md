@@ -17,6 +17,14 @@ The source of truth is [api/openapi.yaml](../api/openapi.yaml). The current serv
 - At password creation or change, require 8–128 Unicode characters and at most 72 UTF-8 bytes. Login checks existing passwords without imposing that character minimum; bcrypt's byte limit still applies. OpenAPI `minLength`/`maxLength` count characters, not UTF-8 bytes.
 - Rotating refresh tokens retain consumed hashes to detect replay. Replay revokes the session family. If a committed rotation response is lost, the client must log in again because the raw replacement token is not stored.
 
+## Owner-managed outlets and staff (ISSUE-004)
+
+The authenticated `ADMIN` role manages its own business through `GET/POST /outlets`, `GET/PUT /outlets/{outletId}`, `GET/POST /staff`, and `GET/PUT /staff/{userId}`. It can replace a laundry staff account's assignments with `PUT /staff/{userId}/outlets`, list the action catalog at `GET /permissions`, and replace a staff member's action grants with `PUT /staff/{userId}/permissions`. These routes return `403` to `LAUNDRY_STAFF`; IDs and business scope are always derived/validated against the authenticated business, never accepted as authority from JSON.
+
+Staff creation always creates `LAUNDRY_STAFF`, requires at least one active outlet in the same business, and uses the authentication password-creation policy. Role changes and admin self-assignment/grants are not supported. An active staff member cannot be left without an active outlet, and the last active administrator cannot be deactivated. Outlet deactivation is rejected while it would strand active staff. Administrative writes, including account, assignment, permission, and outlet changes, insert an immutable audit event in the same transaction; audit records never contain password hashes or plaintext passwords.
+
+`ADMIN` bypasses action grants only. All management queries remain scoped to the authenticated `business_id`; the `ADMIN` role cannot address another business by changing a path or body ID. `LAUNDRY_STAFF` authorization on operational endpoints must use a current session, active outlet assignment, and the endpoint's explicit action grant.
+
 ## Contract rules
 
 - Add all endpoint changes to OpenAPI before generating Echo types with `make generate`.

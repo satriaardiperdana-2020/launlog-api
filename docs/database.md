@@ -33,11 +33,11 @@ Assigns a user to one or more outlets. Both composite foreign keys include `busi
 
 ### `permissions`
 
-A global catalog of permission codes. Codes use uppercase identifiers such as `ORDER_UPDATE`; specific permission rows can be introduced with seeds when authorization features are implemented.
+A global catalog of stable action codes seeded by migration `000009_permission_catalog`. Codes are action-scoped (for example `ORDERS_CREATE` or `REPORTS_READ`) and are not tenant identifiers.
 
 ### `user_permissions`
 
-Grants a permission to a staff user and records the granting user. Both the recipient and grantor must belong to the same business. `ADMIN` access remains an application rule; staff receives explicit grants.
+Grants an action code to a staff user and records the granting user. Both the recipient and grantor must belong to the same business. Only LAUNDRY_STAFF receive explicit action grants; ADMIN bypasses those grants but all resource queries still require the authenticated business scope.
 
 ### `refresh_tokens`
 
@@ -123,6 +123,7 @@ An immutable business audit stream. It records an optional outlet and actor, act
 6. `000006_receipts_and_audit`
 7. `000007_ownership_hardening`
 8. `000008_session_families`
+9. `000009_permission_catalog`
 
 Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run in reverse order because later domains reference earlier ownership and order tables.
 
