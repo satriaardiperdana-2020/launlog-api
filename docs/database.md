@@ -109,6 +109,10 @@ Expense reporting filters by `expense_at`, never `created_at`. Inclusive local d
 
 Migration `000014_expense_versions` adds a positive `version BIGINT NOT NULL DEFAULT 1` to existing records, preserving their data. Expense updates require the client's current ETag (`If-Match: "<version>"`), lock the expense row, compare the version, increment it, and append audit data in the same transaction. A stale version returns 409 instead of overwriting another update. Audit payloads use an allowlist and replace free-text description and receipt reference with `[REDACTED]`; failed auditing rolls back the expense mutation.
 
+### Dashboard aggregation (ISSUE-012)
+
+The outlet dashboard is a live query, not a stored snapshot. It derives the current local business date from `businesses.timezone` (the current constraint permits `Asia/Jakarta`), then computes independent `payments` and `expenses` aggregates within the half-open local-day interval `[day_start, next_day_start)`. Payment income is the exact sum of `amount` for `status='CONFIRMED'` filtered by `confirmed_at`; expense outflow sums `amount` filtered by `expense_at`. The separate grouped CTEs ensure payment and expense rows cannot multiply each other's sums. Pending/voided receipts and order totals are excluded. Refund handling remains unimplemented and does not adjust this gross received-payment metric.
+
 ## Settings and history
 
 ### `receipt_templates`

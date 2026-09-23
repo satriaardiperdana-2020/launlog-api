@@ -73,13 +73,13 @@ func (e CustomerOrderSummaryStatus) Valid() bool {
 
 // Defines values for ExpenseListTimezone.
 const (
-	AsiaJakarta ExpenseListTimezone = "Asia/Jakarta"
+	ExpenseListTimezoneAsiaJakarta ExpenseListTimezone = "Asia/Jakarta"
 )
 
 // Valid indicates whether the value is a known member of the ExpenseListTimezone enum.
 func (e ExpenseListTimezone) Valid() bool {
 	switch e {
-	case AsiaJakarta:
+	case ExpenseListTimezoneAsiaJakarta:
 		return true
 	default:
 		return false
@@ -182,6 +182,21 @@ func (e OrderStatusTransitionInputStatus) Valid() bool {
 	case PROCESSING:
 		return true
 	case READYFORPICKUP:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OutletDashboardTimezone.
+const (
+	OutletDashboardTimezoneAsiaJakarta OutletDashboardTimezone = "Asia/Jakarta"
+)
+
+// Valid indicates whether the value is a known member of the OutletDashboardTimezone enum.
+func (e OutletDashboardTimezone) Valid() bool {
+	switch e {
+	case OutletDashboardTimezoneAsiaJakarta:
 		return true
 	default:
 		return false
@@ -817,6 +832,28 @@ type OutletCreate struct {
 	Phone   *string `json:"phone,omitempty"`
 }
 
+// OutletDashboard defines model for OutletDashboard.
+type OutletDashboard struct {
+	BusinessDate openapi_types.Date `json:"business_date"`
+	Expenses     struct {
+		Count int64 `json:"count"`
+
+		// TotalAmount Exact whole rupiah from expenses whose expense_at falls within the local day.
+		TotalAmount int64 `json:"total_amount"`
+	} `json:"expenses"`
+	Outlet   Outlet `json:"outlet"`
+	Payments struct {
+		ConfirmedCount int64 `json:"confirmed_count"`
+
+		// ConfirmedTotalAmount Exact whole rupiah from confirmed received payments. Gross receipts; refunds are not implemented by this endpoint.
+		ConfirmedTotalAmount int64 `json:"confirmed_total_amount"`
+	} `json:"payments"`
+	Timezone OutletDashboardTimezone `json:"timezone"`
+}
+
+// OutletDashboardTimezone defines model for OutletDashboard.Timezone.
+type OutletDashboardTimezone string
+
 // OutletList defines model for OutletList.
 type OutletList struct {
 	Items      []Outlet       `json:"items"`
@@ -1441,6 +1478,9 @@ type ServerInterface interface {
 	// Update an outlet profile or active state
 	// (PUT /outlets/{outletId})
 	UpdateOutlet(ctx echo.Context, outletId EntityId) error
+	// Get an outlet profile and today's cashflow totals
+	// (GET /outlets/{outletId}/dashboard)
+	GetOutletDashboard(ctx echo.Context, outletId EntityId) error
 	// Search perfumes in the authenticated business
 	// (GET /perfumes)
 	ListPerfumes(ctx echo.Context, params ListPerfumesParams) error
@@ -2218,6 +2258,24 @@ func (w *ServerInterfaceWrapper) UpdateOutlet(ctx echo.Context) error {
 	return err
 }
 
+// GetOutletDashboard converts echo context to params.
+func (w *ServerInterfaceWrapper) GetOutletDashboard(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetOutletDashboard(ctx, outletId)
+	return err
+}
+
 // ListPerfumes converts echo context to params.
 func (w *ServerInterfaceWrapper) ListPerfumes(ctx echo.Context) error {
 	var err error
@@ -2647,6 +2705,7 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.POST(options.BaseURL+"/outlets", wrapper.CreateOutlet, options.OperationMiddlewares["createOutlet"]...)
 	router.GET(options.BaseURL+"/outlets/:outletId", wrapper.GetOutlet, options.OperationMiddlewares["getOutlet"]...)
 	router.PUT(options.BaseURL+"/outlets/:outletId", wrapper.UpdateOutlet, options.OperationMiddlewares["updateOutlet"]...)
+	router.GET(options.BaseURL+"/outlets/:outletId/dashboard", wrapper.GetOutletDashboard, options.OperationMiddlewares["getOutletDashboard"]...)
 	router.GET(options.BaseURL+"/perfumes", wrapper.ListPerfumes, options.OperationMiddlewares["listPerfumes"]...)
 	router.POST(options.BaseURL+"/perfumes", wrapper.CreatePerfume, options.OperationMiddlewares["createPerfume"]...)
 	router.DELETE(options.BaseURL+"/perfumes/:perfumeId", wrapper.DeletePerfume, options.OperationMiddlewares["deletePerfume"]...)
@@ -5764,6 +5823,103 @@ func (response UpdateOutlet500JSONResponse) VisitUpdateOutletResponse(w http.Res
 	return err
 }
 
+type GetOutletDashboardRequestObject struct {
+	OutletId EntityId `json:"outletId"`
+}
+
+type GetOutletDashboardResponseObject interface {
+	VisitGetOutletDashboardResponse(w http.ResponseWriter) error
+}
+
+type GetOutletDashboard200JSONResponse OutletDashboard
+
+func (response GetOutletDashboard200JSONResponse) VisitGetOutletDashboardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletDashboard400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetOutletDashboard400JSONResponse) VisitGetOutletDashboardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletDashboard401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetOutletDashboard401JSONResponse) VisitGetOutletDashboardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletDashboard403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetOutletDashboard403JSONResponse) VisitGetOutletDashboardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletDashboard404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetOutletDashboard404JSONResponse) VisitGetOutletDashboardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletDashboard500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetOutletDashboard500JSONResponse) VisitGetOutletDashboardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListPerfumesRequestObject struct {
 	Params ListPerfumesParams
 }
@@ -7513,6 +7669,9 @@ type StrictServerInterface interface {
 	// Update an outlet profile or active state
 	// (PUT /outlets/{outletId})
 	UpdateOutlet(ctx context.Context, request UpdateOutletRequestObject) (UpdateOutletResponseObject, error)
+	// Get an outlet profile and today's cashflow totals
+	// (GET /outlets/{outletId}/dashboard)
+	GetOutletDashboard(ctx context.Context, request GetOutletDashboardRequestObject) (GetOutletDashboardResponseObject, error)
 	// Search perfumes in the authenticated business
 	// (GET /perfumes)
 	ListPerfumes(ctx context.Context, request ListPerfumesRequestObject) (ListPerfumesResponseObject, error)
@@ -8481,6 +8640,31 @@ func (sh *strictHandler) UpdateOutlet(ctx echo.Context, outletId EntityId) error
 		return err
 	} else if validResponse, ok := response.(UpdateOutletResponseObject); ok {
 		return validResponse.VisitUpdateOutletResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetOutletDashboard operation middleware
+func (sh *strictHandler) GetOutletDashboard(ctx echo.Context, outletId EntityId) error {
+	var request GetOutletDashboardRequestObject
+
+	request.OutletId = outletId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOutletDashboard(ctx.Request().Context(), request.(GetOutletDashboardRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOutletDashboard")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetOutletDashboardResponseObject); ok {
+		return validResponse.VisitGetOutletDashboardResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
