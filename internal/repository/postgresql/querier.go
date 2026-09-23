@@ -14,18 +14,25 @@ type Querier interface {
 	CheckDatabaseHealth(ctx context.Context) (int32, error)
 	CountActiveAssignedStaffWithoutOtherOutlet(ctx context.Context, arg CountActiveAssignedStaffWithoutOtherOutletParams) (int64, error)
 	CountActiveOutlets(ctx context.Context, arg CountActiveOutletsParams) (int64, error)
+	CountCustomerOrderHistory(ctx context.Context, arg CountCustomerOrderHistoryParams) (int64, error)
+	CountCustomers(ctx context.Context, arg CountCustomersParams) (int64, error)
 	CountOtherActiveAdmins(ctx context.Context, arg CountOtherActiveAdminsParams) (int64, error)
 	CountOutlets(ctx context.Context, businessID int64) (int64, error)
 	CountStaff(ctx context.Context, businessID int64) (int64, error)
+	CreateCustomer(ctx context.Context, arg CreateCustomerParams) (CreateCustomerRow, error)
 	CreateOutlet(ctx context.Context, arg CreateOutletParams) (Outlet, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (CreateRefreshTokenRow, error)
 	CreateSessionFamily(ctx context.Context, arg CreateSessionFamilyParams) (int64, error)
 	CreateStaff(ctx context.Context, arg CreateStaffParams) (CreateStaffRow, error)
+	DeactivateCustomer(ctx context.Context, arg DeactivateCustomerParams) (DeactivateCustomerRow, error)
 	DeleteStaffOutlets(ctx context.Context, arg DeleteStaffOutletsParams) error
 	DeleteStaffPermissions(ctx context.Context, arg DeleteStaffPermissionsParams) error
 	FindRefreshTokenFamily(ctx context.Context, tokenHash string) (FindRefreshTokenFamilyRow, error)
 	GetActiveRefreshSession(ctx context.Context, arg GetActiveRefreshSessionParams) (GetActiveRefreshSessionRow, error)
 	GetActiveUser(ctx context.Context, arg GetActiveUserParams) (GetActiveUserRow, error)
+	GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCustomerRow, error)
+	GetCustomerForHistory(ctx context.Context, arg GetCustomerForHistoryParams) (int64, error)
+	GetCustomerForUpdate(ctx context.Context, arg GetCustomerForUpdateParams) (GetCustomerForUpdateRow, error)
 	GetLogoutSession(ctx context.Context, arg GetLogoutSessionParams) (GetLogoutSessionRow, error)
 	GetOutlet(ctx context.Context, arg GetOutletParams) (Outlet, error)
 	GetOutletForUpdate(ctx context.Context, arg GetOutletForUpdateParams) (GetOutletForUpdateRow, error)
@@ -35,6 +42,8 @@ type Querier interface {
 	GetStaffForUpdate(ctx context.Context, arg GetStaffForUpdateParams) (GetStaffForUpdateRow, error)
 	GetUserForLogin(ctx context.Context, lower string) (GetUserForLoginRow, error)
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) error
+	ListCustomerOrderHistory(ctx context.Context, arg ListCustomerOrderHistoryParams) ([]ListCustomerOrderHistoryRow, error)
+	ListCustomers(ctx context.Context, arg ListCustomersParams) ([]ListCustomersRow, error)
 	ListOutlets(ctx context.Context, arg ListOutletsParams) ([]Outlet, error)
 	ListPermissions(ctx context.Context) ([]ListPermissionsRow, error)
 	ListStaff(ctx context.Context, arg ListStaffParams) ([]ListStaffRow, error)
@@ -47,6 +56,7 @@ type Querier interface {
 	LockSessionFamily(ctx context.Context, arg LockSessionFamilyParams) (LockSessionFamilyRow, error)
 	RevokeRefreshToken(ctx context.Context, arg RevokeRefreshTokenParams) (int64, error)
 	RevokeSessionFamily(ctx context.Context, arg RevokeSessionFamilyParams) error
+	UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) (UpdateCustomerRow, error)
 	UpdateOutlet(ctx context.Context, arg UpdateOutletParams) (Outlet, error)
 	UpdateStaff(ctx context.Context, arg UpdateStaffParams) (UpdateStaffRow, error)
 }

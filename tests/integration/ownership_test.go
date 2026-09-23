@@ -51,6 +51,16 @@ func TestOwnershipMigrationAndTenantIsolation(t *testing.T) {
 	)
 
 	mustExec(t, ctx, tx, `INSERT INTO businesses (id, name) VALUES ($1, 'Ownership Test A'), ($2, 'Ownership Test B')`, businessAID, businessBID)
+	mustExec(t, ctx, tx, `INSERT INTO customers (business_id, name, phone) VALUES
+		($1, 'Duplicate Phone A', '+628123456789'),
+		($1, 'Duplicate Phone B', '+628123456789')`, businessAID)
+	var customerPhoneIndexExists bool
+	if err := tx.QueryRow(ctx, `SELECT to_regclass('public.customers_business_phone_uq') IS NOT NULL`).Scan(&customerPhoneIndexExists); err != nil {
+		t.Fatalf("inspect customer phone uniqueness index: %v", err)
+	}
+	if customerPhoneIndexExists {
+		t.Fatal("customer phone numbers must not be unique")
+	}
 	mustExec(t, ctx, tx, `INSERT INTO users (id, business_id, email, full_name, password_hash, role) VALUES
 		($1, $2, 'ownership-a@example.test', 'Ownership A', 'hash', 'ADMIN'),
 		($3, $4, 'ownership-b@example.test', 'Ownership B', 'hash', 'LAUNDRY_STAFF')`, userAID, businessAID, userBID, businessBID)
@@ -113,8 +123,8 @@ func assertSchemaVersion(t *testing.T, ctx context.Context, tx pgx.Tx) {
 	if err := tx.QueryRow(ctx, `SELECT version, dirty FROM schema_migrations`).Scan(&version, &dirty); err != nil {
 		t.Fatalf("read schema migration state: %v", err)
 	}
-	if version != 9 || dirty {
-		t.Fatalf("expected clean permission-catalog migration at version 9, got version=%d dirty=%t", version, dirty)
+	if version != 10 || dirty {
+		t.Fatalf("expected clean customer phone policy migration at version 10, got version=%d dirty=%t", version, dirty)
 	}
 }
 

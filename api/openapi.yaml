@@ -23,6 +23,8 @@ tags:
     description: Session and current-user operations
   - name: Outlets and staff
     description: Business-scoped outlet, staff, and permission administration (ADMIN only)
+  - name: Customers
+    description: Business-scoped customer directory and paginated order history
 
 paths:
   /livez:
@@ -194,6 +196,134 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
+
+  /customers:
+    get:
+      operationId: listCustomers
+      summary: Search or list customers in the authenticated business
+      tags: [Customers]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: q
+          in: query
+          required: false
+          description: Case-insensitive substring search over customer name and phone.
+          schema: { type: string }
+      responses:
+        "200":
+          description: Customer page and pagination metadata.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomerList" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      operationId: createCustomer
+      summary: Create a customer in the authenticated business
+      tags: [Customers]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomerInput" }
+      responses:
+        "201":
+          description: Customer created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Customer" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /customers/{customerId}:
+    parameters:
+      - name: customerId
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/EntityId" }
+    get:
+      operationId: getCustomer
+      summary: Get an active customer in the authenticated business
+      tags: [Customers]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Customer details.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Customer" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    put:
+      operationId: updateCustomer
+      summary: Update an active customer
+      description: Omitted or null phone and address values are cleared. Phone numbers are not unique.
+      tags: [Customers]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomerInput" }
+      responses:
+        "200":
+          description: Customer updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Customer" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: deactivateCustomer
+      summary: Deactivate a customer without deleting order references
+      tags: [Customers]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "204": { description: Customer deactivated; historical orders remain linked. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /customers/{customerId}/orders:
+    get:
+      operationId: getCustomerOrderHistory
+      summary: List paginated order history for a customer
+      description: Reads existing orders rows and includes cancelled orders. Results are ordered by order creation time and ID. LAUNDRY_STAFF must have both CUSTOMERS_READ and ORDERS_READ and sees only orders from currently assigned active outlets. History remains accessible for a deactivated customer.
+      tags: [Customers]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/EntityId" }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Order page and pagination metadata.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomerOrderHistory" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
 
   /outlets:
     get:
@@ -789,6 +919,57 @@ components:
           $ref: "#/components/schemas/TokenPair"
         user:
           $ref: "#/components/schemas/CurrentUser"
+
+    Customer:
+      type: object
+      required: [id, business_id, name, created_at, updated_at]
+      properties:
+        id: { $ref: "#/components/schemas/EntityId" }
+        business_id: { $ref: "#/components/schemas/EntityId" }
+        name: { type: string, minLength: 1 }
+        phone: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        created_at: { $ref: "#/components/schemas/JakartaDateTime" }
+        updated_at: { $ref: "#/components/schemas/JakartaDateTime" }
+    CustomerInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1 }
+        phone: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+    CustomerList:
+      type: object
+      required: [items, pagination]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Customer" } }
+        pagination: { $ref: "#/components/schemas/PaginationMeta" }
+    CustomerOrderHistory:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/CustomerOrderSummary" }
+        pagination: { $ref: "#/components/schemas/PaginationMeta" }
+    CustomerOrderSummary:
+      type: object
+      required: [id, business_id, outlet_id, customer_id, invoice_number, status, payment_status, total_amount, received_at, created_at]
+      properties:
+        id: { $ref: "#/components/schemas/EntityId" }
+        business_id: { $ref: "#/components/schemas/EntityId" }
+        outlet_id: { $ref: "#/components/schemas/EntityId" }
+        customer_id: { $ref: "#/components/schemas/EntityId" }
+        invoice_number: { type: string }
+        status: { type: string, enum: [RECEIVED, PROCESSING, READY_FOR_PICKUP, COMPLETED, CANCELLED] }
+        payment_status: { type: string, enum: [UNPAID, PARTIALLY_PAID, PAID, REFUNDED] }
+        total_amount: { type: integer, format: int64, minimum: 0, description: Whole rupiah. }
+        received_at: { $ref: "#/components/schemas/JakartaDateTime" }
+        due_at: { allOf: [{ $ref: "#/components/schemas/JakartaDateTime" }], nullable: true }
+        completed_at: { allOf: [{ $ref: "#/components/schemas/JakartaDateTime" }], nullable: true }
+        cancelled_at: { allOf: [{ $ref: "#/components/schemas/JakartaDateTime" }], nullable: true }
+        created_at: { $ref: "#/components/schemas/JakartaDateTime" }
 
     Outlet:
       type: object
