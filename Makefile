@@ -1,5 +1,5 @@
 GO ?= go
-GOFMT ?= $(dir $(GO))gofmt
+GOFMT ?= gofmt
 BIN_DIR ?= $(CURDIR)/bin
 
 SQLC_VERSION := v1.31.1
