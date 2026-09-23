@@ -74,6 +74,7 @@ func run(logger *slog.Logger) error {
 	paymentHandler := handlers.NewPaymentHandler(database)
 	expenseHandler := handlers.NewExpenseHandler(database)
 	dashboardHandler := handlers.NewDashboardHandler(database)
+	reportsHandler := handlers.NewReportsHandler(database)
 	authLimiter := launmiddleware.NewAuthLimiter(4096, 10, time.Minute)
 	authBody := launmiddleware.AuthBodyLimit(4096)
 	e.GET("/livez", healthHandler.Live)
@@ -144,6 +145,13 @@ func run(logger *slog.Logger) error {
 
 	outletDashboards := e.Group("/outlets", launmiddleware.Authenticate(database, jwtTokens))
 	outletDashboards.GET("/:outletId/dashboard", dashboardHandler.GetOutlet, launmiddleware.RequirePermission("REPORTS_READ"))
+	outletReports := e.Group("/outlets", launmiddleware.Authenticate(database, jwtTokens), launmiddleware.RequirePermission("REPORTS_READ"))
+	outletReports.GET("/:outletId/reports/income", reportsHandler.Get("income"))
+	outletReports.GET("/:outletId/reports/expenses", reportsHandler.Get("expenses"))
+	outletReports.GET("/:outletId/reports/profit-loss", reportsHandler.Get("profit-loss"))
+	outletReports.GET("/:outletId/reports/orders", reportsHandler.Get("orders"))
+	outletReports.GET("/:outletId/reports/cancellations", reportsHandler.Get("cancellations"))
+	outletReports.GET("/:outletId/reports/customers", reportsHandler.Get("customers"))
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress(),

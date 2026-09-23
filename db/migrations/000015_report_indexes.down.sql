@@ -1,0 +1,2 @@
+DROP INDEX payments_confirmed_order_idx;
+DROP INDEX orders_outlet_received_idx;
