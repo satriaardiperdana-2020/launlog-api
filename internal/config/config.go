@@ -36,6 +36,9 @@ type Config struct {
 	DatabaseConnectTimeout time.Duration
 	DatabaseMaxConnections int32
 	DatabaseMinConnections int32
+	JWTSigningSecret       string
+	JWTAccessTokenTTL      time.Duration
+	JWTRefreshTokenTTL     time.Duration
 }
 
 // Load reads optional dotenv files and validates environment configuration.
@@ -48,9 +51,10 @@ func Load() (Config, error) {
 
 func loadFromEnvironment() (Config, error) {
 	cfg := Config{
-		Environment: valueOrDefault("APP_ENV", defaultEnvironment),
-		HTTPHost:    valueOrDefault("HTTP_HOST", defaultHTTPHost),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
+		Environment:      valueOrDefault("APP_ENV", defaultEnvironment),
+		HTTPHost:         valueOrDefault("HTTP_HOST", defaultHTTPHost),
+		DatabaseURL:      os.Getenv("DATABASE_URL"),
+		JWTSigningSecret: os.Getenv("JWT_SIGNING_SECRET"),
 	}
 
 	var err error
@@ -70,6 +74,12 @@ func loadFromEnvironment() (Config, error) {
 		return Config{}, err
 	}
 	if cfg.DatabaseConnectTimeout, err = durationValue("DATABASE_CONNECT_TIMEOUT", defaultDatabaseConnectTimeout); err != nil {
+		return Config{}, err
+	}
+	if cfg.JWTAccessTokenTTL, err = durationValue("JWT_ACCESS_TOKEN_TTL", 15*time.Minute); err != nil {
+		return Config{}, err
+	}
+	if cfg.JWTRefreshTokenTTL, err = durationValue("JWT_REFRESH_TOKEN_TTL", 30*24*time.Hour); err != nil {
 		return Config{}, err
 	}
 
@@ -166,6 +176,15 @@ func (c Config) HTTPAddress() string {
 func (c Config) validate() error {
 	if c.DatabaseURL == "" {
 		return errors.New("DATABASE_URL is required")
+	}
+	if len(c.JWTSigningSecret) < 32 {
+		return errors.New("JWT_SIGNING_SECRET must contain at least 32 bytes")
+	}
+	if c.JWTAccessTokenTTL <= 0 || c.JWTAccessTokenTTL > time.Hour {
+		return errors.New("JWT_ACCESS_TOKEN_TTL must be between 1ns and 1h")
+	}
+	if c.JWTRefreshTokenTTL <= c.JWTAccessTokenTTL || c.JWTRefreshTokenTTL > 90*24*time.Hour {
+		return errors.New("JWT_REFRESH_TOKEN_TTL must exceed access token TTL and not exceed 90 days")
 	}
 	if c.HTTPPort < 1 || c.HTTPPort > 65535 {
 		return errors.New("HTTP_PORT must be between 1 and 65535")

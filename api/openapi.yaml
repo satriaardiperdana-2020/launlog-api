@@ -1,1 +1,469 @@
-# OpenAPI contract will be added in the API contract issue.
+openapi: 3.0.3
+info:
+  title: Launlog API
+  version: 0.1.0
+  description: |
+    Backend API contract for the Launlog laundry POS.
+
+    Date-time values use RFC 3339 with an explicit UTC offset. Business-facing
+    timestamps use the Asia/Jakarta timezone (`+07:00`). Date-only values use
+    ISO 8601 `YYYY-MM-DD`.
+
+    Rupiah amounts are JSON integers in whole rupiah. Decimal quantities are
+    encoded as strings with up to three fractional digits to avoid floating-point
+    precision loss.
+servers:
+  - url: /
+    description: Current API server
+
+tags:
+  - name: Health
+    description: Application dependency status
+  - name: Authentication
+    description: Session and current-user operations
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Check application health
+      description: Reports whether the API and its PostgreSQL dependency are available.
+      tags:
+        - Health
+      security: []
+      responses:
+        "200":
+          description: Application and PostgreSQL are available.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/login:
+    post:
+      operationId: login
+      summary: Authenticate a user
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authentication succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/refresh:
+    post:
+      operationId: refreshToken
+      summary: Refresh an authentication session
+      description: Rotates a valid refresh token and returns a new token pair.
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: Refresh token accepted and rotated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPair"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke the current authentication session
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "204":
+          description: Session revoked successfully.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      summary: Get the authenticated user
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current user and authorization context.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT access token supplied as `Authorization: Bearer <token>`."
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: One-based page number.
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      description: Number of records per page, capped at 100.
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  responses:
+    BadRequest:
+      description: The request is malformed or fails validation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Authentication is missing, expired, or invalid.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+          description: Bearer authentication challenge.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: The authenticated user is not allowed to perform the operation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    TooManyRequests:
+      description: Too many requests were made in the allowed time window.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+          description: Seconds to wait before retrying.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ServiceUnavailable:
+      description: A required service dependency is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalServerError:
+      description: An unexpected server error occurred.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    EntityId:
+      type: integer
+      format: int64
+      minimum: 1
+      example: 42
+      description: Database identifier backed by a PostgreSQL BIGINT.
+
+    JakartaDateTime:
+      type: string
+      format: date-time
+      example: "2026-09-23T10:15:30+07:00"
+      description: RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+
+    LocalDate:
+      type: string
+      format: date
+      example: "2026-09-23"
+      description: ISO 8601 calendar date interpreted in Asia/Jakarta.
+
+    RupiahAmount:
+      type: integer
+      format: int64
+      minimum: 0
+      example: 25000
+      description: Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+
+    DecimalQuantity:
+      type: string
+      pattern: "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+      example: "1.250"
+      description: Positive decimal quantity with up to three fractional digits, encoded as a string for exact transport.
+
+    PaginationMeta:
+      type: object
+      additionalProperties: false
+      required:
+        - page
+        - pageSize
+        - totalItems
+        - totalPages
+      properties:
+        page:
+          type: integer
+          format: int32
+          minimum: 1
+          example: 1
+        pageSize:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+          example: 20
+        totalItems:
+          type: integer
+          format: int64
+          minimum: 0
+          example: 75
+        totalPages:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 4
+
+    ErrorDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          example: email
+        message:
+          type: string
+          example: must be a valid email address
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: INVALID_CREDENTIALS
+          description: Stable machine-readable error code.
+        message:
+          type: string
+          example: Email or password is incorrect.
+        requestId:
+          type: string
+          example: 01K5V67Y7R3Z6JYH6F90Q3JQ4B
+          description: Request identifier for support and log correlation.
+        details:
+          type: array
+          items:
+            $ref: "#/components/schemas/ErrorDetail"
+
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+          example: ok
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          example: admin@launlog.id
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 128
+          writeOnly: true
+
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+          writeOnly: true
+          description: Opaque refresh token issued by the login or refresh operation.
+
+    LogoutRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+          writeOnly: true
+          description: Refresh token for the session that will be revoked.
+
+    TokenPair:
+      type: object
+      additionalProperties: false
+      required:
+        - accessToken
+        - refreshToken
+        - tokenType
+        - accessTokenExpiresAt
+        - refreshTokenExpiresAt
+      properties:
+        accessToken:
+          type: string
+          readOnly: true
+        refreshToken:
+          type: string
+          readOnly: true
+        tokenType:
+          type: string
+          enum:
+            - Bearer
+          example: Bearer
+        accessTokenExpiresAt:
+          allOf:
+            - $ref: "#/components/schemas/JakartaDateTime"
+          readOnly: true
+        refreshTokenExpiresAt:
+          allOf:
+            - $ref: "#/components/schemas/JakartaDateTime"
+          readOnly: true
+
+    UserRole:
+      type: string
+      enum:
+        - ADMIN
+        - LAUNDRY_STAFF
+
+    CurrentUser:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - businessId
+        - email
+        - fullName
+        - role
+        - outletIds
+        - permissions
+      properties:
+        id:
+          $ref: "#/components/schemas/EntityId"
+        businessId:
+          $ref: "#/components/schemas/EntityId"
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        outletIds:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/EntityId"
+        permissions:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            pattern: "^[A-Z][A-Z0-9_]*$"
+
+    AuthSessionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - tokens
+        - user
+      properties:
+        tokens:
+          $ref: "#/components/schemas/TokenPair"
+        user:
+          $ref: "#/components/schemas/CurrentUser"

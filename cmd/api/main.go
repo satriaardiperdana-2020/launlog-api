@@ -16,7 +16,9 @@ import (
 
 	"github.com/satriaardiperdana-2020/launlog-api/internal/config"
 	"github.com/satriaardiperdana-2020/launlog-api/internal/handlers"
+	launmiddleware "github.com/satriaardiperdana-2020/launlog-api/internal/middleware"
 	"github.com/satriaardiperdana-2020/launlog-api/internal/repository"
+	"github.com/satriaardiperdana-2020/launlog-api/internal/security"
 )
 
 func main() {
@@ -48,6 +50,10 @@ func run(logger *slog.Logger) error {
 		return fmt.Errorf("connect to PostgreSQL: %w", err)
 	}
 	defer database.Close()
+	jwtTokens, err := security.NewTokenManager(cfg.JWTSigningSecret, cfg.JWTAccessTokenTTL)
+	if err != nil {
+		return fmt.Errorf("configure JWT: %w", err)
+	}
 
 	e := echo.New()
 	e.HideBanner = true
@@ -55,7 +61,12 @@ func run(logger *slog.Logger) error {
 	e.Use(middleware.RequestID(), middleware.Recover())
 
 	healthHandler := handlers.NewHealthHandler(database)
+	authHandler := handlers.NewAuthHandler(database, jwtTokens, cfg.JWTRefreshTokenTTL)
 	e.GET("/health", healthHandler.Health)
+	e.POST("/auth/login", authHandler.Login)
+	e.POST("/auth/refresh", authHandler.Refresh)
+	e.POST("/auth/logout", authHandler.Logout, launmiddleware.Authenticate(database, jwtTokens))
+	e.GET("/auth/me", authHandler.Me, launmiddleware.Authenticate(database, jwtTokens))
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress(),

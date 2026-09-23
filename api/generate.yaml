@@ -1,1 +1,9 @@
-# oapi-codegen configuration will be added with the OpenAPI contract.
+package: api
+output: internal/api/openapi.gen.go
+generate:
+  models: true
+  echo-server: true
+  strict-server: true
+  embedded-spec: true
+output-options:
+  skip-prune: true
