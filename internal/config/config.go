@@ -18,9 +18,11 @@ const (
 	defaultHTTPWriteTimeout       = 15 * time.Second
 	defaultHTTPIdleTimeout        = 60 * time.Second
 	defaultShutdownTimeout        = 10 * time.Second
+	defaultReadinessTimeout       = 2 * time.Second
 	defaultDatabaseConnectTimeout = 5 * time.Second
 	defaultDatabaseMaxConnections = 10
 	defaultDatabaseMinConnections = 0
+	defaultTimezone               = "Asia/Jakarta"
 )
 
 // Config contains all process-level settings. It is loaded once at startup.
@@ -32,6 +34,8 @@ type Config struct {
 	HTTPWriteTimeout       time.Duration
 	HTTPIdleTimeout        time.Duration
 	ShutdownTimeout        time.Duration
+	ReadinessTimeout       time.Duration
+	Timezone               string
 	DatabaseURL            string
 	DatabaseConnectTimeout time.Duration
 	DatabaseMaxConnections int32
@@ -53,6 +57,7 @@ func loadFromEnvironment() (Config, error) {
 	cfg := Config{
 		Environment:      valueOrDefault("APP_ENV", defaultEnvironment),
 		HTTPHost:         valueOrDefault("HTTP_HOST", defaultHTTPHost),
+		Timezone:         valueOrDefault("APP_TIMEZONE", defaultTimezone),
 		DatabaseURL:      os.Getenv("DATABASE_URL"),
 		JWTSigningSecret: os.Getenv("JWT_SIGNING_SECRET"),
 	}
@@ -71,6 +76,9 @@ func loadFromEnvironment() (Config, error) {
 		return Config{}, err
 	}
 	if cfg.ShutdownTimeout, err = durationValue("SHUTDOWN_TIMEOUT", defaultShutdownTimeout); err != nil {
+		return Config{}, err
+	}
+	if cfg.ReadinessTimeout, err = durationValue("READINESS_TIMEOUT", defaultReadinessTimeout); err != nil {
 		return Config{}, err
 	}
 	if cfg.DatabaseConnectTimeout, err = durationValue("DATABASE_CONNECT_TIMEOUT", defaultDatabaseConnectTimeout); err != nil {
@@ -192,8 +200,11 @@ func (c Config) validate() error {
 	if c.HTTPReadTimeout <= 0 || c.HTTPWriteTimeout <= 0 || c.HTTPIdleTimeout <= 0 {
 		return errors.New("HTTP timeouts must be positive")
 	}
-	if c.ShutdownTimeout <= 0 || c.DatabaseConnectTimeout <= 0 {
-		return errors.New("shutdown and database connection timeouts must be positive")
+	if c.ShutdownTimeout <= 0 || c.ReadinessTimeout <= 0 || c.DatabaseConnectTimeout <= 0 {
+		return errors.New("shutdown, readiness, and database connection timeouts must be positive")
+	}
+	if c.Timezone != defaultTimezone {
+		return fmt.Errorf("APP_TIMEZONE must be %s", defaultTimezone)
 	}
 	if c.DatabaseMaxConnections <= 0 {
 		return errors.New("DATABASE_MAX_CONNS must be positive")

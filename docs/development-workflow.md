@@ -2,21 +2,16 @@
 
 ## Branching
 
-Use one issue branch at a time:
-
-- docs/issue-001-requirements
-- feature/issue-004-authentication
-- feature/issue-009-orders
-- feature/issue-014-reports
+Use one branch per issue, based on current `main`: `feature/issue-001-project-setup`, `feature/issue-002-migrations-and-ownership`, and so on. The exact branch for every issue is recorded in `docs/issues/`.
 
 ## Feature workflow
 
 1. Read requirements and acceptance criteria.
 2. Create an issue branch from main.
 3. Update OpenAPI, migrations, SQL, and tests as needed.
-4. Generate sqlc and oapi-codegen output.
+4. Run `make generate` when OpenAPI, migrations, or sqlc queries change.
 5. Implement handlers and service logic.
-6. Run gofmt, tests, vet, and lint.
+6. Run `make check`; run `make migrate-verify` against an isolated database when migrations change.
 7. Review the diff.
 8. Commit and push.
 9. Open a pull request.
@@ -24,12 +19,9 @@ Use one issue branch at a time:
 
 ## Required checks
 
-- go build ./...
-- go test ./...
-- go vet ./...
-- golangci-lint run
-- migration on an empty database
-- integration tests with PostgreSQL
-- Swagger endpoint verification
+- `make check` for formatting, generated-code drift, tests, `go vet`, and build.
+- `make migrate-verify` for migration changes, using a disposable database only.
+- Inspect generated OpenAPI output and exercise changed endpoints with curl or an HTTP test.
+- CI must be green before merge.
 
-Generated files should be regenerated from their sources and committed when the repository workflow requires them. Never commit secrets.
+Generator versions are pinned in the Makefile. Generated files are committed after regeneration. Never commit secrets, local dotenv files, the `bin/` tool directory, or production database URLs.

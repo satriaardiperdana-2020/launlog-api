@@ -23,11 +23,48 @@ tags:
     description: Session and current-user operations
 
 paths:
+  /livez:
+    get:
+      operationId: getLiveness
+      summary: Check whether the HTTP process is live
+      description: Does not contact PostgreSQL and is safe for process liveness probes.
+      tags:
+        - Health
+      security: []
+      responses:
+        "200":
+          description: The API process is running.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /readyz:
+    get:
+      operationId: getReadiness
+      summary: Check whether the API is ready to serve database-backed requests
+      tags:
+        - Health
+      security: []
+      responses:
+        "200":
+          description: PostgreSQL is available.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: PostgreSQL is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthUnavailableResponse"
+
   /health:
     get:
       operationId: getHealth
-      summary: Check application health
-      description: Reports whether the API and its PostgreSQL dependency are available.
+      summary: Compatibility readiness check
+      description: Alias for `/readyz`; reports whether PostgreSQL is available.
       tags:
         - Health
       security: []
@@ -39,9 +76,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
         "503":
-          $ref: "#/components/responses/ServiceUnavailable"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+          description: PostgreSQL is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthUnavailableResponse"
 
   /auth/login:
     post:
@@ -341,6 +380,18 @@ components:
           enum:
             - ok
           example: ok
+
+    HealthUnavailableResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - unavailable
+          example: unavailable
 
     LoginRequest:
       type: object

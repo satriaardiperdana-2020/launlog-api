@@ -40,6 +40,21 @@ func (e HealthResponseStatus) Valid() bool {
 	}
 }
 
+// Defines values for HealthUnavailableResponseStatus.
+const (
+	Unavailable HealthUnavailableResponseStatus = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the HealthUnavailableResponseStatus enum.
+func (e HealthUnavailableResponseStatus) Valid() bool {
+	switch e {
+	case Unavailable:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TokenPairTokenType.
 const (
 	Bearer TokenPairTokenType = "Bearer"
@@ -123,6 +138,14 @@ type HealthResponse struct {
 
 // HealthResponseStatus defines model for HealthResponse.Status.
 type HealthResponseStatus string
+
+// HealthUnavailableResponse defines model for HealthUnavailableResponse.
+type HealthUnavailableResponse struct {
+	Status HealthUnavailableResponseStatus `json:"status"`
+}
+
+// HealthUnavailableResponseStatus defines model for HealthUnavailableResponse.Status.
+type HealthUnavailableResponseStatus string
 
 // JakartaDateTime RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
 type JakartaDateTime = time.Time
@@ -224,9 +247,15 @@ type ServerInterface interface {
 	// Refresh an authentication session
 	// (POST /auth/refresh)
 	RefreshToken(ctx echo.Context) error
-	// Check application health
+	// Compatibility readiness check
 	// (GET /health)
 	GetHealth(ctx echo.Context) error
+	// Check whether the HTTP process is live
+	// (GET /livez)
+	GetLiveness(ctx echo.Context) error
+	// Check whether the API is ready to serve database-backed requests
+	// (GET /readyz)
+	GetReadiness(ctx echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -283,6 +312,24 @@ func (w *ServerInterfaceWrapper) GetHealth(ctx echo.Context) error {
 	return err
 }
 
+// GetLiveness converts echo context to params.
+func (w *ServerInterfaceWrapper) GetLiveness(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetLiveness(ctx)
+	return err
+}
+
+// GetReadiness converts echo context to params.
+func (w *ServerInterfaceWrapper) GetReadiness(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetReadiness(ctx)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -335,6 +382,8 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/auth/me", wrapper.GetCurrentUser, options.OperationMiddlewares["getCurrentUser"]...)
 	router.POST(options.BaseURL+"/auth/refresh", wrapper.RefreshToken, options.OperationMiddlewares["refreshToken"]...)
 	router.GET(options.BaseURL+"/health", wrapper.GetHealth, options.OperationMiddlewares["getHealth"]...)
+	router.GET(options.BaseURL+"/livez", wrapper.GetLiveness, options.OperationMiddlewares["getLiveness"]...)
+	router.GET(options.BaseURL+"/readyz", wrapper.GetReadiness, options.OperationMiddlewares["getReadiness"]...)
 
 }
 
@@ -688,25 +737,65 @@ func (response GetHealth200JSONResponse) VisitGetHealthResponse(w http.ResponseW
 	return err
 }
 
-type GetHealth500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type GetHealth503JSONResponse HealthUnavailableResponse
 
-func (response GetHealth500JSONResponse) VisitGetHealthResponse(w http.ResponseWriter) error {
+func (response GetHealth503JSONResponse) VisitGetHealthResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
 		return err
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
+	w.WriteHeader(503)
 	_, err := buf.WriteTo(w)
 	return err
 }
 
-type GetHealth503JSONResponse struct{ ServiceUnavailableJSONResponse }
+type GetLivenessRequestObject struct {
+}
 
-func (response GetHealth503JSONResponse) VisitGetHealthResponse(w http.ResponseWriter) error {
+type GetLivenessResponseObject interface {
+	VisitGetLivenessResponse(w http.ResponseWriter) error
+}
+
+type GetLiveness200JSONResponse HealthResponse
+
+func (response GetLiveness200JSONResponse) VisitGetLivenessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReadinessRequestObject struct {
+}
+
+type GetReadinessResponseObject interface {
+	VisitGetReadinessResponse(w http.ResponseWriter) error
+}
+
+type GetReadiness200JSONResponse HealthResponse
+
+func (response GetReadiness200JSONResponse) VisitGetReadinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReadiness503JSONResponse HealthUnavailableResponse
+
+func (response GetReadiness503JSONResponse) VisitGetReadinessResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -732,9 +821,15 @@ type StrictServerInterface interface {
 	// Refresh an authentication session
 	// (POST /auth/refresh)
 	RefreshToken(ctx context.Context, request RefreshTokenRequestObject) (RefreshTokenResponseObject, error)
-	// Check application health
+	// Compatibility readiness check
 	// (GET /health)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
+	// Check whether the HTTP process is live
+	// (GET /livez)
+	GetLiveness(ctx context.Context, request GetLivenessRequestObject) (GetLivenessResponseObject, error)
+	// Check whether the API is ready to serve database-backed requests
+	// (GET /readyz)
+	GetReadiness(ctx context.Context, request GetReadinessRequestObject) (GetReadinessResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx echo.Context, request any) (any, error)
@@ -882,53 +977,102 @@ func (sh *strictHandler) GetHealth(ctx echo.Context) error {
 	return nil
 }
 
+// GetLiveness operation middleware
+func (sh *strictHandler) GetLiveness(ctx echo.Context) error {
+	var request GetLivenessRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLiveness(ctx.Request().Context(), request.(GetLivenessRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLiveness")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetLivenessResponseObject); ok {
+		return validResponse.VisitGetLivenessResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetReadiness operation middleware
+func (sh *strictHandler) GetReadiness(ctx echo.Context) error {
+	var request GetReadinessRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetReadiness(ctx.Request().Context(), request.(GetReadinessRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetReadiness")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetReadinessResponseObject); ok {
+		return validResponse.VisitGetReadinessResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
 // Stored as a slice of fixed-width chunks rather than one concatenated
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

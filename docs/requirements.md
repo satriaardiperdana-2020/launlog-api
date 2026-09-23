@@ -4,6 +4,15 @@
 
 Launlog is a laundry POS for a laundry outlet. The backend is implemented first with Go, Echo, PostgreSQL, sqlc, OpenAPI, and Swagger. The Vue frontend is developed later in launlog-app.
 
+## Foundation constraints
+
+- The supported toolchain is Go 1.27.1; PostgreSQL 16 is the development and CI database image.
+- The HTTP server uses Echo and pgx/v5 pooling. It validates configuration and the initial database connection before listening.
+- `GET /livez` is process liveness. `GET /readyz` and the compatibility route `GET /health` are database readiness checks.
+- Time values are stored as `TIMESTAMPTZ`; application and PostgreSQL sessions use `Asia/Jakarta`.
+- Configuration comes from environment variables. `.env`, `.env.*`, and generated local binaries are ignored by Git; only `.env.example` is committed.
+- sqlc, oapi-codegen, and golang-migrate versions are pinned in the Makefile and run in CI.
+
 ## Roles
 
 - ADMIN: owner with full access within the business, including all Laundry Staff operations.
