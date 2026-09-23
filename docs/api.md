@@ -51,6 +51,8 @@ The request has one or more service items. It cannot set prices: each active ser
 
 `GET /orders` is paginated and filters by optional outlet and status; staff only sees currently assigned active outlets. `GET /orders/{orderId}` uses the same outlet and business isolation. The existing `GET /customers/{customerId}/orders` now returns order history backed by records created through this API, closing the history dependency from ISSUE-005.
 
+`PATCH /orders/{orderId}/status` requires `ORDERS_UPDATE` for staff and permits only `RECEIVED → PROCESSING → READY_FOR_PICKUP → COMPLETED`; completed orders are terminal. `POST /orders/{orderId}/cancel` requires the same permission and a nonblank reason. Cancellation is permitted only from the three active workflow states when `payment_status=UNPAID`; paid, partially paid, and refunded orders are rejected with `409 REFUND_POLICY_REQUIRED` until refund behavior is approved and implemented. Both operations lock the order row, re-check tenant and current active-outlet/assignment scope, and atomically update the order, append status history, and insert an audit event. Cancellation sets `status=CANCELLED`, `cancelled_at`, `cancelled_by`, `cancellation_reason`, and the existing `deleted_at` soft-delete field; it does not delete the order, items, payments, or history. `GET /orders/{orderId}/status-history` requires `ORDERS_READ` and returns append-only history chronologically, including for cancelled orders.
+
 ## Contract rules
 
 - Add all endpoint changes to OpenAPI before generating Echo types with `make generate`.

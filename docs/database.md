@@ -77,7 +77,7 @@ An order line references its source service and optional perfume, while also sto
 
 ### `order_status_history`
 
-An append-oriented record of every order status transition, including actor and timestamp. Its check constraint permits only the documented forward workflow and cancellation from active states. Order updates and history insertion must occur in one transaction so the current order state and its history remain consistent.
+An append-oriented record of every order status transition, including actor and timestamp. Its check constraint permits only the documented forward workflow (`RECEIVED → PROCESSING → READY_FOR_PICKUP → COMPLETED`) and cancellation from `RECEIVED`, `PROCESSING`, or `READY_FOR_PICKUP`. The application locks the order row, applies the state-transition matrix, and updates current status, history, and audit event in one transaction. Cancellation is restricted to orders whose payment status is `UNPAID` until a refund policy is approved; even the existence of `payment_refunds` does not authorize refund behavior.
 
 ### `invoice_counters`
 

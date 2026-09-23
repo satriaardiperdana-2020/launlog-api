@@ -51,6 +51,12 @@ func orderError(c echo.Context, err error) error {
 	switch {
 	case errors.Is(err, service.ErrInvalidOrder), errors.Is(err, service.ErrOrderTotalOverflow):
 		return badRequest(c, "INVALID_ORDER", err.Error())
+	case errors.Is(err, service.ErrInvalidCancellation):
+		return badRequest(c, "INVALID_CANCELLATION", err.Error())
+	case errors.Is(err, service.ErrInvalidOrderTransition):
+		return conflict(c, "INVALID_STATUS_TRANSITION", err.Error())
+	case errors.Is(err, service.ErrOrderRequiresRefund):
+		return conflict(c, "REFUND_POLICY_REQUIRED", err.Error())
 	case errors.Is(err, service.ErrOrderOutletForbidden):
 		return c.JSON(http.StatusForbidden, map[string]string{"code": "FORBIDDEN", "message": "The outlet is not assigned to this user."})
 	case errors.Is(err, service.ErrOrderIdempotencyConflict):
@@ -60,6 +66,71 @@ func orderError(c echo.Context, err error) error {
 	default:
 		return internalError(c)
 	}
+}
+
+type transitionOrderStatusRequest struct {
+	Status *string `json:"status"`
+	Notes  *string `json:"notes"`
+}
+
+type cancelOrderRequest struct {
+	Reason *string `json:"reason"`
+}
+
+func (h *OrderHandler) TransitionStatus(c echo.Context) error {
+	p, ok := PrincipalFromContext(c)
+	if !ok {
+		return unauthorized(c)
+	}
+	id, err := pathID(c, "orderId")
+	if err != nil {
+		return badRequest(c, "INVALID_ID", "Order ID must be a positive integer.")
+	}
+	var req transitionOrderStatusRequest
+	if err := decodeManagementJSON(c, &req); err != nil || req.Status == nil {
+		return badRequest(c, "INVALID_REQUEST", "A supported target status is required.")
+	}
+	result, err := h.catalog.TransitionStatus(c.Request().Context(), orderActor(p, c), id, *req.Status, req.Notes)
+	if err != nil {
+		return orderError(c, err)
+	}
+	return c.JSON(http.StatusOK, result)
+}
+
+func (h *OrderHandler) Cancel(c echo.Context) error {
+	p, ok := PrincipalFromContext(c)
+	if !ok {
+		return unauthorized(c)
+	}
+	id, err := pathID(c, "orderId")
+	if err != nil {
+		return badRequest(c, "INVALID_ID", "Order ID must be a positive integer.")
+	}
+	var req cancelOrderRequest
+	if err := decodeManagementJSON(c, &req); err != nil || req.Reason == nil {
+		return badRequest(c, "INVALID_CANCELLATION", "A cancellation reason is required.")
+	}
+	result, err := h.catalog.Cancel(c.Request().Context(), orderActor(p, c), id, *req.Reason)
+	if err != nil {
+		return orderError(c, err)
+	}
+	return c.JSON(http.StatusOK, result)
+}
+
+func (h *OrderHandler) StatusHistory(c echo.Context) error {
+	p, ok := PrincipalFromContext(c)
+	if !ok {
+		return unauthorized(c)
+	}
+	id, err := pathID(c, "orderId")
+	if err != nil {
+		return badRequest(c, "INVALID_ID", "Order ID must be a positive integer.")
+	}
+	items, err := h.catalog.StatusHistory(c.Request().Context(), orderActor(p, c), id)
+	if err != nil {
+		return orderError(c, err)
+	}
+	return c.JSON(http.StatusOK, map[string]any{"items": items})
 }
 
 func (h *OrderHandler) Create(c echo.Context) error {

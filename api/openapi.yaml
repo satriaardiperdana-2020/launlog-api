@@ -30,7 +30,7 @@ tags:
   - name: Perfumes
     description: Business-scoped optional perfume catalog for order items
   - name: Orders
-    description: Transactional order creation, invoices, and immutable item snapshots
+    description: Transactional order creation, lifecycle, cancellation, invoices, and immutable item snapshots
 
 paths:
   /orders:
@@ -110,6 +110,88 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Order" }
         "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /orders/{orderId}/status:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/EntityId" }
+    patch:
+      operationId: transitionOrderStatus
+      summary: Advance an order through its allowed lifecycle
+      description: "Allowed transitions only: RECEIVED→PROCESSING, PROCESSING→READY_FOR_PICKUP, READY_FOR_PICKUP→COMPLETED. Cancellation uses the separate cancellation operation. COMPLETED and CANCELLED are terminal."
+      tags: [Orders]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrderStatusTransitionInput" }
+      responses:
+        "200":
+          description: Transition committed with history and audit records.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrderLifecycleResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /orders/{orderId}/cancel:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/EntityId" }
+    post:
+      operationId: cancelOrder
+      summary: Cancel an unpaid order and retain it as soft-deleted history
+      description: "Cancellation is allowed from RECEIVED, PROCESSING, and READY_FOR_PICKUP only when payment_status is UNPAID. Paid or partially paid cancellation returns 409 until a refund policy and implementation are approved. Cancellation reason is mandatory."
+      tags: [Orders]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CancelOrderInput" }
+      responses:
+        "200":
+          description: Cancellation committed with history and audit records.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrderLifecycleResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /orders/{orderId}/status-history:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/EntityId" }
+    get:
+      operationId: getOrderStatusHistory
+      summary: Get append-only status history for an order
+      tags: [Orders]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Status history in chronological order, including cancellation when applicable.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrderStatusHistory" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -1307,6 +1389,56 @@ components:
     OrderStatus:
       type: string
       enum: [RECEIVED, PROCESSING, READY_FOR_PICKUP, COMPLETED, CANCELLED]
+    OrderStatusTransitionInput:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [PROCESSING, READY_FOR_PICKUP, COMPLETED]
+        notes: { type: string, maxLength: 2000, nullable: true }
+    CancelOrderInput:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 2000 }
+    OrderLifecycleResult:
+      type: object
+      required: [order_id, status, payment_status, updated_at]
+      properties:
+        order_id: { $ref: "#/components/schemas/EntityId" }
+        status: { $ref: "#/components/schemas/OrderStatus" }
+        payment_status: { $ref: "#/components/schemas/OrderPaymentStatus" }
+        updated_at: { $ref: "#/components/schemas/JakartaDateTime" }
+        completed_at:
+          allOf: [{ $ref: "#/components/schemas/JakartaDateTime" }]
+          nullable: true
+        cancelled_at:
+          allOf: [{ $ref: "#/components/schemas/JakartaDateTime" }]
+          nullable: true
+        cancellation_reason: { type: string, nullable: true }
+    OrderStatusHistory:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/OrderStatusHistoryEntry" }
+    OrderStatusHistoryEntry:
+      type: object
+      required: [id, to_status, changed_by, changed_by_name, changed_at]
+      properties:
+        id: { $ref: "#/components/schemas/EntityId" }
+        from_status:
+          allOf: [{ $ref: "#/components/schemas/OrderStatus" }]
+          nullable: true
+        to_status: { $ref: "#/components/schemas/OrderStatus" }
+        changed_by: { $ref: "#/components/schemas/EntityId" }
+        changed_by_name: { type: string }
+        notes: { type: string, nullable: true }
+        changed_at: { $ref: "#/components/schemas/JakartaDateTime" }
     OrderPaymentStatus:
       type: string
       enum: [UNPAID, PARTIALLY_PAID, PAID, REFUNDED]

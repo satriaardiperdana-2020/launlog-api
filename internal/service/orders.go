@@ -27,6 +27,9 @@ var (
 	ErrOrderPerfumeNotFound     = errors.New("active perfume not found")
 	ErrOrderIdempotencyConflict = errors.New("idempotency key was already used with a different payload")
 	ErrOrderTotalOverflow       = errors.New("order total exceeds the supported rupiah range")
+	ErrInvalidOrderTransition   = errors.New("order status transition is not allowed")
+	ErrOrderRequiresRefund      = errors.New("orders with payments cannot be cancelled until a refund policy is approved")
+	ErrInvalidCancellation      = errors.New("cancellation reason is required")
 )
 
 type OrderItemInput struct {
@@ -97,6 +100,26 @@ type OrderSummary struct {
 type OrderCreationResult struct {
 	Order    Order
 	Replayed bool
+}
+
+type OrderLifecycleResult struct {
+	OrderID            int64      `json:"order_id"`
+	Status             string     `json:"status"`
+	PaymentStatus      string     `json:"payment_status"`
+	UpdatedAt          time.Time  `json:"updated_at"`
+	CompletedAt        *time.Time `json:"completed_at"`
+	CancelledAt        *time.Time `json:"cancelled_at"`
+	CancellationReason *string    `json:"cancellation_reason"`
+}
+
+type OrderStatusHistoryEntry struct {
+	ID            int64     `json:"id"`
+	FromStatus    *string   `json:"from_status"`
+	ToStatus      string    `json:"to_status"`
+	ChangedBy     int64     `json:"changed_by"`
+	ChangedByName string    `json:"changed_by_name"`
+	Notes         *string   `json:"notes"`
+	ChangedAt     time.Time `json:"changed_at"`
 }
 
 type OrderFilter struct {
@@ -335,6 +358,169 @@ func (s *OrderCatalog) Get(ctx context.Context, actor Actor, orderID int64) (Ord
 	return loadOrder(ctx, s.database.Queries(), row.ID, row.BusinessID, row.OutletID, row.CustomerID,
 		row.InvoiceNumber, row.Status, row.PaymentStatus, row.TotalAmount, row.Notes, row.ReceivedAt,
 		row.DueAt, row.CreatedBy, row.CreatedAt, row.UpdatedAt)
+}
+
+func allowedOrderTransition(from, to string) bool {
+	switch from {
+	case "RECEIVED":
+		return to == "PROCESSING" || to == "CANCELLED"
+	case "PROCESSING":
+		return to == "READY_FOR_PICKUP" || to == "CANCELLED"
+	case "READY_FOR_PICKUP":
+		return to == "COMPLETED" || to == "CANCELLED"
+	default:
+		return false
+	}
+}
+
+func (s *OrderCatalog) TransitionStatus(ctx context.Context, actor Actor, orderID int64, toStatus string, notes *string) (OrderLifecycleResult, error) {
+	if orderID < 1 || actor.BusinessID < 1 || actor.UserID < 1 || !validStatusTarget(toStatus) {
+		return OrderLifecycleResult{}, ErrInvalidOrderTransition
+	}
+	tx, err := s.database.Begin(ctx)
+	if err != nil {
+		return OrderLifecycleResult{}, err
+	}
+	defer tx.Rollback(ctx)
+	q := s.database.Queries().WithTx(tx)
+	before, err := lockLifecycleOrder(ctx, q, actor, orderID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return OrderLifecycleResult{}, ErrOrderNotFound
+	}
+	if err != nil {
+		return OrderLifecycleResult{}, err
+	}
+	if !allowedOrderTransition(before.Status, toStatus) {
+		return OrderLifecycleResult{}, ErrInvalidOrderTransition
+	}
+	updated, err := q.TransitionOrderStatus(ctx, postgresql.TransitionOrderStatusParams{BusinessID: actor.BusinessID, OrderID: orderID, ToStatus: toStatus})
+	if err != nil {
+		return OrderLifecycleResult{}, err
+	}
+	if err := q.InsertOrderStatusHistory(ctx, postgresql.InsertOrderStatusHistoryParams{
+		BusinessID: actor.BusinessID, OutletID: before.OutletID, OrderID: orderID,
+		FromStatus: pgtype.Text{String: before.Status, Valid: true}, ToStatus: toStatus, ChangedBy: actor.UserID, Notes: optionalText(notes),
+	}); err != nil {
+		return OrderLifecycleResult{}, err
+	}
+	oldValues, _ := json.Marshal(map[string]any{"status": before.Status, "completed_at": timePointer(before.CompletedAt)})
+	newValues, _ := json.Marshal(map[string]any{"status": updated.Status, "completed_at": timePointer(updated.CompletedAt), "notes": notes})
+	if err := insertLifecycleAudit(ctx, q, actor, before.OutletID, orderID, "ORDER_STATUS_CHANGED", oldValues, newValues); err != nil {
+		return OrderLifecycleResult{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return OrderLifecycleResult{}, err
+	}
+	return OrderLifecycleResult{OrderID: orderID, Status: updated.Status, PaymentStatus: updated.PaymentStatus,
+		UpdatedAt: updated.UpdatedAt.Time, CompletedAt: timePointer(updated.CompletedAt)}, nil
+}
+
+func validStatusTarget(status string) bool {
+	return status == "PROCESSING" || status == "READY_FOR_PICKUP" || status == "COMPLETED"
+}
+
+func lockLifecycleOrder(ctx context.Context, q *postgresql.Queries, actor Actor, orderID int64) (postgresql.GetOrderForUpdateRow, error) {
+	order, err := q.GetOrderForUpdate(ctx, postgresql.GetOrderForUpdateParams{BusinessID: actor.BusinessID, OrderID: orderID, IsAdmin: actor.Role == "ADMIN", UserID: actor.UserID})
+	if err != nil {
+		return postgresql.GetOrderForUpdateRow{}, err
+	}
+	if actor.Role != "ADMIN" {
+		if _, err := q.LockCurrentOrderOutletAssignment(ctx, postgresql.LockCurrentOrderOutletAssignmentParams{BusinessID: actor.BusinessID, UserID: actor.UserID, OutletID: order.OutletID}); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return postgresql.GetOrderForUpdateRow{}, ErrOrderOutletForbidden
+			}
+			return postgresql.GetOrderForUpdateRow{}, err
+		}
+	}
+	return order, nil
+}
+
+func (s *OrderCatalog) Cancel(ctx context.Context, actor Actor, orderID int64, reason string) (OrderLifecycleResult, error) {
+	reason = strings.TrimSpace(reason)
+	if orderID < 1 || actor.BusinessID < 1 || actor.UserID < 1 || reason == "" || len(reason) > 2000 {
+		return OrderLifecycleResult{}, ErrInvalidCancellation
+	}
+	tx, err := s.database.Begin(ctx)
+	if err != nil {
+		return OrderLifecycleResult{}, err
+	}
+	defer tx.Rollback(ctx)
+	q := s.database.Queries().WithTx(tx)
+	before, err := lockLifecycleOrder(ctx, q, actor, orderID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return OrderLifecycleResult{}, ErrOrderNotFound
+	}
+	if err != nil {
+		return OrderLifecycleResult{}, err
+	}
+	if !allowedOrderTransition(before.Status, "CANCELLED") {
+		return OrderLifecycleResult{}, ErrInvalidOrderTransition
+	}
+	if before.PaymentStatus != "UNPAID" {
+		return OrderLifecycleResult{}, ErrOrderRequiresRefund
+	}
+	updated, err := q.CancelOrder(ctx, postgresql.CancelOrderParams{BusinessID: actor.BusinessID, OrderID: orderID,
+		ActorUserID: pgtype.Int8{Int64: actor.UserID, Valid: true}, Reason: pgtype.Text{String: reason, Valid: true}})
+	if err != nil {
+		return OrderLifecycleResult{}, err
+	}
+	if err := q.InsertOrderStatusHistory(ctx, postgresql.InsertOrderStatusHistoryParams{
+		BusinessID: actor.BusinessID, OutletID: before.OutletID, OrderID: orderID,
+		FromStatus: pgtype.Text{String: before.Status, Valid: true}, ToStatus: "CANCELLED", ChangedBy: actor.UserID,
+		Notes: pgtype.Text{String: reason, Valid: true},
+	}); err != nil {
+		return OrderLifecycleResult{}, err
+	}
+	oldValues, _ := json.Marshal(map[string]any{"status": before.Status, "payment_status": before.PaymentStatus})
+	newValues, _ := json.Marshal(map[string]any{"status": updated.Status, "payment_status": updated.PaymentStatus,
+		"cancelled_at": updated.CancelledAt.Time, "cancelled_by": actor.UserID, "cancellation_reason": reason, "deleted_at": updated.DeletedAt.Time})
+	if err := insertLifecycleAudit(ctx, q, actor, before.OutletID, orderID, "ORDER_CANCELLED", oldValues, newValues); err != nil {
+		return OrderLifecycleResult{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return OrderLifecycleResult{}, err
+	}
+	return OrderLifecycleResult{OrderID: orderID, Status: updated.Status, PaymentStatus: updated.PaymentStatus,
+		UpdatedAt: updated.UpdatedAt.Time, CancelledAt: timePointer(updated.CancelledAt), CancellationReason: textPointer(updated.CancellationReason)}, nil
+}
+
+func (s *OrderCatalog) StatusHistory(ctx context.Context, actor Actor, orderID int64) ([]OrderStatusHistoryEntry, error) {
+	if orderID < 1 || actor.BusinessID < 1 || actor.UserID < 1 {
+		return nil, ErrOrderNotFound
+	}
+	tx, err := s.database.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	q := s.database.Queries().WithTx(tx)
+	order, err := lockLifecycleOrder(ctx, q, actor, orderID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrOrderNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.ListOrderStatusHistory(ctx, postgresql.ListOrderStatusHistoryParams{BusinessID: actor.BusinessID, OutletID: order.OutletID, OrderID: orderID})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]OrderStatusHistoryEntry, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, OrderStatusHistoryEntry{ID: row.ID, FromStatus: textPointer(row.FromStatus), ToStatus: row.ToStatus, ChangedBy: row.ChangedBy, ChangedByName: row.ChangedByName, Notes: textPointer(row.Notes), ChangedAt: row.ChangedAt.Time})
+	}
+	return result, nil
+}
+
+func insertLifecycleAudit(ctx context.Context, q *postgresql.Queries, actor Actor, outletID, orderID int64, action string, oldValues, newValues []byte) error {
+	userAgent := actor.UserAgent
+	if len(userAgent) > 512 {
+		userAgent = userAgent[:512]
+	}
+	return q.InsertOrderLifecycleAuditLog(ctx, postgresql.InsertOrderLifecycleAuditLogParams{BusinessID: actor.BusinessID,
+		OutletID: pgtype.Int8{Int64: outletID, Valid: true}, ActorUserID: pgtype.Int8{Int64: actor.UserID, Valid: true}, Action: action,
+		OrderID: pgtype.Int8{Int64: orderID, Valid: true}, OldValues: oldValues, NewValues: newValues,
+		IpAddress: actor.IP, UserAgent: pgtype.Text{String: userAgent, Valid: userAgent != ""}})
 }
 
 func (s *OrderCatalog) List(ctx context.Context, actor Actor, filter OrderFilter) ([]OrderSummary, int64, error) {
