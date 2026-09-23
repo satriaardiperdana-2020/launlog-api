@@ -21,6 +21,14 @@ Client -> Echo middleware -> OpenAPI handler -> service layer -> repository/sqlc
 
 The frontend must never be trusted to enforce permissions or calculate authoritative financial totals.
 
+## Foundation lifecycle
+
+Configuration is loaded once at startup. The process parses the PostgreSQL URL, applies pool limits and the Asia/Jakarta session timezone, then pings PostgreSQL within the configured connection timeout. Only then does Echo begin accepting requests.
+
+`/livez` reports only process liveness. `/readyz` and `/health` use a short, bounded PostgreSQL ping and report readiness. On `SIGINT` or `SIGTERM`, `http.Server.Shutdown` stops new requests, waits up to `SHUTDOWN_TIMEOUT` for in-flight requests, and then closes the pool.
+
+The current authentication handlers are preserved as compatible implementation work. New business behavior must be added through the service and repository layers defined above rather than directly from request JSON to database operations.
+
 ## Authentication
 
 The backend validates the access token, active account, business membership, outlet assignment, and required permission. Refresh tokens are stored and revocable.

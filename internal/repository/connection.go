@@ -24,18 +24,15 @@ func (p *Postgres) Begin(ctx context.Context) (pgx.Tx, error) { return p.pool.Be
 func NewPostgres(
 	ctx context.Context,
 	databaseURL string,
+	timezone string,
 	connectTimeout time.Duration,
 	maxConnections int32,
 	minConnections int32,
 ) (*Postgres, error) {
-	poolConfig, err := pgxpool.ParseConfig(databaseURL)
+	poolConfig, err := newPoolConfig(databaseURL, timezone, maxConnections, minConnections)
 	if err != nil {
-		// Do not wrap the parser error because it may contain the credential-bearing URL.
-		return nil, errors.New("invalid PostgreSQL configuration")
+		return nil, err
 	}
-	poolConfig.MaxConns = maxConnections
-	poolConfig.MinConns = minConnections
-	poolConfig.ConnConfig.RuntimeParams["application_name"] = "launlog-api"
 
 	connectContext, cancel := context.WithTimeout(ctx, connectTimeout)
 	defer cancel()
@@ -51,6 +48,20 @@ func NewPostgres(
 	}
 
 	return &Postgres{pool: pool}, nil
+}
+
+func newPoolConfig(databaseURL, timezone string, maxConnections, minConnections int32) (*pgxpool.Config, error) {
+	poolConfig, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		// Do not wrap the parser error because it may contain the credential-bearing URL.
+		return nil, errors.New("invalid PostgreSQL configuration")
+	}
+
+	poolConfig.MaxConns = maxConnections
+	poolConfig.MinConns = minConnections
+	poolConfig.ConnConfig.RuntimeParams["application_name"] = "launlog-api"
+	poolConfig.ConnConfig.RuntimeParams["timezone"] = timezone
+	return poolConfig, nil
 }
 
 // Ping verifies that PostgreSQL accepts a request in the provided context.

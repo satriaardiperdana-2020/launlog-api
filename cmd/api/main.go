@@ -42,6 +42,7 @@ func run(logger *slog.Logger) error {
 	database, err := repository.NewPostgres(
 		appContext,
 		cfg.DatabaseURL,
+		cfg.Timezone,
 		cfg.DatabaseConnectTimeout,
 		cfg.DatabaseMaxConnections,
 		cfg.DatabaseMinConnections,
@@ -60,8 +61,10 @@ func run(logger *slog.Logger) error {
 	e.HidePort = true
 	e.Use(middleware.RequestID(), middleware.Recover())
 
-	healthHandler := handlers.NewHealthHandler(database)
+	healthHandler := handlers.NewHealthHandler(database, cfg.ReadinessTimeout)
 	authHandler := handlers.NewAuthHandler(database, jwtTokens, cfg.JWTRefreshTokenTTL)
+	e.GET("/livez", healthHandler.Live)
+	e.GET("/readyz", healthHandler.Ready)
 	e.GET("/health", healthHandler.Health)
 	e.POST("/auth/login", authHandler.Login)
 	e.POST("/auth/refresh", authHandler.Refresh)

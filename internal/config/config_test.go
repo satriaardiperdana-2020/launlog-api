@@ -30,6 +30,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.DatabaseConnectTimeout != 5*time.Second {
 		t.Errorf("DatabaseConnectTimeout = %v, want 5s", cfg.DatabaseConnectTimeout)
 	}
+	if cfg.ReadinessTimeout != 2*time.Second || cfg.Timezone != "Asia/Jakarta" {
+		t.Errorf("readiness configuration = (%v, %q), want (2s, Asia/Jakarta)", cfg.ReadinessTimeout, cfg.Timezone)
+	}
 	if cfg.DatabaseMaxConnections != 10 || cfg.DatabaseMinConnections != 0 {
 		t.Errorf(
 			"database connection limits = (%d, %d), want (10, 0)",
@@ -48,6 +51,8 @@ func TestLoadOverrides(t *testing.T) {
 	t.Setenv("HTTP_WRITE_TIMEOUT", "3s")
 	t.Setenv("HTTP_IDLE_TIMEOUT", "4s")
 	t.Setenv("SHUTDOWN_TIMEOUT", "5s")
+	t.Setenv("READINESS_TIMEOUT", "1s")
+	t.Setenv("APP_TIMEZONE", "Asia/Jakarta")
 	t.Setenv("DATABASE_URL", "postgres://user:password@localhost:5432/launlog")
 	t.Setenv("JWT_SIGNING_SECRET", "01234567890123456789012345678901")
 	t.Setenv("DATABASE_CONNECT_TIMEOUT", "6s")
@@ -65,7 +70,7 @@ func TestLoadOverrides(t *testing.T) {
 	if cfg.HTTPReadTimeout != 2*time.Second || cfg.HTTPWriteTimeout != 3*time.Second || cfg.HTTPIdleTimeout != 4*time.Second {
 		t.Errorf("unexpected HTTP timeouts: %+v", cfg)
 	}
-	if cfg.ShutdownTimeout != 5*time.Second || cfg.DatabaseConnectTimeout != 6*time.Second {
+	if cfg.ShutdownTimeout != 5*time.Second || cfg.ReadinessTimeout != time.Second || cfg.DatabaseConnectTimeout != 6*time.Second {
 		t.Errorf("unexpected lifecycle timeouts: %+v", cfg)
 	}
 	if cfg.DatabaseMaxConnections != 20 || cfg.DatabaseMinConnections != 2 {
@@ -84,6 +89,8 @@ func TestLoadValidation(t *testing.T) {
 		{name: "database URL required", errorPart: "DATABASE_URL is required"},
 		{name: "invalid port", variable: "HTTP_PORT", value: "70000", errorPart: "HTTP_PORT", setDatabase: true},
 		{name: "invalid duration", variable: "HTTP_READ_TIMEOUT", value: "soon", errorPart: "HTTP_READ_TIMEOUT", setDatabase: true},
+		{name: "invalid readiness timeout", variable: "READINESS_TIMEOUT", value: "0s", errorPart: "readiness", setDatabase: true},
+		{name: "unsupported timezone", variable: "APP_TIMEZONE", value: "UTC", errorPart: "APP_TIMEZONE", setDatabase: true},
 		{name: "invalid maximum connections", variable: "DATABASE_MAX_CONNS", value: "0", errorPart: "DATABASE_MAX_CONNS", setDatabase: true},
 		{name: "minimum exceeds maximum", variable: "DATABASE_MIN_CONNS", value: "11", errorPart: "DATABASE_MIN_CONNS", setDatabase: true},
 	}
@@ -177,6 +184,8 @@ func clearConfigEnvironment(t *testing.T) {
 		"HTTP_WRITE_TIMEOUT",
 		"HTTP_IDLE_TIMEOUT",
 		"SHUTDOWN_TIMEOUT",
+		"READINESS_TIMEOUT",
+		"APP_TIMEZONE",
 		"DATABASE_URL",
 		"DATABASE_CONNECT_TIMEOUT",
 		"DATABASE_MAX_CONNS",
@@ -216,9 +225,14 @@ func configEnvironmentNames() []string {
 		"HTTP_WRITE_TIMEOUT",
 		"HTTP_IDLE_TIMEOUT",
 		"SHUTDOWN_TIMEOUT",
+		"READINESS_TIMEOUT",
+		"APP_TIMEZONE",
 		"DATABASE_URL",
 		"DATABASE_CONNECT_TIMEOUT",
 		"DATABASE_MAX_CONNS",
 		"DATABASE_MIN_CONNS",
+		"JWT_SIGNING_SECRET",
+		"JWT_ACCESS_TOKEN_TTL",
+		"JWT_REFRESH_TOKEN_TTL",
 	}
 }

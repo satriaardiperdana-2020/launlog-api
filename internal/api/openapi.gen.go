@@ -5,18 +5,12 @@ package api
 
 import (
 	"bytes"
-	"compress/flate"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
-	"path"
-	"strings"
 	"time"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v4"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -34,6 +28,21 @@ const (
 func (e HealthResponseStatus) Valid() bool {
 	switch e {
 	case Ok:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HealthUnavailableResponseStatus.
+const (
+	Unavailable HealthUnavailableResponseStatus = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the HealthUnavailableResponseStatus enum.
+func (e HealthUnavailableResponseStatus) Valid() bool {
+	switch e {
+	case Unavailable:
 		return true
 	default:
 		return false
@@ -123,6 +132,14 @@ type HealthResponse struct {
 
 // HealthResponseStatus defines model for HealthResponse.Status.
 type HealthResponseStatus string
+
+// HealthUnavailableResponse defines model for HealthUnavailableResponse.
+type HealthUnavailableResponse struct {
+	Status HealthUnavailableResponseStatus `json:"status"`
+}
+
+// HealthUnavailableResponseStatus defines model for HealthUnavailableResponse.Status.
+type HealthUnavailableResponseStatus string
 
 // JakartaDateTime RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
 type JakartaDateTime = time.Time
@@ -224,9 +241,15 @@ type ServerInterface interface {
 	// Refresh an authentication session
 	// (POST /auth/refresh)
 	RefreshToken(ctx echo.Context) error
-	// Check application health
+	// Compatibility readiness check
 	// (GET /health)
 	GetHealth(ctx echo.Context) error
+	// Check whether the HTTP process is live
+	// (GET /livez)
+	GetLiveness(ctx echo.Context) error
+	// Check whether the API is ready to serve database-backed requests
+	// (GET /readyz)
+	GetReadiness(ctx echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -283,6 +306,24 @@ func (w *ServerInterfaceWrapper) GetHealth(ctx echo.Context) error {
 	return err
 }
 
+// GetLiveness converts echo context to params.
+func (w *ServerInterfaceWrapper) GetLiveness(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetLiveness(ctx)
+	return err
+}
+
+// GetReadiness converts echo context to params.
+func (w *ServerInterfaceWrapper) GetReadiness(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetReadiness(ctx)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -335,6 +376,8 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/auth/me", wrapper.GetCurrentUser, options.OperationMiddlewares["getCurrentUser"]...)
 	router.POST(options.BaseURL+"/auth/refresh", wrapper.RefreshToken, options.OperationMiddlewares["refreshToken"]...)
 	router.GET(options.BaseURL+"/health", wrapper.GetHealth, options.OperationMiddlewares["getHealth"]...)
+	router.GET(options.BaseURL+"/livez", wrapper.GetLiveness, options.OperationMiddlewares["getLiveness"]...)
+	router.GET(options.BaseURL+"/readyz", wrapper.GetReadiness, options.OperationMiddlewares["getReadiness"]...)
 
 }
 
@@ -688,25 +731,65 @@ func (response GetHealth200JSONResponse) VisitGetHealthResponse(w http.ResponseW
 	return err
 }
 
-type GetHealth500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type GetHealth503JSONResponse HealthUnavailableResponse
 
-func (response GetHealth500JSONResponse) VisitGetHealthResponse(w http.ResponseWriter) error {
+func (response GetHealth503JSONResponse) VisitGetHealthResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
 		return err
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
+	w.WriteHeader(503)
 	_, err := buf.WriteTo(w)
 	return err
 }
 
-type GetHealth503JSONResponse struct{ ServiceUnavailableJSONResponse }
+type GetLivenessRequestObject struct {
+}
 
-func (response GetHealth503JSONResponse) VisitGetHealthResponse(w http.ResponseWriter) error {
+type GetLivenessResponseObject interface {
+	VisitGetLivenessResponse(w http.ResponseWriter) error
+}
+
+type GetLiveness200JSONResponse HealthResponse
+
+func (response GetLiveness200JSONResponse) VisitGetLivenessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReadinessRequestObject struct {
+}
+
+type GetReadinessResponseObject interface {
+	VisitGetReadinessResponse(w http.ResponseWriter) error
+}
+
+type GetReadiness200JSONResponse HealthResponse
+
+func (response GetReadiness200JSONResponse) VisitGetReadinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReadiness503JSONResponse HealthUnavailableResponse
+
+func (response GetReadiness503JSONResponse) VisitGetReadinessResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -732,9 +815,15 @@ type StrictServerInterface interface {
 	// Refresh an authentication session
 	// (POST /auth/refresh)
 	RefreshToken(ctx context.Context, request RefreshTokenRequestObject) (RefreshTokenResponseObject, error)
-	// Check application health
+	// Compatibility readiness check
 	// (GET /health)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
+	// Check whether the HTTP process is live
+	// (GET /livez)
+	GetLiveness(ctx context.Context, request GetLivenessRequestObject) (GetLivenessResponseObject, error)
+	// Check whether the API is ready to serve database-backed requests
+	// (GET /readyz)
+	GetReadiness(ctx context.Context, request GetReadinessRequestObject) (GetReadinessResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx echo.Context, request any) (any, error)
@@ -882,142 +971,48 @@ func (sh *strictHandler) GetHealth(ctx echo.Context) error {
 	return nil
 }
 
-// Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
-// Stored as a slice of fixed-width chunks rather than one concatenated
-// const string: with thousands of chunks the chained `+` fold is several
-// times slower for the Go compiler than parsing a slice literal.
-var swaggerSpec = []string{
-	"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",
-}
+// GetLiveness operation middleware
+func (sh *strictHandler) GetLiveness(ctx echo.Context) error {
+	var request GetLivenessRequestObject
 
-// decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
-// after base64-decoding and flate-decompressing the embedded blob.
-func decodeSpec() ([]byte, error) {
-	encoded := strings.Join(swaggerSpec, "")
-	compressed, err := base64.StdEncoding.DecodeString(encoded)
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLiveness(ctx.Request().Context(), request.(GetLivenessRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLiveness")
+	}
+
+	response, err := handler(ctx, request)
+
 	if err != nil {
-		return nil, fmt.Errorf("error base64 decoding spec: %w", err)
+		return err
+	} else if validResponse, ok := response.(GetLivenessResponseObject); ok {
+		return validResponse.VisitGetLivenessResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
 	}
-	zr := flate.NewReader(bytes.NewReader(compressed))
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(zr); err != nil {
-		return nil, fmt.Errorf("read flate: %w", err)
-	}
-	if err := zr.Close(); err != nil {
-		return nil, fmt.Errorf("close flate reader: %w", err)
-	}
-
-	return buf.Bytes(), nil
+	return nil
 }
 
-var rawSpec = decodeSpecCached()
+// GetReadiness operation middleware
+func (sh *strictHandler) GetReadiness(ctx echo.Context) error {
+	var request GetReadinessRequestObject
 
-// a naive cache of the decoded OpenAPI spec
-func decodeSpecCached() func() ([]byte, error) {
-	data, err := decodeSpec()
-	return func() ([]byte, error) {
-		return data, err
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetReadiness(ctx.Request().Context(), request.(GetReadinessRequestObject))
 	}
-}
-
-// Constructs a synthetic filesystem for resolving external references when loading openapi specifications.
-func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
-	res := make(map[string]func() ([]byte, error))
-	if len(pathToFile) > 0 {
-		res[pathToFile] = rawSpec
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetReadiness")
 	}
 
-	return res
-}
+	response, err := handler(ctx, request)
 
-// GetSpec returns the OpenAPI specification corresponding to the generated
-// code in this file. External references in the spec are resolved through
-// PathToRawSpec; externally-referenced files must be embedded in their
-// corresponding Go packages (via the import-mapping feature). URL-based
-// external refs are not supported.
-func GetSpec() (swagger *openapi3.T, err error) {
-	resolvePath := PathToRawSpec("")
-
-	loader := openapi3.NewLoader()
-	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
-	var specData []byte
-	specData, err = rawSpec()
 	if err != nil {
-		return
+		return err
+	} else if validResponse, ok := response.(GetReadinessResponseObject); ok {
+		return validResponse.VisitGetReadinessResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
 	}
-	swagger, err = loader.LoadFromData(specData)
-	if err != nil {
-		return
-	}
-	return
-}
-
-// GetSpecJSON returns the raw JSON bytes of the embedded OpenAPI
-// specification: decompressed but not unmarshaled. External references
-// are not resolved here; the bytes are the spec exactly as embedded by
-// codegen. The result is cached at package init time, so repeated calls
-// are cheap.
-func GetSpecJSON() ([]byte, error) {
-	return rawSpec()
-}
-
-// GetSwagger returns the OpenAPI specification corresponding to the
-// generated code in this file.
-//
-// Deprecated: GetSwagger predates kin-openapi renaming openapi3.Swagger
-// to openapi3.T. Use [GetSpec] instead. This wrapper is retained for
-// backwards compatibility.
-func GetSwagger() (*openapi3.T, error) {
-	return GetSpec()
+	return nil
 }

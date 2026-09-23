@@ -120,6 +120,12 @@ An immutable business audit stream. It records an optional outlet and actor, act
 
 Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run in reverse order because later domains reference earlier ownership and order tables.
 
+## Operational migration policy
+
+Migrations are executed with the pinned golang-migrate CLI through `make migrate-up`, `make migrate-down`, and `make migrate-version`. `make migrate-verify` performs an up/down/up cycle and is run against an isolated PostgreSQL 16 service in CI. It must never be pointed at production as a smoke test.
+
+Applied migrations are immutable: correct a deployed schema with a later migration rather than editing an existing migration file. Generated sqlc output must be regenerated after every migration or query change.
+
 ## Deliberately excluded
 
 The schema contains no customer deposits, quota packages, subscription plans, subscription billing, or related balance tables.
