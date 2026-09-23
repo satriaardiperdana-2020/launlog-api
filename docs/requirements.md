@@ -33,7 +33,7 @@ The application does not require a separate CASHIER role for the MVP.
 - Expenses and expense categories
 - Cancelled orders with soft deletion and cancellation reason
 - Dashboard income and expense totals
-- Income, expense, profit/loss, order, cancellation, and customer reports
+- Income from confirmed non-voided payments, expense, cash-basis profit/loss, order, cancellation, and customer reports
 - Receipt data, QR identifier, WhatsApp template, and printer settings metadata
 - Staff permissions and audit history
 

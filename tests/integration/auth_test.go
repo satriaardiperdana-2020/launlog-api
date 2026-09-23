@@ -148,6 +148,11 @@ func newAuthFixture(t *testing.T) *authFixture {
 	dashboardHandler := handlers.NewDashboardHandler(database)
 	dashboards := f.echo.Group("/outlets", authmiddleware.Authenticate(database, tokens))
 	dashboards.GET("/:outletId/dashboard", dashboardHandler.GetOutlet, authmiddleware.RequirePermission("REPORTS_READ"))
+	reportsHandler := handlers.NewReportsHandler(database)
+	reports := f.echo.Group("/outlets", authmiddleware.Authenticate(database, tokens))
+	for _, reportType := range []string{"income", "expenses", "profit-loss", "orders", "cancellations", "customers"} {
+		reports.GET("/:outletId/reports/"+reportType, reportsHandler.Get(reportType), authmiddleware.RequirePermission("REPORTS_READ"))
+	}
 	orders := f.echo.Group("/orders", authmiddleware.Authenticate(database, tokens))
 	orderHandler := handlers.NewOrderHandler(database)
 	orders.GET("/:orderId/status-history", orderHandler.StatusHistory, authmiddleware.RequirePermission("ORDERS_READ"))

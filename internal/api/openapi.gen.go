@@ -20,6 +20,21 @@ const (
 	BearerAuthScopes bearerAuthContextKey = "BearerAuth.Scopes"
 )
 
+// Defines values for CancellationReportTimezone.
+const (
+	CancellationReportTimezoneAsiaJakarta CancellationReportTimezone = "Asia/Jakarta"
+)
+
+// Valid indicates whether the value is a known member of the CancellationReportTimezone enum.
+func (e CancellationReportTimezone) Valid() bool {
+	switch e {
+	case CancellationReportTimezoneAsiaJakarta:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CustomerOrderSummaryPaymentStatus.
 const (
 	CustomerOrderSummaryPaymentStatusPAID          CustomerOrderSummaryPaymentStatus = "PAID"
@@ -71,6 +86,21 @@ func (e CustomerOrderSummaryStatus) Valid() bool {
 	}
 }
 
+// Defines values for CustomerReportTimezone.
+const (
+	CustomerReportTimezoneAsiaJakarta CustomerReportTimezone = "Asia/Jakarta"
+)
+
+// Valid indicates whether the value is a known member of the CustomerReportTimezone enum.
+func (e CustomerReportTimezone) Valid() bool {
+	switch e {
+	case CustomerReportTimezoneAsiaJakarta:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ExpenseListTimezone.
 const (
 	ExpenseListTimezoneAsiaJakarta ExpenseListTimezone = "Asia/Jakarta"
@@ -80,6 +110,21 @@ const (
 func (e ExpenseListTimezone) Valid() bool {
 	switch e {
 	case ExpenseListTimezoneAsiaJakarta:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExpenseReportTimezone.
+const (
+	ExpenseReportTimezoneAsiaJakarta ExpenseReportTimezone = "Asia/Jakarta"
+)
+
+// Valid indicates whether the value is a known member of the ExpenseReportTimezone enum.
+func (e ExpenseReportTimezone) Valid() bool {
+	switch e {
+	case ExpenseReportTimezoneAsiaJakarta:
 		return true
 	default:
 		return false
@@ -116,6 +161,42 @@ func (e HealthUnavailableResponseStatus) Valid() bool {
 	}
 }
 
+// Defines values for IncomeReportByMethodMethod.
+const (
+	IncomeReportByMethodMethodBCATRANSFER IncomeReportByMethodMethod = "BCA_TRANSFER"
+	IncomeReportByMethodMethodCASH        IncomeReportByMethodMethod = "CASH"
+	IncomeReportByMethodMethodQRIS        IncomeReportByMethodMethod = "QRIS"
+)
+
+// Valid indicates whether the value is a known member of the IncomeReportByMethodMethod enum.
+func (e IncomeReportByMethodMethod) Valid() bool {
+	switch e {
+	case IncomeReportByMethodMethodBCATRANSFER:
+		return true
+	case IncomeReportByMethodMethodCASH:
+		return true
+	case IncomeReportByMethodMethodQRIS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IncomeReportTimezone.
+const (
+	IncomeReportTimezoneAsiaJakarta IncomeReportTimezone = "Asia/Jakarta"
+)
+
+// Valid indicates whether the value is a known member of the IncomeReportTimezone enum.
+func (e IncomeReportTimezone) Valid() bool {
+	switch e {
+	case IncomeReportTimezoneAsiaJakarta:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OrderPaymentStatus.
 const (
 	OrderPaymentStatusPAID          OrderPaymentStatus = "PAID"
@@ -134,6 +215,21 @@ func (e OrderPaymentStatus) Valid() bool {
 	case OrderPaymentStatusREFUNDED:
 		return true
 	case OrderPaymentStatusUNPAID:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrderReportTimezone.
+const (
+	OrderReportTimezoneAsiaJakarta OrderReportTimezone = "Asia/Jakarta"
+)
+
+// Valid indicates whether the value is a known member of the OrderReportTimezone enum.
+func (e OrderReportTimezone) Valid() bool {
+	switch e {
+	case OrderReportTimezoneAsiaJakarta:
 		return true
 	default:
 		return false
@@ -226,19 +322,49 @@ func (e PaymentStatus) Valid() bool {
 
 // Defines values for PaymentMethod.
 const (
-	BCATRANSFER PaymentMethod = "BCA_TRANSFER"
-	CASH        PaymentMethod = "CASH"
-	QRIS        PaymentMethod = "QRIS"
+	PaymentMethodBCATRANSFER PaymentMethod = "BCA_TRANSFER"
+	PaymentMethodCASH        PaymentMethod = "CASH"
+	PaymentMethodQRIS        PaymentMethod = "QRIS"
 )
 
 // Valid indicates whether the value is a known member of the PaymentMethod enum.
 func (e PaymentMethod) Valid() bool {
 	switch e {
-	case BCATRANSFER:
+	case PaymentMethodBCATRANSFER:
 		return true
-	case CASH:
+	case PaymentMethodCASH:
 		return true
-	case QRIS:
+	case PaymentMethodQRIS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ProfitLossReportTimezone.
+const (
+	ProfitLossReportTimezoneAsiaJakarta ProfitLossReportTimezone = "Asia/Jakarta"
+)
+
+// Valid indicates whether the value is a known member of the ProfitLossReportTimezone enum.
+func (e ProfitLossReportTimezone) Valid() bool {
+	switch e {
+	case ProfitLossReportTimezoneAsiaJakarta:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReportDateRangeTimezone.
+const (
+	AsiaJakarta ReportDateRangeTimezone = "Asia/Jakarta"
+)
+
+// Valid indicates whether the value is a known member of the ReportDateRangeTimezone enum.
+func (e ReportDateRangeTimezone) Valid() bool {
+	switch e {
+	case AsiaJakarta:
 		return true
 	default:
 		return false
@@ -312,6 +438,35 @@ type AuthSessionResponse struct {
 type CancelOrderInput struct {
 	Reason string `json:"reason"`
 }
+
+// CancellationReport defines model for CancellationReport.
+type CancellationReport struct {
+	Daily []struct {
+		CancellationCount int64 `json:"cancellation_count"`
+
+		// CancelledOrderValueAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		CancelledOrderValueAmount RupiahAmount `json:"cancelled_order_value_amount"`
+
+		// Date ISO 8601 calendar date interpreted in Asia/Jakarta.
+		Date LocalDate `json:"date"`
+	} `json:"daily"`
+
+	// FromDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	FromDate LocalDate `json:"from_date"`
+	Summary  struct {
+		CancellationCount int64 `json:"cancellation_count"`
+
+		// CancelledOrderValueAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		CancelledOrderValueAmount RupiahAmount `json:"cancelled_order_value_amount"`
+	} `json:"summary"`
+	Timezone CancellationReportTimezone `json:"timezone"`
+
+	// ToDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	ToDate LocalDate `json:"to_date"`
+}
+
+// CancellationReportTimezone defines model for CancellationReport.Timezone.
+type CancellationReportTimezone string
 
 // CreateOrderInput defines model for CreateOrderInput.
 type CreateOrderInput struct {
@@ -446,6 +601,31 @@ type CustomerOrderSummaryPaymentStatus string
 // CustomerOrderSummaryStatus defines model for CustomerOrderSummary.Status.
 type CustomerOrderSummaryStatus string
 
+// CustomerReport defines model for CustomerReport.
+type CustomerReport struct {
+	// FromDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	FromDate LocalDate `json:"from_date"`
+	Summary  struct {
+		DistinctCustomerCount int64 `json:"distinct_customer_count"`
+	} `json:"summary"`
+	Timezone CustomerReportTimezone `json:"timezone"`
+
+	// ToDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	ToDate       LocalDate `json:"to_date"`
+	TopCustomers []struct {
+		// CustomerId Database identifier backed by a PostgreSQL BIGINT.
+		CustomerId EntityId `json:"customer_id"`
+		Name       string   `json:"name"`
+		OrderCount int64    `json:"order_count"`
+
+		// OrderValueAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		OrderValueAmount RupiahAmount `json:"order_value_amount"`
+	} `json:"top_customers"`
+}
+
+// CustomerReportTimezone defines model for CustomerReport.Timezone.
+type CustomerReportTimezone string
+
 // DecimalQuantity Positive decimal quantity with up to three fractional digits, encoded as a string for exact transport.
 type DecimalQuantity = string
 
@@ -568,6 +748,33 @@ type ExpenseList struct {
 // ExpenseListTimezone defines model for ExpenseList.Timezone.
 type ExpenseListTimezone string
 
+// ExpenseReport defines model for ExpenseReport.
+type ExpenseReport struct {
+	Daily []struct {
+		// Date ISO 8601 calendar date interpreted in Asia/Jakarta.
+		Date LocalDate `json:"date"`
+
+		// ExpenseAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		ExpenseAmount RupiahAmount `json:"expense_amount"`
+		ExpenseCount  int64        `json:"expense_count"`
+	} `json:"daily"`
+
+	// FromDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	FromDate LocalDate `json:"from_date"`
+	Summary  struct {
+		// ExpenseAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		ExpenseAmount RupiahAmount `json:"expense_amount"`
+		ExpenseCount  int64        `json:"expense_count"`
+	} `json:"summary"`
+	Timezone ExpenseReportTimezone `json:"timezone"`
+
+	// ToDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	ToDate LocalDate `json:"to_date"`
+}
+
+// ExpenseReportTimezone defines model for ExpenseReport.Timezone.
+type ExpenseReportTimezone string
+
 // ExpenseUpdateInput defines model for ExpenseUpdateInput.
 type ExpenseUpdateInput struct {
 	// Amount Exact whole rupiah.
@@ -597,6 +804,44 @@ type HealthUnavailableResponse struct {
 
 // HealthUnavailableResponseStatus defines model for HealthUnavailableResponse.Status.
 type HealthUnavailableResponseStatus string
+
+// IncomeReport defines model for IncomeReport.
+type IncomeReport struct {
+	ByMethod []struct {
+		Method       IncomeReportByMethodMethod `json:"method"`
+		PaymentCount int64                      `json:"payment_count"`
+
+		// ReceivedAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		ReceivedAmount RupiahAmount `json:"received_amount"`
+	} `json:"by_method"`
+	Daily []struct {
+		// Date ISO 8601 calendar date interpreted in Asia/Jakarta.
+		Date         LocalDate `json:"date"`
+		PaymentCount int64     `json:"payment_count"`
+
+		// ReceivedAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		ReceivedAmount RupiahAmount `json:"received_amount"`
+	} `json:"daily"`
+
+	// FromDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	FromDate LocalDate `json:"from_date"`
+	Summary  struct {
+		PaymentCount int64 `json:"payment_count"`
+
+		// ReceivedAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		ReceivedAmount RupiahAmount `json:"received_amount"`
+	} `json:"summary"`
+	Timezone IncomeReportTimezone `json:"timezone"`
+
+	// ToDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	ToDate LocalDate `json:"to_date"`
+}
+
+// IncomeReportByMethodMethod defines model for IncomeReport.ByMethod.Method.
+type IncomeReportByMethodMethod string
+
+// IncomeReportTimezone defines model for IncomeReport.Timezone.
+type IncomeReportTimezone string
 
 // JakartaDateTime RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
 type JakartaDateTime = time.Time
@@ -721,6 +966,55 @@ type OrderPaymentSummary struct {
 	PaidAmount    RupiahAmount       `json:"paid_amount"`
 	PaymentStatus OrderPaymentStatus `json:"payment_status"`
 }
+
+// OrderReport defines model for OrderReport.
+type OrderReport struct {
+	Daily []struct {
+		CancelledCount int64 `json:"cancelled_count"`
+
+		// CancelledOrderValueAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		CancelledOrderValueAmount RupiahAmount `json:"cancelled_order_value_amount"`
+
+		// CollectedAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		CollectedAmount RupiahAmount `json:"collected_amount"`
+
+		// Date ISO 8601 calendar date interpreted in Asia/Jakarta.
+		Date       LocalDate `json:"date"`
+		OrderCount int64     `json:"order_count"`
+
+		// OrderValueAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		OrderValueAmount RupiahAmount `json:"order_value_amount"`
+
+		// OutstandingBalanceAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		OutstandingBalanceAmount RupiahAmount `json:"outstanding_balance_amount"`
+	} `json:"daily"`
+
+	// FromDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	FromDate LocalDate `json:"from_date"`
+	Summary  struct {
+		CancelledCount int64 `json:"cancelled_count"`
+
+		// CancelledOrderValueAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		CancelledOrderValueAmount RupiahAmount `json:"cancelled_order_value_amount"`
+
+		// CollectedAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		CollectedAmount RupiahAmount `json:"collected_amount"`
+		OrderCount      int64        `json:"order_count"`
+
+		// OrderValueAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		OrderValueAmount RupiahAmount `json:"order_value_amount"`
+
+		// OutstandingBalanceAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		OutstandingBalanceAmount RupiahAmount `json:"outstanding_balance_amount"`
+	} `json:"summary"`
+	Timezone OrderReportTimezone `json:"timezone"`
+
+	// ToDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	ToDate LocalDate `json:"to_date"`
+}
+
+// OrderReportTimezone defines model for OrderReport.Timezone.
+type OrderReportTimezone string
 
 // OrderStatus defines model for OrderStatus.
 type OrderStatus string
@@ -984,6 +1278,43 @@ type PermissionList struct {
 	Items []Permission `json:"items"`
 }
 
+// ProfitLossReport defines model for ProfitLossReport.
+type ProfitLossReport struct {
+	Daily []struct {
+		// Date ISO 8601 calendar date interpreted in Asia/Jakarta.
+		Date LocalDate `json:"date"`
+
+		// ExpenseAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		ExpenseAmount RupiahAmount `json:"expense_amount"`
+
+		// ProfitLossAmount May be negative; exact whole rupiah.
+		ProfitLossAmount int64 `json:"profit_loss_amount"`
+
+		// ReceivedAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		ReceivedAmount RupiahAmount `json:"received_amount"`
+	} `json:"daily"`
+
+	// FromDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	FromDate LocalDate `json:"from_date"`
+	Summary  struct {
+		// ExpenseAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		ExpenseAmount RupiahAmount `json:"expense_amount"`
+
+		// ProfitLossAmount May be negative; exact whole rupiah.
+		ProfitLossAmount int64 `json:"profit_loss_amount"`
+
+		// ReceivedAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
+		ReceivedAmount RupiahAmount `json:"received_amount"`
+	} `json:"summary"`
+	Timezone ProfitLossReportTimezone `json:"timezone"`
+
+	// ToDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	ToDate LocalDate `json:"to_date"`
+}
+
+// ProfitLossReportTimezone defines model for ProfitLossReport.Timezone.
+type ProfitLossReportTimezone string
+
 // RecordPaymentInput defines model for RecordPaymentInput.
 type RecordPaymentInput struct {
 	// Amount Positive exact whole-rupiah amount.
@@ -1000,6 +1331,25 @@ type RefreshRequest struct {
 	// RefreshToken Opaque refresh token issued by the login or refresh operation.
 	RefreshToken *string `json:"refreshToken,omitempty"`
 }
+
+// ReportDailyBase defines model for ReportDailyBase.
+type ReportDailyBase struct {
+	// Date ISO 8601 calendar date interpreted in Asia/Jakarta.
+	Date LocalDate `json:"date"`
+}
+
+// ReportDateRange defines model for ReportDateRange.
+type ReportDateRange struct {
+	// FromDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	FromDate LocalDate               `json:"from_date"`
+	Timezone ReportDateRangeTimezone `json:"timezone"`
+
+	// ToDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+	ToDate LocalDate `json:"to_date"`
+}
+
+// ReportDateRangeTimezone defines model for ReportDateRange.Timezone.
+type ReportDateRangeTimezone string
 
 // RupiahAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
 type RupiahAmount = int64
@@ -1135,11 +1485,20 @@ type VoidPaymentInput struct {
 	Reason string `json:"reason"`
 }
 
+// OutletId Database identifier backed by a PostgreSQL BIGINT.
+type OutletId = EntityId
+
 // Page defines model for Page.
 type Page = int32
 
 // PageSize defines model for PageSize.
 type PageSize = int32
+
+// ReportFromDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+type ReportFromDate = LocalDate
+
+// ReportToDate ISO 8601 calendar date interpreted in Asia/Jakarta.
+type ReportToDate = LocalDate
 
 // BadRequest defines model for BadRequest.
 type BadRequest = ErrorResponse
@@ -1263,6 +1622,60 @@ type ListOutletsParams struct {
 
 	// PageSize Number of records per page, capped at 100.
 	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// GetOutletCancellationReportParams defines parameters for GetOutletCancellationReport.
+type GetOutletCancellationReportParams struct {
+	// FromDate Inclusive YYYY-MM-DD business-local date. Omitted together with toDate, defaults to today in Asia/Jakarta. Maximum range is 366 calendar days.
+	FromDate *ReportFromDate `form:"fromDate,omitempty" json:"fromDate,omitempty"`
+
+	// ToDate Inclusive YYYY-MM-DD business-local date. A lone bound selects one day; maximum range is 366 calendar days.
+	ToDate *ReportToDate `form:"toDate,omitempty" json:"toDate,omitempty"`
+}
+
+// GetOutletCustomerReportParams defines parameters for GetOutletCustomerReport.
+type GetOutletCustomerReportParams struct {
+	// FromDate Inclusive YYYY-MM-DD business-local date. Omitted together with toDate, defaults to today in Asia/Jakarta. Maximum range is 366 calendar days.
+	FromDate *ReportFromDate `form:"fromDate,omitempty" json:"fromDate,omitempty"`
+
+	// ToDate Inclusive YYYY-MM-DD business-local date. A lone bound selects one day; maximum range is 366 calendar days.
+	ToDate *ReportToDate `form:"toDate,omitempty" json:"toDate,omitempty"`
+}
+
+// GetOutletExpenseReportParams defines parameters for GetOutletExpenseReport.
+type GetOutletExpenseReportParams struct {
+	// FromDate Inclusive YYYY-MM-DD business-local date. Omitted together with toDate, defaults to today in Asia/Jakarta. Maximum range is 366 calendar days.
+	FromDate *ReportFromDate `form:"fromDate,omitempty" json:"fromDate,omitempty"`
+
+	// ToDate Inclusive YYYY-MM-DD business-local date. A lone bound selects one day; maximum range is 366 calendar days.
+	ToDate *ReportToDate `form:"toDate,omitempty" json:"toDate,omitempty"`
+}
+
+// GetOutletIncomeReportParams defines parameters for GetOutletIncomeReport.
+type GetOutletIncomeReportParams struct {
+	// FromDate Inclusive YYYY-MM-DD business-local date. Omitted together with toDate, defaults to today in Asia/Jakarta. Maximum range is 366 calendar days.
+	FromDate *ReportFromDate `form:"fromDate,omitempty" json:"fromDate,omitempty"`
+
+	// ToDate Inclusive YYYY-MM-DD business-local date. A lone bound selects one day; maximum range is 366 calendar days.
+	ToDate *ReportToDate `form:"toDate,omitempty" json:"toDate,omitempty"`
+}
+
+// GetOutletOrderReportParams defines parameters for GetOutletOrderReport.
+type GetOutletOrderReportParams struct {
+	// FromDate Inclusive YYYY-MM-DD business-local date. Omitted together with toDate, defaults to today in Asia/Jakarta. Maximum range is 366 calendar days.
+	FromDate *ReportFromDate `form:"fromDate,omitempty" json:"fromDate,omitempty"`
+
+	// ToDate Inclusive YYYY-MM-DD business-local date. A lone bound selects one day; maximum range is 366 calendar days.
+	ToDate *ReportToDate `form:"toDate,omitempty" json:"toDate,omitempty"`
+}
+
+// GetOutletProfitLossReportParams defines parameters for GetOutletProfitLossReport.
+type GetOutletProfitLossReportParams struct {
+	// FromDate Inclusive YYYY-MM-DD business-local date. Omitted together with toDate, defaults to today in Asia/Jakarta. Maximum range is 366 calendar days.
+	FromDate *ReportFromDate `form:"fromDate,omitempty" json:"fromDate,omitempty"`
+
+	// ToDate Inclusive YYYY-MM-DD business-local date. A lone bound selects one day; maximum range is 366 calendar days.
+	ToDate *ReportToDate `form:"toDate,omitempty" json:"toDate,omitempty"`
 }
 
 // ListPerfumesParams defines parameters for ListPerfumes.
@@ -1481,6 +1894,24 @@ type ServerInterface interface {
 	// Get an outlet profile and today's cashflow totals
 	// (GET /outlets/{outletId}/dashboard)
 	GetOutletDashboard(ctx echo.Context, outletId EntityId) error
+	// Get retained cancellations by cancellation date
+	// (GET /outlets/{outletId}/reports/cancellations)
+	GetOutletCancellationReport(ctx echo.Context, outletId OutletId, params GetOutletCancellationReportParams) error
+	// Get distinct customers and top ten ranking
+	// (GET /outlets/{outletId}/reports/customers)
+	GetOutletCustomerReport(ctx echo.Context, outletId OutletId, params GetOutletCustomerReportParams) error
+	// Get expenses by expense date
+	// (GET /outlets/{outletId}/reports/expenses)
+	GetOutletExpenseReport(ctx echo.Context, outletId OutletId, params GetOutletExpenseReportParams) error
+	// Get confirmed income by payment date
+	// (GET /outlets/{outletId}/reports/income)
+	GetOutletIncomeReport(ctx echo.Context, outletId OutletId, params GetOutletIncomeReportParams) error
+	// Get received-date order values and balances
+	// (GET /outlets/{outletId}/reports/orders)
+	GetOutletOrderReport(ctx echo.Context, outletId OutletId, params GetOutletOrderReportParams) error
+	// Get cash-basis profit and loss by event date
+	// (GET /outlets/{outletId}/reports/profit-loss)
+	GetOutletProfitLossReport(ctx echo.Context, outletId OutletId, params GetOutletProfitLossReportParams) error
 	// Search perfumes in the authenticated business
 	// (GET /perfumes)
 	ListPerfumes(ctx echo.Context, params ListPerfumesParams) error
@@ -2276,6 +2707,210 @@ func (w *ServerInterfaceWrapper) GetOutletDashboard(ctx echo.Context) error {
 	return err
 }
 
+// GetOutletCancellationReport converts echo context to params.
+func (w *ServerInterfaceWrapper) GetOutletCancellationReport(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId OutletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetOutletCancellationReportParams
+	// ------------- Optional query parameter "fromDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fromDate", ctx.QueryParams(), &params.FromDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter fromDate: %s", err))
+	}
+
+	// ------------- Optional query parameter "toDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "toDate", ctx.QueryParams(), &params.ToDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter toDate: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetOutletCancellationReport(ctx, outletId, params)
+	return err
+}
+
+// GetOutletCustomerReport converts echo context to params.
+func (w *ServerInterfaceWrapper) GetOutletCustomerReport(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId OutletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetOutletCustomerReportParams
+	// ------------- Optional query parameter "fromDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fromDate", ctx.QueryParams(), &params.FromDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter fromDate: %s", err))
+	}
+
+	// ------------- Optional query parameter "toDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "toDate", ctx.QueryParams(), &params.ToDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter toDate: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetOutletCustomerReport(ctx, outletId, params)
+	return err
+}
+
+// GetOutletExpenseReport converts echo context to params.
+func (w *ServerInterfaceWrapper) GetOutletExpenseReport(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId OutletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetOutletExpenseReportParams
+	// ------------- Optional query parameter "fromDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fromDate", ctx.QueryParams(), &params.FromDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter fromDate: %s", err))
+	}
+
+	// ------------- Optional query parameter "toDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "toDate", ctx.QueryParams(), &params.ToDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter toDate: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetOutletExpenseReport(ctx, outletId, params)
+	return err
+}
+
+// GetOutletIncomeReport converts echo context to params.
+func (w *ServerInterfaceWrapper) GetOutletIncomeReport(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId OutletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetOutletIncomeReportParams
+	// ------------- Optional query parameter "fromDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fromDate", ctx.QueryParams(), &params.FromDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter fromDate: %s", err))
+	}
+
+	// ------------- Optional query parameter "toDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "toDate", ctx.QueryParams(), &params.ToDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter toDate: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetOutletIncomeReport(ctx, outletId, params)
+	return err
+}
+
+// GetOutletOrderReport converts echo context to params.
+func (w *ServerInterfaceWrapper) GetOutletOrderReport(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId OutletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetOutletOrderReportParams
+	// ------------- Optional query parameter "fromDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fromDate", ctx.QueryParams(), &params.FromDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter fromDate: %s", err))
+	}
+
+	// ------------- Optional query parameter "toDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "toDate", ctx.QueryParams(), &params.ToDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter toDate: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetOutletOrderReport(ctx, outletId, params)
+	return err
+}
+
+// GetOutletProfitLossReport converts echo context to params.
+func (w *ServerInterfaceWrapper) GetOutletProfitLossReport(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId OutletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetOutletProfitLossReportParams
+	// ------------- Optional query parameter "fromDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fromDate", ctx.QueryParams(), &params.FromDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter fromDate: %s", err))
+	}
+
+	// ------------- Optional query parameter "toDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "toDate", ctx.QueryParams(), &params.ToDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter toDate: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetOutletProfitLossReport(ctx, outletId, params)
+	return err
+}
+
 // ListPerfumes converts echo context to params.
 func (w *ServerInterfaceWrapper) ListPerfumes(ctx echo.Context) error {
 	var err error
@@ -2706,6 +3341,12 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/outlets/:outletId", wrapper.GetOutlet, options.OperationMiddlewares["getOutlet"]...)
 	router.PUT(options.BaseURL+"/outlets/:outletId", wrapper.UpdateOutlet, options.OperationMiddlewares["updateOutlet"]...)
 	router.GET(options.BaseURL+"/outlets/:outletId/dashboard", wrapper.GetOutletDashboard, options.OperationMiddlewares["getOutletDashboard"]...)
+	router.GET(options.BaseURL+"/outlets/:outletId/reports/cancellations", wrapper.GetOutletCancellationReport, options.OperationMiddlewares["getOutletCancellationReport"]...)
+	router.GET(options.BaseURL+"/outlets/:outletId/reports/customers", wrapper.GetOutletCustomerReport, options.OperationMiddlewares["getOutletCustomerReport"]...)
+	router.GET(options.BaseURL+"/outlets/:outletId/reports/expenses", wrapper.GetOutletExpenseReport, options.OperationMiddlewares["getOutletExpenseReport"]...)
+	router.GET(options.BaseURL+"/outlets/:outletId/reports/income", wrapper.GetOutletIncomeReport, options.OperationMiddlewares["getOutletIncomeReport"]...)
+	router.GET(options.BaseURL+"/outlets/:outletId/reports/orders", wrapper.GetOutletOrderReport, options.OperationMiddlewares["getOutletOrderReport"]...)
+	router.GET(options.BaseURL+"/outlets/:outletId/reports/profit-loss", wrapper.GetOutletProfitLossReport, options.OperationMiddlewares["getOutletProfitLossReport"]...)
 	router.GET(options.BaseURL+"/perfumes", wrapper.ListPerfumes, options.OperationMiddlewares["listPerfumes"]...)
 	router.POST(options.BaseURL+"/perfumes", wrapper.CreatePerfume, options.OperationMiddlewares["createPerfume"]...)
 	router.DELETE(options.BaseURL+"/perfumes/:perfumeId", wrapper.DeletePerfume, options.OperationMiddlewares["deletePerfume"]...)
@@ -5920,6 +6561,594 @@ func (response GetOutletDashboard500JSONResponse) VisitGetOutletDashboardRespons
 	return err
 }
 
+type GetOutletCancellationReportRequestObject struct {
+	OutletId OutletId `json:"outletId"`
+	Params   GetOutletCancellationReportParams
+}
+
+type GetOutletCancellationReportResponseObject interface {
+	VisitGetOutletCancellationReportResponse(w http.ResponseWriter) error
+}
+
+type GetOutletCancellationReport200JSONResponse CancellationReport
+
+func (response GetOutletCancellationReport200JSONResponse) VisitGetOutletCancellationReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletCancellationReport400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetOutletCancellationReport400JSONResponse) VisitGetOutletCancellationReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletCancellationReport401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetOutletCancellationReport401JSONResponse) VisitGetOutletCancellationReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletCancellationReport403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetOutletCancellationReport403JSONResponse) VisitGetOutletCancellationReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletCancellationReport404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetOutletCancellationReport404JSONResponse) VisitGetOutletCancellationReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletCancellationReport500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetOutletCancellationReport500JSONResponse) VisitGetOutletCancellationReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletCustomerReportRequestObject struct {
+	OutletId OutletId `json:"outletId"`
+	Params   GetOutletCustomerReportParams
+}
+
+type GetOutletCustomerReportResponseObject interface {
+	VisitGetOutletCustomerReportResponse(w http.ResponseWriter) error
+}
+
+type GetOutletCustomerReport200JSONResponse CustomerReport
+
+func (response GetOutletCustomerReport200JSONResponse) VisitGetOutletCustomerReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletCustomerReport400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetOutletCustomerReport400JSONResponse) VisitGetOutletCustomerReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletCustomerReport401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetOutletCustomerReport401JSONResponse) VisitGetOutletCustomerReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletCustomerReport403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetOutletCustomerReport403JSONResponse) VisitGetOutletCustomerReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletCustomerReport404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetOutletCustomerReport404JSONResponse) VisitGetOutletCustomerReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletCustomerReport500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetOutletCustomerReport500JSONResponse) VisitGetOutletCustomerReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletExpenseReportRequestObject struct {
+	OutletId OutletId `json:"outletId"`
+	Params   GetOutletExpenseReportParams
+}
+
+type GetOutletExpenseReportResponseObject interface {
+	VisitGetOutletExpenseReportResponse(w http.ResponseWriter) error
+}
+
+type GetOutletExpenseReport200JSONResponse ExpenseReport
+
+func (response GetOutletExpenseReport200JSONResponse) VisitGetOutletExpenseReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletExpenseReport400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetOutletExpenseReport400JSONResponse) VisitGetOutletExpenseReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletExpenseReport401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetOutletExpenseReport401JSONResponse) VisitGetOutletExpenseReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletExpenseReport403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetOutletExpenseReport403JSONResponse) VisitGetOutletExpenseReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletExpenseReport404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetOutletExpenseReport404JSONResponse) VisitGetOutletExpenseReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletExpenseReport500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetOutletExpenseReport500JSONResponse) VisitGetOutletExpenseReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletIncomeReportRequestObject struct {
+	OutletId OutletId `json:"outletId"`
+	Params   GetOutletIncomeReportParams
+}
+
+type GetOutletIncomeReportResponseObject interface {
+	VisitGetOutletIncomeReportResponse(w http.ResponseWriter) error
+}
+
+type GetOutletIncomeReport200JSONResponse IncomeReport
+
+func (response GetOutletIncomeReport200JSONResponse) VisitGetOutletIncomeReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletIncomeReport400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetOutletIncomeReport400JSONResponse) VisitGetOutletIncomeReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletIncomeReport401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetOutletIncomeReport401JSONResponse) VisitGetOutletIncomeReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletIncomeReport403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetOutletIncomeReport403JSONResponse) VisitGetOutletIncomeReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletIncomeReport404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetOutletIncomeReport404JSONResponse) VisitGetOutletIncomeReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletIncomeReport500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetOutletIncomeReport500JSONResponse) VisitGetOutletIncomeReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletOrderReportRequestObject struct {
+	OutletId OutletId `json:"outletId"`
+	Params   GetOutletOrderReportParams
+}
+
+type GetOutletOrderReportResponseObject interface {
+	VisitGetOutletOrderReportResponse(w http.ResponseWriter) error
+}
+
+type GetOutletOrderReport200JSONResponse OrderReport
+
+func (response GetOutletOrderReport200JSONResponse) VisitGetOutletOrderReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletOrderReport400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetOutletOrderReport400JSONResponse) VisitGetOutletOrderReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletOrderReport401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetOutletOrderReport401JSONResponse) VisitGetOutletOrderReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletOrderReport403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetOutletOrderReport403JSONResponse) VisitGetOutletOrderReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletOrderReport404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetOutletOrderReport404JSONResponse) VisitGetOutletOrderReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletOrderReport500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetOutletOrderReport500JSONResponse) VisitGetOutletOrderReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletProfitLossReportRequestObject struct {
+	OutletId OutletId `json:"outletId"`
+	Params   GetOutletProfitLossReportParams
+}
+
+type GetOutletProfitLossReportResponseObject interface {
+	VisitGetOutletProfitLossReportResponse(w http.ResponseWriter) error
+}
+
+type GetOutletProfitLossReport200JSONResponse ProfitLossReport
+
+func (response GetOutletProfitLossReport200JSONResponse) VisitGetOutletProfitLossReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletProfitLossReport400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetOutletProfitLossReport400JSONResponse) VisitGetOutletProfitLossReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletProfitLossReport401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetOutletProfitLossReport401JSONResponse) VisitGetOutletProfitLossReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletProfitLossReport403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetOutletProfitLossReport403JSONResponse) VisitGetOutletProfitLossReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletProfitLossReport404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetOutletProfitLossReport404JSONResponse) VisitGetOutletProfitLossReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOutletProfitLossReport500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetOutletProfitLossReport500JSONResponse) VisitGetOutletProfitLossReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListPerfumesRequestObject struct {
 	Params ListPerfumesParams
 }
@@ -7672,6 +8901,24 @@ type StrictServerInterface interface {
 	// Get an outlet profile and today's cashflow totals
 	// (GET /outlets/{outletId}/dashboard)
 	GetOutletDashboard(ctx context.Context, request GetOutletDashboardRequestObject) (GetOutletDashboardResponseObject, error)
+	// Get retained cancellations by cancellation date
+	// (GET /outlets/{outletId}/reports/cancellations)
+	GetOutletCancellationReport(ctx context.Context, request GetOutletCancellationReportRequestObject) (GetOutletCancellationReportResponseObject, error)
+	// Get distinct customers and top ten ranking
+	// (GET /outlets/{outletId}/reports/customers)
+	GetOutletCustomerReport(ctx context.Context, request GetOutletCustomerReportRequestObject) (GetOutletCustomerReportResponseObject, error)
+	// Get expenses by expense date
+	// (GET /outlets/{outletId}/reports/expenses)
+	GetOutletExpenseReport(ctx context.Context, request GetOutletExpenseReportRequestObject) (GetOutletExpenseReportResponseObject, error)
+	// Get confirmed income by payment date
+	// (GET /outlets/{outletId}/reports/income)
+	GetOutletIncomeReport(ctx context.Context, request GetOutletIncomeReportRequestObject) (GetOutletIncomeReportResponseObject, error)
+	// Get received-date order values and balances
+	// (GET /outlets/{outletId}/reports/orders)
+	GetOutletOrderReport(ctx context.Context, request GetOutletOrderReportRequestObject) (GetOutletOrderReportResponseObject, error)
+	// Get cash-basis profit and loss by event date
+	// (GET /outlets/{outletId}/reports/profit-loss)
+	GetOutletProfitLossReport(ctx context.Context, request GetOutletProfitLossReportRequestObject) (GetOutletProfitLossReportResponseObject, error)
 	// Search perfumes in the authenticated business
 	// (GET /perfumes)
 	ListPerfumes(ctx context.Context, request ListPerfumesRequestObject) (ListPerfumesResponseObject, error)
@@ -8665,6 +9912,162 @@ func (sh *strictHandler) GetOutletDashboard(ctx echo.Context, outletId EntityId)
 		return err
 	} else if validResponse, ok := response.(GetOutletDashboardResponseObject); ok {
 		return validResponse.VisitGetOutletDashboardResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetOutletCancellationReport operation middleware
+func (sh *strictHandler) GetOutletCancellationReport(ctx echo.Context, outletId OutletId, params GetOutletCancellationReportParams) error {
+	var request GetOutletCancellationReportRequestObject
+
+	request.OutletId = outletId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOutletCancellationReport(ctx.Request().Context(), request.(GetOutletCancellationReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOutletCancellationReport")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetOutletCancellationReportResponseObject); ok {
+		return validResponse.VisitGetOutletCancellationReportResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetOutletCustomerReport operation middleware
+func (sh *strictHandler) GetOutletCustomerReport(ctx echo.Context, outletId OutletId, params GetOutletCustomerReportParams) error {
+	var request GetOutletCustomerReportRequestObject
+
+	request.OutletId = outletId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOutletCustomerReport(ctx.Request().Context(), request.(GetOutletCustomerReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOutletCustomerReport")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetOutletCustomerReportResponseObject); ok {
+		return validResponse.VisitGetOutletCustomerReportResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetOutletExpenseReport operation middleware
+func (sh *strictHandler) GetOutletExpenseReport(ctx echo.Context, outletId OutletId, params GetOutletExpenseReportParams) error {
+	var request GetOutletExpenseReportRequestObject
+
+	request.OutletId = outletId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOutletExpenseReport(ctx.Request().Context(), request.(GetOutletExpenseReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOutletExpenseReport")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetOutletExpenseReportResponseObject); ok {
+		return validResponse.VisitGetOutletExpenseReportResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetOutletIncomeReport operation middleware
+func (sh *strictHandler) GetOutletIncomeReport(ctx echo.Context, outletId OutletId, params GetOutletIncomeReportParams) error {
+	var request GetOutletIncomeReportRequestObject
+
+	request.OutletId = outletId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOutletIncomeReport(ctx.Request().Context(), request.(GetOutletIncomeReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOutletIncomeReport")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetOutletIncomeReportResponseObject); ok {
+		return validResponse.VisitGetOutletIncomeReportResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetOutletOrderReport operation middleware
+func (sh *strictHandler) GetOutletOrderReport(ctx echo.Context, outletId OutletId, params GetOutletOrderReportParams) error {
+	var request GetOutletOrderReportRequestObject
+
+	request.OutletId = outletId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOutletOrderReport(ctx.Request().Context(), request.(GetOutletOrderReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOutletOrderReport")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetOutletOrderReportResponseObject); ok {
+		return validResponse.VisitGetOutletOrderReportResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetOutletProfitLossReport operation middleware
+func (sh *strictHandler) GetOutletProfitLossReport(ctx echo.Context, outletId OutletId, params GetOutletProfitLossReportParams) error {
+	var request GetOutletProfitLossReportRequestObject
+
+	request.OutletId = outletId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOutletProfitLossReport(ctx.Request().Context(), request.(GetOutletProfitLossReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOutletProfitLossReport")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetOutletProfitLossReportResponseObject); ok {
+		return validResponse.VisitGetOutletProfitLossReportResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

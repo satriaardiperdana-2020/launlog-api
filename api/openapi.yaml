@@ -37,6 +37,8 @@ tags:
     description: Business expense categories and outlet expense records
   - name: Dashboard
     description: Outlet profile and current-day confirmed payment and expense totals
+  - name: Reports
+    description: Date-filtered cashflow, order, cancellation, and customer aggregates
 
 paths:
   /expense-categories:
@@ -1086,6 +1088,120 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
+  /outlets/{outletId}/reports/income:
+    get:
+      operationId: getOutletIncomeReport
+      summary: Get confirmed income by payment date
+      description: Includes CONFIRMED payments by confirmed_at only. VOIDED and PENDING payments are excluded. Refunds are not implemented or netted.
+      tags: [Reports]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/OutletId" }
+        - { $ref: "#/components/parameters/ReportFromDate" }
+        - { $ref: "#/components/parameters/ReportToDate" }
+      responses:
+        "200": { description: Confirmed payment income report., content: { application/json: { schema: { $ref: "#/components/schemas/IncomeReport" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /outlets/{outletId}/reports/expenses:
+    get:
+      operationId: getOutletExpenseReport
+      summary: Get expenses by expense date
+      description: Uses current expense rows and expense_at, never created_at.
+      tags: [Reports]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/OutletId" }
+        - { $ref: "#/components/parameters/ReportFromDate" }
+        - { $ref: "#/components/parameters/ReportToDate" }
+      responses:
+        "200": { description: Expense report., content: { application/json: { schema: { $ref: "#/components/schemas/ExpenseReport" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /outlets/{outletId}/reports/profit-loss:
+    get:
+      operationId: getOutletProfitLossReport
+      summary: Get cash-basis profit and loss by event date
+      description: Confirmed payment receipts by confirmed_at less expense rows by expense_at; order value is not treated as income.
+      tags: [Reports]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/OutletId" }
+        - { $ref: "#/components/parameters/ReportFromDate" }
+        - { $ref: "#/components/parameters/ReportToDate" }
+      responses:
+        "200": { description: Cash-basis profit/loss report., content: { application/json: { schema: { $ref: "#/components/schemas/ProfitLossReport" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /outlets/{outletId}/reports/orders:
+    get:
+      operationId: getOutletOrderReport
+      summary: Get received-date order values and balances
+      description: Separates recorded order value, lifetime confirmed collection for the received-date cohort, and outstanding balance on non-cancelled orders. Includes canceled orders in cohort count/value.
+      tags: [Reports]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/OutletId" }
+        - { $ref: "#/components/parameters/ReportFromDate" }
+        - { $ref: "#/components/parameters/ReportToDate" }
+      responses:
+        "200": { description: Order cohort report., content: { application/json: { schema: { $ref: "#/components/schemas/OrderReport" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /outlets/{outletId}/reports/cancellations:
+    get:
+      operationId: getOutletCancellationReport
+      summary: Get retained cancellations by cancellation date
+      description: Includes rows with status CANCELLED even though their existing deleted_at soft-delete column is populated.
+      tags: [Reports]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/OutletId" }
+        - { $ref: "#/components/parameters/ReportFromDate" }
+        - { $ref: "#/components/parameters/ReportToDate" }
+      responses:
+        "200": { description: Cancellation report., content: { application/json: { schema: { $ref: "#/components/schemas/CancellationReport" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /outlets/{outletId}/reports/customers:
+    get:
+      operationId: getOutletCustomerReport
+      summary: Get distinct customers and top ten ranking
+      description: Customer cohort uses orders received in range (including cancellations). Ranking is order count descending, order value descending, normalized name ascending, then customer ID ascending.
+      tags: [Reports]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/OutletId" }
+        - { $ref: "#/components/parameters/ReportFromDate" }
+        - { $ref: "#/components/parameters/ReportToDate" }
+      responses:
+        "200": { description: Distinct-customer and top-ten report., content: { application/json: { schema: { $ref: "#/components/schemas/CustomerReport" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
   /staff:
     get:
       operationId: listStaff
@@ -1256,6 +1372,23 @@ components:
       description: "JWT access token supplied as `Authorization: Bearer <token>`."
 
   parameters:
+    OutletId:
+      name: outletId
+      in: path
+      required: true
+      schema: { $ref: "#/components/schemas/EntityId" }
+    ReportFromDate:
+      name: fromDate
+      in: query
+      required: false
+      description: Inclusive YYYY-MM-DD business-local date. Omitted together with toDate, defaults to today in Asia/Jakarta. Maximum range is 366 calendar days.
+      schema: { $ref: "#/components/schemas/LocalDate" }
+    ReportToDate:
+      name: toDate
+      in: query
+      required: false
+      description: Inclusive YYYY-MM-DD business-local date. A lone bound selects one day; maximum range is 366 calendar days.
+      schema: { $ref: "#/components/schemas/LocalDate" }
     Page:
       name: page
       in: query
@@ -2083,6 +2216,169 @@ components:
           properties:
             count: { type: integer, format: int64, minimum: 0 }
             total_amount: { type: integer, format: int64, minimum: 0, description: Exact whole rupiah from expenses whose expense_at falls within the local day. }
+    ReportDateRange:
+      type: object
+      required: [from_date, to_date, timezone]
+      properties:
+        from_date: { $ref: "#/components/schemas/LocalDate" }
+        to_date: { $ref: "#/components/schemas/LocalDate" }
+        timezone: { type: string, enum: [Asia/Jakarta] }
+    ReportDailyBase:
+      type: object
+      required: [date]
+      properties:
+        date: { $ref: "#/components/schemas/LocalDate" }
+    IncomeReport:
+      allOf:
+        - { $ref: "#/components/schemas/ReportDateRange" }
+        - type: object
+          required: [summary, daily, by_method]
+          properties:
+            summary:
+              type: object
+              required: [payment_count, received_amount]
+              properties:
+                payment_count: { type: integer, format: int64, minimum: 0 }
+                received_amount: { $ref: "#/components/schemas/RupiahAmount" }
+            daily:
+              type: array
+              items:
+                allOf:
+                  - { $ref: "#/components/schemas/ReportDailyBase" }
+                  - type: object
+                    required: [payment_count, received_amount]
+                    properties:
+                      payment_count: { type: integer, format: int64, minimum: 0 }
+                      received_amount: { $ref: "#/components/schemas/RupiahAmount" }
+            by_method:
+              type: array
+              items:
+                type: object
+                required: [method, payment_count, received_amount]
+                properties:
+                  method: { type: string, enum: [CASH, BCA_TRANSFER, QRIS] }
+                  payment_count: { type: integer, format: int64, minimum: 0 }
+                  received_amount: { $ref: "#/components/schemas/RupiahAmount" }
+    ExpenseReport:
+      allOf:
+        - { $ref: "#/components/schemas/ReportDateRange" }
+        - type: object
+          required: [summary, daily]
+          properties:
+            summary:
+              type: object
+              required: [expense_count, expense_amount]
+              properties:
+                expense_count: { type: integer, format: int64, minimum: 0 }
+                expense_amount: { $ref: "#/components/schemas/RupiahAmount" }
+            daily:
+              type: array
+              items:
+                allOf:
+                  - { $ref: "#/components/schemas/ReportDailyBase" }
+                  - type: object
+                    required: [expense_count, expense_amount]
+                    properties:
+                      expense_count: { type: integer, format: int64, minimum: 0 }
+                      expense_amount: { $ref: "#/components/schemas/RupiahAmount" }
+    ProfitLossReport:
+      allOf:
+        - { $ref: "#/components/schemas/ReportDateRange" }
+        - type: object
+          required: [summary, daily]
+          properties:
+            summary:
+              type: object
+              required: [received_amount, expense_amount, profit_loss_amount]
+              properties:
+                received_amount: { $ref: "#/components/schemas/RupiahAmount" }
+                expense_amount: { $ref: "#/components/schemas/RupiahAmount" }
+                profit_loss_amount: { type: integer, format: int64, description: May be negative; exact whole rupiah. }
+            daily:
+              type: array
+              items:
+                allOf:
+                  - { $ref: "#/components/schemas/ReportDailyBase" }
+                  - type: object
+                    required: [received_amount, expense_amount, profit_loss_amount]
+                    properties:
+                      received_amount: { $ref: "#/components/schemas/RupiahAmount" }
+                      expense_amount: { $ref: "#/components/schemas/RupiahAmount" }
+                      profit_loss_amount: { type: integer, format: int64, description: May be negative; exact whole rupiah. }
+    OrderReport:
+      allOf:
+        - { $ref: "#/components/schemas/ReportDateRange" }
+        - type: object
+          required: [summary, daily]
+          properties:
+            summary:
+              type: object
+              required: [order_count, order_value_amount, collected_amount, outstanding_balance_amount, cancelled_count, cancelled_order_value_amount]
+              properties:
+                order_count: { type: integer, format: int64, minimum: 0 }
+                order_value_amount: { $ref: "#/components/schemas/RupiahAmount" }
+                collected_amount: { $ref: "#/components/schemas/RupiahAmount" }
+                outstanding_balance_amount: { $ref: "#/components/schemas/RupiahAmount" }
+                cancelled_count: { type: integer, format: int64, minimum: 0 }
+                cancelled_order_value_amount: { $ref: "#/components/schemas/RupiahAmount" }
+            daily:
+              type: array
+              items:
+                allOf:
+                  - { $ref: "#/components/schemas/ReportDailyBase" }
+                  - type: object
+                    required: [order_count, order_value_amount, collected_amount, outstanding_balance_amount, cancelled_count, cancelled_order_value_amount]
+                    properties:
+                      order_count: { type: integer, format: int64, minimum: 0 }
+                      order_value_amount: { $ref: "#/components/schemas/RupiahAmount" }
+                      collected_amount: { $ref: "#/components/schemas/RupiahAmount" }
+                      outstanding_balance_amount: { $ref: "#/components/schemas/RupiahAmount" }
+                      cancelled_count: { type: integer, format: int64, minimum: 0 }
+                      cancelled_order_value_amount: { $ref: "#/components/schemas/RupiahAmount" }
+    CancellationReport:
+      allOf:
+        - { $ref: "#/components/schemas/ReportDateRange" }
+        - type: object
+          required: [summary, daily]
+          properties:
+            summary:
+              type: object
+              required: [cancellation_count, cancelled_order_value_amount]
+              properties:
+                cancellation_count: { type: integer, format: int64, minimum: 0 }
+                cancelled_order_value_amount: { $ref: "#/components/schemas/RupiahAmount" }
+            daily:
+              type: array
+              items:
+                allOf:
+                  - { $ref: "#/components/schemas/ReportDailyBase" }
+                  - type: object
+                    required: [cancellation_count, cancelled_order_value_amount]
+                    properties:
+                      cancellation_count: { type: integer, format: int64, minimum: 0 }
+                      cancelled_order_value_amount: { $ref: "#/components/schemas/RupiahAmount" }
+    CustomerReport:
+      allOf:
+        - { $ref: "#/components/schemas/ReportDateRange" }
+        - type: object
+          required: [summary, top_customers]
+          properties:
+            summary:
+              type: object
+              required: [distinct_customer_count]
+              properties:
+                distinct_customer_count: { type: integer, format: int64, minimum: 0 }
+            top_customers:
+              type: array
+              maxItems: 10
+              items:
+                type: object
+                required: [customer_id, name, order_count, order_value_amount]
+                properties:
+                  customer_id: { $ref: "#/components/schemas/EntityId" }
+                  name: { type: string }
+                  order_count: { type: integer, format: int64, minimum: 1 }
+                  order_value_amount: { $ref: "#/components/schemas/RupiahAmount" }
     Staff:
       type: object
       required: [id, businessId, email, fullName, role, isActive, outletIds, permissions]
