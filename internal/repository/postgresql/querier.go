@@ -14,6 +14,7 @@ type Querier interface {
 	AllocateInvoiceNumber(ctx context.Context, arg AllocateInvoiceNumberParams) (AllocateInvoiceNumberRow, error)
 	CancelOrder(ctx context.Context, arg CancelOrderParams) (CancelOrderRow, error)
 	CheckDatabaseHealth(ctx context.Context) (int32, error)
+	ClearActiveDefaultReceiptTemplates(ctx context.Context, arg ClearActiveDefaultReceiptTemplatesParams) error
 	CountActiveAssignedStaffWithoutOtherOutlet(ctx context.Context, arg CountActiveAssignedStaffWithoutOtherOutletParams) (int64, error)
 	CountActiveOutlets(ctx context.Context, arg CountActiveOutletsParams) (int64, error)
 	CountCustomerOrderHistory(ctx context.Context, arg CountCustomerOrderHistoryParams) (int64, error)
@@ -37,6 +38,7 @@ type Querier interface {
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) error
 	CreateOutlet(ctx context.Context, arg CreateOutletParams) (Outlet, error)
 	CreatePerfume(ctx context.Context, arg CreatePerfumeParams) (CreatePerfumeRow, error)
+	CreateReceiptTemplate(ctx context.Context, arg CreateReceiptTemplateParams) (CreateReceiptTemplateRow, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (CreateRefreshTokenRow, error)
 	CreateService(ctx context.Context, arg CreateServiceParams) (CreateServiceRow, error)
 	CreateSessionFamily(ctx context.Context, arg CreateSessionFamilyParams) (int64, error)
@@ -53,6 +55,8 @@ type Querier interface {
 	GetActiveRefreshSession(ctx context.Context, arg GetActiveRefreshSessionParams) (GetActiveRefreshSessionRow, error)
 	GetActiveStaffOrderOutlet(ctx context.Context, arg GetActiveStaffOrderOutletParams) (int64, error)
 	GetActiveUser(ctx context.Context, arg GetActiveUserParams) (GetActiveUserRow, error)
+	GetAuthorizedReceiptOrder(ctx context.Context, arg GetAuthorizedReceiptOrderParams) (GetAuthorizedReceiptOrderRow, error)
+	GetAuthorizedReceiptOutlet(ctx context.Context, arg GetAuthorizedReceiptOutletParams) (int64, error)
 	GetConfirmedPaymentTotal(ctx context.Context, arg GetConfirmedPaymentTotalParams) (int64, error)
 	GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCustomerRow, error)
 	GetCustomerForHistory(ctx context.Context, arg GetCustomerForHistoryParams) (int64, error)
@@ -74,6 +78,8 @@ type Querier interface {
 	GetPaymentByIdempotencyKey(ctx context.Context, arg GetPaymentByIdempotencyKeyParams) (GetPaymentByIdempotencyKeyRow, error)
 	GetPerfume(ctx context.Context, arg GetPerfumeParams) (GetPerfumeRow, error)
 	GetPerfumeForUpdate(ctx context.Context, arg GetPerfumeForUpdateParams) (GetPerfumeForUpdateRow, error)
+	GetReceiptConfirmedPaymentTotal(ctx context.Context, arg GetReceiptConfirmedPaymentTotalParams) (int64, error)
+	GetReceiptTemplateForUpdate(ctx context.Context, arg GetReceiptTemplateForUpdateParams) (GetReceiptTemplateForUpdateRow, error)
 	GetRefreshTokenByID(ctx context.Context, arg GetRefreshTokenByIDParams) (GetRefreshTokenByIDRow, error)
 	GetRefreshTokenForUpdate(ctx context.Context, tokenHash string) (GetRefreshTokenForUpdateRow, error)
 	GetService(ctx context.Context, arg GetServiceParams) (GetServiceRow, error)
@@ -81,6 +87,7 @@ type Querier interface {
 	GetStaff(ctx context.Context, arg GetStaffParams) (GetStaffRow, error)
 	GetStaffForUpdate(ctx context.Context, arg GetStaffForUpdateParams) (GetStaffForUpdateRow, error)
 	GetUserForLogin(ctx context.Context, lower string) (GetUserForLoginRow, error)
+	HasActiveDefaultReceiptTemplate(ctx context.Context, arg HasActiveDefaultReceiptTemplateParams) (bool, error)
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) error
 	InsertExpenseAuditLog(ctx context.Context, arg InsertExpenseAuditLogParams) error
 	InsertExpenseCategoryAuditLog(ctx context.Context, arg InsertExpenseCategoryAuditLogParams) error
@@ -88,6 +95,7 @@ type Querier interface {
 	InsertOrderLifecycleAuditLog(ctx context.Context, arg InsertOrderLifecycleAuditLogParams) error
 	InsertOrderStatusHistory(ctx context.Context, arg InsertOrderStatusHistoryParams) error
 	InsertPaymentAuditLog(ctx context.Context, arg InsertPaymentAuditLogParams) error
+	InsertReceiptTemplateAuditLog(ctx context.Context, arg InsertReceiptTemplateAuditLogParams) error
 	ListCustomerOrderHistory(ctx context.Context, arg ListCustomerOrderHistoryParams) ([]ListCustomerOrderHistoryRow, error)
 	ListCustomers(ctx context.Context, arg ListCustomersParams) ([]ListCustomersRow, error)
 	ListExpenseCategories(ctx context.Context, arg ListExpenseCategoriesParams) ([]ExpenseCategory, error)
@@ -99,6 +107,7 @@ type Querier interface {
 	ListOutlets(ctx context.Context, arg ListOutletsParams) ([]Outlet, error)
 	ListPerfumes(ctx context.Context, arg ListPerfumesParams) ([]ListPerfumesRow, error)
 	ListPermissions(ctx context.Context) ([]ListPermissionsRow, error)
+	ListReceiptTemplates(ctx context.Context, arg ListReceiptTemplatesParams) ([]ListReceiptTemplatesRow, error)
 	ListServices(ctx context.Context, arg ListServicesParams) ([]ListServicesRow, error)
 	ListStaff(ctx context.Context, arg ListStaffParams) ([]ListStaffRow, error)
 	ListStaffOutletIDs(ctx context.Context, arg ListStaffOutletIDsParams) ([]int64, error)
@@ -111,10 +120,13 @@ type Querier interface {
 	LockCurrentOrderOutletAssignment(ctx context.Context, arg LockCurrentOrderOutletAssignmentParams) (int64, error)
 	LockExpenseOutletAssignment(ctx context.Context, arg LockExpenseOutletAssignmentParams) (int64, error)
 	LockOrderIdempotency(ctx context.Context, lockKey string) error
+	LockReceiptTemplateOutlet(ctx context.Context, arg LockReceiptTemplateOutletParams) (int64, error)
 	LockSessionFamily(ctx context.Context, arg LockSessionFamilyParams) (LockSessionFamilyRow, error)
 	RevokeRefreshToken(ctx context.Context, arg RevokeRefreshTokenParams) (int64, error)
 	RevokeSessionFamily(ctx context.Context, arg RevokeSessionFamilyParams) error
+	SetNextReceiptTemplateDefault(ctx context.Context, arg SetNextReceiptTemplateDefaultParams) error
 	SoftDeletePerfume(ctx context.Context, arg SoftDeletePerfumeParams) (int64, error)
+	SoftDeleteReceiptTemplate(ctx context.Context, arg SoftDeleteReceiptTemplateParams) (SoftDeleteReceiptTemplateRow, error)
 	SoftDeleteService(ctx context.Context, arg SoftDeleteServiceParams) (int64, error)
 	TransitionOrderStatus(ctx context.Context, arg TransitionOrderStatusParams) (TransitionOrderStatusRow, error)
 	UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) (UpdateCustomerRow, error)
@@ -123,6 +135,7 @@ type Querier interface {
 	UpdateOrderPaymentStatus(ctx context.Context, arg UpdateOrderPaymentStatusParams) (UpdateOrderPaymentStatusRow, error)
 	UpdateOutlet(ctx context.Context, arg UpdateOutletParams) (Outlet, error)
 	UpdatePerfume(ctx context.Context, arg UpdatePerfumeParams) (UpdatePerfumeRow, error)
+	UpdateReceiptTemplate(ctx context.Context, arg UpdateReceiptTemplateParams) (UpdateReceiptTemplateRow, error)
 	UpdateService(ctx context.Context, arg UpdateServiceParams) (UpdateServiceRow, error)
 	UpdateStaff(ctx context.Context, arg UpdateStaffParams) (UpdateStaffRow, error)
 	VoidConfirmedPayment(ctx context.Context, arg VoidConfirmedPaymentParams) (VoidConfirmedPaymentRow, error)

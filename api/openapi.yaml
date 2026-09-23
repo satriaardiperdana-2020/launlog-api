@@ -39,6 +39,8 @@ tags:
     description: Outlet profile and current-day confirmed payment and expense totals
   - name: Reports
     description: Date-filtered cashflow, order, cancellation, and customer aggregates
+  - name: Receipts and settings
+    description: Authorized historical receipts, owner-managed templates, and client-side printing/share preferences
 
 paths:
   /expense-categories:
@@ -291,6 +293,138 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /orders/{orderId}/receipt:
+    get:
+      operationId: getOrderReceipt
+      summary: Build an authenticated receipt from historical order snapshots
+      description: Item and customer identity values come from receipt-time snapshots. Status, confirmed payment balance, outlet profile, and template are current data. WhatsApp fields provide share content only; no message is sent by the backend.
+      tags: [Receipts and settings]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/EntityId" }
+      responses:
+        "200":
+          description: Receipt and optional WhatsApp share data.
+          content: { application/json: { schema: { $ref: "#/components/schemas/ReceiptPayload" } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /outlets/{outletId}/receipts/qr/{qrId}:
+    get:
+      operationId: getReceiptByQR
+      summary: Resolve an opaque QR locator to an authorized receipt
+      description: QR identifiers are locators, not credentials. Normal bearer authentication, ORDERS_READ permission, tenant ownership, and current outlet assignment are required.
+      tags: [Receipts and settings]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OutletId"
+        - name: qrId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Authorized receipt.
+          content: { application/json: { schema: { $ref: "#/components/schemas/ReceiptPayload" } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /outlets/{outletId}/receipt-templates:
+    parameters: [{ $ref: "#/components/parameters/OutletId" }]
+    get:
+      operationId: listReceiptTemplates
+      summary: List active receipt templates for an authorized outlet
+      tags: [Receipts and settings]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Template list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/ReceiptTemplate" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      operationId: createReceiptTemplate
+      summary: Create an outlet receipt template
+      description: Requires RECEIPTS_MANAGE (ADMIN bypasses the grant only). Only 58/80 mm paper width is stored as printer preference; discovery, pairing, scanning, and printing are client responsibilities.
+      tags: [Receipts and settings]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ReceiptTemplateInput" } } }
+      responses:
+        "201":
+          description: Template created.
+          content: { application/json: { schema: { $ref: "#/components/schemas/ReceiptTemplate" } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /outlets/{outletId}/receipt-templates/{templateId}:
+    parameters:
+      - $ref: "#/components/parameters/OutletId"
+      - name: templateId
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/EntityId" }
+    get:
+      operationId: getReceiptTemplate
+      summary: Get an active receipt template
+      tags: [Receipts and settings]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Template.
+          content: { application/json: { schema: { $ref: "#/components/schemas/ReceiptTemplate" } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      operationId: updateReceiptTemplate
+      summary: Replace an active receipt template
+      description: WhatsApp text accepts only the documented allowlist of placeholders and is returned for client sharing; it is never sent automatically.
+      tags: [Receipts and settings]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ReceiptTemplateUpdate" } } }
+      responses:
+        "200":
+          description: Updated template.
+          content: { application/json: { schema: { $ref: "#/components/schemas/ReceiptTemplate" } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+    delete:
+      operationId: deleteReceiptTemplate
+      summary: Soft-delete an active receipt template
+      tags: [Receipts and settings]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Soft-deleted template.
+          content: { application/json: { schema: { $ref: "#/components/schemas/ReceiptTemplate" } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   /orders/{orderId}/status:
     parameters:
@@ -1480,6 +1614,41 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
 
   schemas:
+    ReceiptPayload:
+      type: object
+      description: Historical order/customer/item snapshots plus current status, payment balance, outlet profile, and template settings.
+      additionalProperties: true
+    ReceiptTemplateInput:
+      type: object
+      additionalProperties: false
+      required: [name, paperWidthMm]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        headerText: { type: string, maxLength: 2000, nullable: true }
+        footerText: { type: string, maxLength: 2000, nullable: true }
+        whatsappMessageTemplate: { type: string, maxLength: 4000, nullable: true, description: 'Allowed placeholders: {{customer_name}}, {{invoice_number}}, {{order_total}}, {{paid_amount}}, {{outstanding_amount}}, {{due_date}}, {{order_status}}. Character limits apply at the API boundary; values are validated and substituted as plain text.' }
+        paperWidthMm: { type: integer, enum: [58, 80] }
+        isDefault: { type: boolean, default: false }
+    ReceiptTemplateUpdate:
+      allOf:
+        - $ref: "#/components/schemas/ReceiptTemplateInput"
+      description: Full replacement; isDefault is required.
+    ReceiptTemplate:
+      type: object
+      additionalProperties: false
+      required: [id, outletId, name, paperWidthMm, isDefault, createdAt, updatedAt]
+      properties:
+        id: { $ref: "#/components/schemas/EntityId" }
+        outletId: { $ref: "#/components/schemas/EntityId" }
+        name: { type: string }
+        headerText: { type: string, nullable: true }
+        footerText: { type: string, nullable: true }
+        whatsappMessageTemplate: { type: string, nullable: true }
+        paperWidthMm: { type: integer, enum: [58, 80] }
+        isDefault: { type: boolean }
+        createdAt: { $ref: "#/components/schemas/JakartaDateTime" }
+        updatedAt: { $ref: "#/components/schemas/JakartaDateTime" }
+
     EntityId:
       type: integer
       format: int64
