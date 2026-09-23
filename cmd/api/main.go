@@ -69,6 +69,7 @@ func run(logger *slog.Logger) error {
 	managementHandler := handlers.NewManagementHandler(database)
 	customerHandler := handlers.NewCustomerHandler(database)
 	serviceHandler := handlers.NewServiceHandler(database)
+	perfumeHandler := handlers.NewPerfumeHandler(database)
 	authLimiter := launmiddleware.NewAuthLimiter(4096, 10, time.Minute)
 	authBody := launmiddleware.AuthBodyLimit(4096)
 	e.GET("/livez", healthHandler.Live)
@@ -106,6 +107,13 @@ func run(logger *slog.Logger) error {
 	services.GET("/:serviceId", serviceHandler.Get, launmiddleware.RequirePermission("SERVICES_READ"))
 	services.PUT("/:serviceId", serviceHandler.Update, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("SERVICES_WRITE"))
 	services.DELETE("/:serviceId", serviceHandler.Delete, launmiddleware.RequirePermission("SERVICES_WRITE"))
+
+	perfumes := e.Group("/perfumes", launmiddleware.Authenticate(database, jwtTokens))
+	perfumes.GET("", perfumeHandler.List, launmiddleware.RequirePermission("PERFUMES_READ"))
+	perfumes.POST("", perfumeHandler.Create, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("PERFUMES_WRITE"))
+	perfumes.GET("/:perfumeId", perfumeHandler.Get, launmiddleware.RequirePermission("PERFUMES_READ"))
+	perfumes.PUT("/:perfumeId", perfumeHandler.Update, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("PERFUMES_WRITE"))
+	perfumes.DELETE("/:perfumeId", perfumeHandler.Delete, launmiddleware.RequirePermission("PERFUMES_WRITE"))
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress(),

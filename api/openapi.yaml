@@ -27,8 +27,117 @@ tags:
     description: Business-scoped customer directory and paginated order history
   - name: Services
     description: Business-shared service catalog; unit is the measurement type
+  - name: Perfumes
+    description: Business-scoped optional perfume catalog for order items
 
 paths:
+  /perfumes:
+    get:
+      operationId: listPerfumes
+      summary: Search perfumes in the authenticated business
+      tags: [Perfumes]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: q
+          in: query
+          schema: { type: string }
+          description: Case-insensitive substring search over perfume name and description.
+        - name: isActive
+          in: query
+          schema: { type: boolean }
+          description: Omit to include both active and inactive perfumes. Soft-deleted perfumes are excluded.
+      responses:
+        "200":
+          description: Perfume page.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PerfumeList" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      operationId: createPerfume
+      summary: Create a perfume catalog entry
+      tags: [Perfumes]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreatePerfumeInput" }
+      responses:
+        "201":
+          description: Perfume created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Perfume" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /perfumes/{perfumeId}:
+    parameters:
+      - name: perfumeId
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/EntityId" }
+    get:
+      operationId: getPerfume
+      summary: Get a perfume in the authenticated business
+      tags: [Perfumes]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Perfume details.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Perfume" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    put:
+      operationId: updatePerfume
+      summary: Update a perfume and its active state
+      description: Existing order items retain the name snapshot recorded when the order is created.
+      tags: [Perfumes]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdatePerfumeInput" }
+      responses:
+        "200":
+          description: Perfume updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Perfume" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: deletePerfume
+      summary: Soft-delete a perfume while retaining order references
+      tags: [Perfumes]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "204": { description: Perfume deactivated and soft-deleted. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
   /services:
     get:
       operationId: listServices
@@ -1076,6 +1185,39 @@ components:
       required: [items, pagination]
       properties:
         items: { type: array, items: { $ref: "#/components/schemas/Service" } }
+        pagination: { $ref: "#/components/schemas/PaginationMeta" }
+
+    Perfume:
+      type: object
+      required: [id, business_id, name, description, is_active, created_at, updated_at]
+      properties:
+        id: { $ref: "#/components/schemas/EntityId" }
+        business_id: { $ref: "#/components/schemas/EntityId" }
+        name: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+        is_active: { type: boolean }
+        created_at: { $ref: "#/components/schemas/JakartaDateTime" }
+        updated_at: { $ref: "#/components/schemas/JakartaDateTime" }
+    CreatePerfumeInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+    UpdatePerfumeInput:
+      type: object
+      additionalProperties: false
+      required: [name, isActive]
+      properties:
+        name: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+        isActive: { type: boolean }
+    PerfumeList:
+      type: object
+      required: [items, pagination]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Perfume" } }
         pagination: { $ref: "#/components/schemas/PaginationMeta" }
 
     Customer:
