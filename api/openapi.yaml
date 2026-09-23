@@ -25,8 +25,120 @@ tags:
     description: Business-scoped outlet, staff, and permission administration (ADMIN only)
   - name: Customers
     description: Business-scoped customer directory and paginated order history
+  - name: Services
+    description: Business-shared service catalog; unit is the measurement type
 
 paths:
+  /services:
+    get:
+      operationId: listServices
+      summary: Search and filter services in the authenticated business
+      tags: [Services]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: q
+          in: query
+          schema: { type: string }
+          description: Case-insensitive substring search over name and description.
+        - name: unit
+          in: query
+          schema: { $ref: "#/components/schemas/ServiceUnit" }
+        - name: isActive
+          in: query
+          schema: { type: boolean }
+          description: Omit to include active and inactive services; soft-deleted services are excluded.
+      responses:
+        "200":
+          description: Service page.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceList" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      operationId: createService
+      summary: Create a business-shared service
+      tags: [Services]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateServiceInput" }
+      responses:
+        "201":
+          description: Service created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Service" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /services/{serviceId}:
+    parameters:
+      - name: serviceId
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/EntityId" }
+    get:
+      operationId: getService
+      summary: Get a service in the authenticated business
+      tags: [Services]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Service details.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Service" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    put:
+      operationId: updateService
+      summary: Replace editable fields and activate or deactivate a service
+      description: Setting isActive to false deactivates the service; existing order-item snapshots are never rewritten.
+      tags: [Services]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateServiceInput" }
+      responses:
+        "200":
+          description: Service updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Service" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: deleteService
+      summary: Soft-delete a service without removing historical references
+      tags: [Services]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "204": { description: Service soft-deleted. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
   /livez:
     get:
       operationId: getLiveness
@@ -919,6 +1031,52 @@ components:
           $ref: "#/components/schemas/TokenPair"
         user:
           $ref: "#/components/schemas/CurrentUser"
+
+    ServiceUnit:
+      type: string
+      enum: [KILOGRAM, PIECE, METER, SQUARE_METER]
+      description: Existing database unit codes; no separate service_type field.
+    Service:
+      type: object
+      required: [id, business_id, name, description, unit, unit_price_amount, estimated_duration_minutes, is_active, created_at, updated_at]
+      properties:
+        id: { $ref: "#/components/schemas/EntityId" }
+        business_id: { $ref: "#/components/schemas/EntityId" }
+        name: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+        unit: { $ref: "#/components/schemas/ServiceUnit" }
+        unit_price_amount: { type: integer, format: int64, minimum: 0, description: Exact whole rupiah. }
+        estimated_duration_minutes: { type: integer, format: int32, minimum: 0 }
+        is_active: { type: boolean }
+        created_at: { $ref: "#/components/schemas/JakartaDateTime" }
+        updated_at: { $ref: "#/components/schemas/JakartaDateTime" }
+    CreateServiceInput:
+      type: object
+      additionalProperties: false
+      required: [name, unit, unitPriceAmount]
+      properties:
+        name: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+        unit: { $ref: "#/components/schemas/ServiceUnit" }
+        unitPriceAmount: { type: integer, format: int64, minimum: 0, description: Exact whole rupiah. }
+        estimatedDurationMinutes: { type: integer, format: int32, minimum: 0, default: 0 }
+    UpdateServiceInput:
+      type: object
+      additionalProperties: false
+      required: [name, unit, unitPriceAmount, estimatedDurationMinutes, isActive]
+      properties:
+        name: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+        unit: { $ref: "#/components/schemas/ServiceUnit" }
+        unitPriceAmount: { type: integer, format: int64, minimum: 0, description: Exact whole rupiah. }
+        estimatedDurationMinutes: { type: integer, format: int32, minimum: 0 }
+        isActive: { type: boolean }
+    ServiceList:
+      type: object
+      required: [items, pagination]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Service" } }
+        pagination: { $ref: "#/components/schemas/PaginationMeta" }
 
     Customer:
       type: object

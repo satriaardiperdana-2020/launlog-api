@@ -55,7 +55,7 @@ A business-wide customer record shared by its outlets. Names are indexed for sea
 
 ### `services`
 
-A business-shared laundry service: every outlet in its owning business can use it. It deliberately has no `outlet_id`; introducing outlet-specific services or pricing would conflict with the current ownership model and needs an approved future design. The existing `services.unit` column is constrained to `KILOGRAM`, `PIECE`, `METER`, or `SQUARE_METER`; price is an exact rupiah `BIGINT`; estimated duration is stored in minutes. Services can be disabled or soft-deleted while historical order items continue to reference them.
+A business-shared laundry service: every outlet in its owning business can use it. It deliberately has no `outlet_id`; introducing outlet-specific services or pricing would conflict with the current ownership model and needs an approved future design. The existing `services.unit` column is constrained to `KILOGRAM`, `PIECE`, `METER`, or `SQUARE_METER`; price is an exact rupiah `BIGINT` (nonnegative, including zero); estimated duration is a nonnegative integer in minutes. Migration `000011_service_description` adds an optional description without rewriting existing data or changing unit codes/checks. Services can be disabled or soft-deleted while historical order items continue to reference them and retain their original name, unit, and price snapshots. The unique active-row index is per `(business_id, lower(name), unit)` for non-deleted rows.
 
 ### `perfumes`
 
@@ -125,6 +125,7 @@ An immutable business audit stream. It records an optional outlet and actor, act
 8. `000008_session_families`
 9. `000009_permission_catalog`
 10. `000010_customer_phone_nonunique`
+11. `000011_service_description`
 
 Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run in reverse order because later domains reference earlier ownership and order tables.
 

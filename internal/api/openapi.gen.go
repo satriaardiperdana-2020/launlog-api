@@ -101,6 +101,30 @@ func (e HealthUnavailableResponseStatus) Valid() bool {
 	}
 }
 
+// Defines values for ServiceUnit.
+const (
+	KILOGRAM    ServiceUnit = "KILOGRAM"
+	METER       ServiceUnit = "METER"
+	PIECE       ServiceUnit = "PIECE"
+	SQUAREMETER ServiceUnit = "SQUARE_METER"
+)
+
+// Valid indicates whether the value is a known member of the ServiceUnit enum.
+func (e ServiceUnit) Valid() bool {
+	switch e {
+	case KILOGRAM:
+		return true
+	case METER:
+		return true
+	case PIECE:
+		return true
+	case SQUAREMETER:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TokenPairTokenType.
 const (
 	Bearer TokenPairTokenType = "Bearer"
@@ -138,6 +162,19 @@ func (e UserRole) Valid() bool {
 type AuthSessionResponse struct {
 	Tokens TokenPair   `json:"tokens"`
 	User   CurrentUser `json:"user"`
+}
+
+// CreateServiceInput defines model for CreateServiceInput.
+type CreateServiceInput struct {
+	Description              *string `json:"description,omitempty"`
+	EstimatedDurationMinutes *int32  `json:"estimatedDurationMinutes,omitempty"`
+	Name                     string  `json:"name"`
+
+	// Unit Existing database unit codes; no separate service_type field.
+	Unit ServiceUnit `json:"unit"`
+
+	// UnitPriceAmount Exact whole rupiah.
+	UnitPriceAmount int64 `json:"unitPriceAmount"`
 }
 
 // CurrentUser defines model for CurrentUser.
@@ -385,6 +422,40 @@ type RefreshRequest struct {
 // RupiahAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
 type RupiahAmount = int64
 
+// Service defines model for Service.
+type Service struct {
+	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
+	BusinessId EntityId `json:"business_id"`
+
+	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	CreatedAt                JakartaDateTime `json:"created_at"`
+	Description              *string         `json:"description"`
+	EstimatedDurationMinutes int32           `json:"estimated_duration_minutes"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id       EntityId `json:"id"`
+	IsActive bool     `json:"is_active"`
+	Name     string   `json:"name"`
+
+	// Unit Existing database unit codes; no separate service_type field.
+	Unit ServiceUnit `json:"unit"`
+
+	// UnitPriceAmount Exact whole rupiah.
+	UnitPriceAmount int64 `json:"unit_price_amount"`
+
+	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	UpdatedAt JakartaDateTime `json:"updated_at"`
+}
+
+// ServiceList defines model for ServiceList.
+type ServiceList struct {
+	Items      []Service      `json:"items"`
+	Pagination PaginationMeta `json:"pagination"`
+}
+
+// ServiceUnit Existing database unit codes; no separate service_type field.
+type ServiceUnit string
+
 // Staff defines model for Staff.
 type Staff struct {
 	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
@@ -449,6 +520,20 @@ type TokenPair struct {
 
 // TokenPairTokenType defines model for TokenPair.TokenType.
 type TokenPairTokenType string
+
+// UpdateServiceInput defines model for UpdateServiceInput.
+type UpdateServiceInput struct {
+	Description              *string `json:"description,omitempty"`
+	EstimatedDurationMinutes int32   `json:"estimatedDurationMinutes"`
+	IsActive                 bool    `json:"isActive"`
+	Name                     string  `json:"name"`
+
+	// Unit Existing database unit codes; no separate service_type field.
+	Unit ServiceUnit `json:"unit"`
+
+	// UnitPriceAmount Exact whole rupiah.
+	UnitPriceAmount int64 `json:"unitPriceAmount"`
+}
 
 // UserRole defines model for UserRole.
 type UserRole string
@@ -519,6 +604,22 @@ type ListOutletsParams struct {
 	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 }
 
+// ListServicesParams defines parameters for ListServices.
+type ListServicesParams struct {
+	// Page One-based page number.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of records per page, capped at 100.
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Q Case-insensitive substring search over name and description.
+	Q    *string      `form:"q,omitempty" json:"q,omitempty"`
+	Unit *ServiceUnit `form:"unit,omitempty" json:"unit,omitempty"`
+
+	// IsActive Omit to include active and inactive services; soft-deleted services are excluded.
+	IsActive *bool `form:"isActive,omitempty" json:"isActive,omitempty"`
+}
+
 // ListStaffParams defines parameters for ListStaff.
 type ListStaffParams struct {
 	// Page One-based page number.
@@ -548,6 +649,12 @@ type CreateOutletJSONRequestBody = OutletCreate
 
 // UpdateOutletJSONRequestBody defines body for UpdateOutlet for application/json ContentType.
 type UpdateOutletJSONRequestBody = OutletUpdate
+
+// CreateServiceJSONRequestBody defines body for CreateService for application/json ContentType.
+type CreateServiceJSONRequestBody = CreateServiceInput
+
+// UpdateServiceJSONRequestBody defines body for UpdateService for application/json ContentType.
+type UpdateServiceJSONRequestBody = UpdateServiceInput
 
 // CreateStaffJSONRequestBody defines body for CreateStaff for application/json ContentType.
 type CreateStaffJSONRequestBody = StaffCreate
@@ -617,6 +724,21 @@ type ServerInterface interface {
 	// Check whether the API is ready to serve database-backed requests
 	// (GET /readyz)
 	GetReadiness(ctx echo.Context) error
+	// Search and filter services in the authenticated business
+	// (GET /services)
+	ListServices(ctx echo.Context, params ListServicesParams) error
+	// Create a business-shared service
+	// (POST /services)
+	CreateService(ctx echo.Context) error
+	// Soft-delete a service without removing historical references
+	// (DELETE /services/{serviceId})
+	DeleteService(ctx echo.Context, serviceId EntityId) error
+	// Get a service in the authenticated business
+	// (GET /services/{serviceId})
+	GetService(ctx echo.Context, serviceId EntityId) error
+	// Replace editable fields and activate or deactivate a service
+	// (PUT /services/{serviceId})
+	UpdateService(ctx echo.Context, serviceId EntityId) error
 	// List users in the authenticated business
 	// (GET /staff)
 	ListStaff(ctx echo.Context, params ListStaffParams) error
@@ -927,6 +1049,119 @@ func (w *ServerInterfaceWrapper) GetReadiness(ctx echo.Context) error {
 	return err
 }
 
+// ListServices converts echo context to params.
+func (w *ServerInterfaceWrapper) ListServices(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListServicesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", ctx.QueryParams(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "unit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "unit", ctx.QueryParams(), &params.Unit, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter unit: %s", err))
+	}
+
+	// ------------- Optional query parameter "isActive" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "isActive", ctx.QueryParams(), &params.IsActive, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter isActive: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListServices(ctx, params)
+	return err
+}
+
+// CreateService converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateService(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateService(ctx)
+	return err
+}
+
+// DeleteService converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteService(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "serviceId" -------------
+	var serviceId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceId", ctx.Param("serviceId"), &serviceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter serviceId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteService(ctx, serviceId)
+	return err
+}
+
+// GetService converts echo context to params.
+func (w *ServerInterfaceWrapper) GetService(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "serviceId" -------------
+	var serviceId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceId", ctx.Param("serviceId"), &serviceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter serviceId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetService(ctx, serviceId)
+	return err
+}
+
+// UpdateService converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateService(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "serviceId" -------------
+	var serviceId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceId", ctx.Param("serviceId"), &serviceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter serviceId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateService(ctx, serviceId)
+	return err
+}
+
 // ListStaff converts echo context to params.
 func (w *ServerInterfaceWrapper) ListStaff(ctx echo.Context) error {
 	var err error
@@ -1102,6 +1337,11 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.PUT(options.BaseURL+"/outlets/:outletId", wrapper.UpdateOutlet, options.OperationMiddlewares["updateOutlet"]...)
 	router.GET(options.BaseURL+"/permissions", wrapper.ListPermissions, options.OperationMiddlewares["listPermissions"]...)
 	router.GET(options.BaseURL+"/readyz", wrapper.GetReadiness, options.OperationMiddlewares["getReadiness"]...)
+	router.GET(options.BaseURL+"/services", wrapper.ListServices, options.OperationMiddlewares["listServices"]...)
+	router.POST(options.BaseURL+"/services", wrapper.CreateService, options.OperationMiddlewares["createService"]...)
+	router.DELETE(options.BaseURL+"/services/:serviceId", wrapper.DeleteService, options.OperationMiddlewares["deleteService"]...)
+	router.GET(options.BaseURL+"/services/:serviceId", wrapper.GetService, options.OperationMiddlewares["getService"]...)
+	router.PUT(options.BaseURL+"/services/:serviceId", wrapper.UpdateService, options.OperationMiddlewares["updateService"]...)
 	router.GET(options.BaseURL+"/staff", wrapper.ListStaff, options.OperationMiddlewares["listStaff"]...)
 	router.POST(options.BaseURL+"/staff", wrapper.CreateStaff, options.OperationMiddlewares["createStaff"]...)
 	router.GET(options.BaseURL+"/staff/:userId", wrapper.GetStaff, options.OperationMiddlewares["getStaff"]...)
@@ -2558,6 +2798,486 @@ func (response GetReadiness503JSONResponse) VisitGetReadinessResponse(w http.Res
 	return err
 }
 
+type ListServicesRequestObject struct {
+	Params ListServicesParams
+}
+
+type ListServicesResponseObject interface {
+	VisitListServicesResponse(w http.ResponseWriter) error
+}
+
+type ListServices200JSONResponse ServiceList
+
+func (response ListServices200JSONResponse) VisitListServicesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListServices400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListServices400JSONResponse) VisitListServicesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListServices401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListServices401JSONResponse) VisitListServicesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListServices403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListServices403JSONResponse) VisitListServicesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListServices500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListServices500JSONResponse) VisitListServicesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceRequestObject struct {
+	Body *CreateServiceJSONRequestBody
+}
+
+type CreateServiceResponseObject interface {
+	VisitCreateServiceResponse(w http.ResponseWriter) error
+}
+
+type CreateService201JSONResponse Service
+
+func (response CreateService201JSONResponse) VisitCreateServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateService400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateService400JSONResponse) VisitCreateServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateService401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateService401JSONResponse) VisitCreateServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateService403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateService403JSONResponse) VisitCreateServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateService409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateService409JSONResponse) VisitCreateServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateService500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateService500JSONResponse) VisitCreateServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteServiceRequestObject struct {
+	ServiceId EntityId `json:"serviceId"`
+}
+
+type DeleteServiceResponseObject interface {
+	VisitDeleteServiceResponse(w http.ResponseWriter) error
+}
+
+type DeleteService204Response struct {
+}
+
+func (response DeleteService204Response) VisitDeleteServiceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteService400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response DeleteService400JSONResponse) VisitDeleteServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteService401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response DeleteService401JSONResponse) VisitDeleteServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteService403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteService403JSONResponse) VisitDeleteServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteService404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteService404JSONResponse) VisitDeleteServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteService500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response DeleteService500JSONResponse) VisitDeleteServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetServiceRequestObject struct {
+	ServiceId EntityId `json:"serviceId"`
+}
+
+type GetServiceResponseObject interface {
+	VisitGetServiceResponse(w http.ResponseWriter) error
+}
+
+type GetService200JSONResponse Service
+
+func (response GetService200JSONResponse) VisitGetServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetService400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetService400JSONResponse) VisitGetServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetService401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetService401JSONResponse) VisitGetServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetService403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetService403JSONResponse) VisitGetServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetService404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetService404JSONResponse) VisitGetServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetService500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetService500JSONResponse) VisitGetServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceRequestObject struct {
+	ServiceId EntityId `json:"serviceId"`
+	Body      *UpdateServiceJSONRequestBody
+}
+
+type UpdateServiceResponseObject interface {
+	VisitUpdateServiceResponse(w http.ResponseWriter) error
+}
+
+type UpdateService200JSONResponse Service
+
+func (response UpdateService200JSONResponse) VisitUpdateServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateService400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateService400JSONResponse) VisitUpdateServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateService401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateService401JSONResponse) VisitUpdateServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateService403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateService403JSONResponse) VisitUpdateServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateService404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateService404JSONResponse) VisitUpdateServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateService409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateService409JSONResponse) VisitUpdateServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateService500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateService500JSONResponse) VisitUpdateServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListStaffRequestObject struct {
 	Params ListStaffParams
 }
@@ -3199,6 +3919,21 @@ type StrictServerInterface interface {
 	// Check whether the API is ready to serve database-backed requests
 	// (GET /readyz)
 	GetReadiness(ctx context.Context, request GetReadinessRequestObject) (GetReadinessResponseObject, error)
+	// Search and filter services in the authenticated business
+	// (GET /services)
+	ListServices(ctx context.Context, request ListServicesRequestObject) (ListServicesResponseObject, error)
+	// Create a business-shared service
+	// (POST /services)
+	CreateService(ctx context.Context, request CreateServiceRequestObject) (CreateServiceResponseObject, error)
+	// Soft-delete a service without removing historical references
+	// (DELETE /services/{serviceId})
+	DeleteService(ctx context.Context, request DeleteServiceRequestObject) (DeleteServiceResponseObject, error)
+	// Get a service in the authenticated business
+	// (GET /services/{serviceId})
+	GetService(ctx context.Context, request GetServiceRequestObject) (GetServiceResponseObject, error)
+	// Replace editable fields and activate or deactivate a service
+	// (PUT /services/{serviceId})
+	UpdateService(ctx context.Context, request UpdateServiceRequestObject) (UpdateServiceResponseObject, error)
 	// List users in the authenticated business
 	// (GET /staff)
 	ListStaff(ctx context.Context, request ListStaffRequestObject) (ListStaffResponseObject, error)
@@ -3698,6 +4433,141 @@ func (sh *strictHandler) GetReadiness(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(GetReadinessResponseObject); ok {
 		return validResponse.VisitGetReadinessResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListServices operation middleware
+func (sh *strictHandler) ListServices(ctx echo.Context, params ListServicesParams) error {
+	var request ListServicesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListServices(ctx.Request().Context(), request.(ListServicesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListServices")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListServicesResponseObject); ok {
+		return validResponse.VisitListServicesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateService operation middleware
+func (sh *strictHandler) CreateService(ctx echo.Context) error {
+	var request CreateServiceRequestObject
+
+	var body CreateServiceJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateService(ctx.Request().Context(), request.(CreateServiceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateService")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateServiceResponseObject); ok {
+		return validResponse.VisitCreateServiceResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteService operation middleware
+func (sh *strictHandler) DeleteService(ctx echo.Context, serviceId EntityId) error {
+	var request DeleteServiceRequestObject
+
+	request.ServiceId = serviceId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteService(ctx.Request().Context(), request.(DeleteServiceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteService")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteServiceResponseObject); ok {
+		return validResponse.VisitDeleteServiceResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetService operation middleware
+func (sh *strictHandler) GetService(ctx echo.Context, serviceId EntityId) error {
+	var request GetServiceRequestObject
+
+	request.ServiceId = serviceId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetService(ctx.Request().Context(), request.(GetServiceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetService")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetServiceResponseObject); ok {
+		return validResponse.VisitGetServiceResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateService operation middleware
+func (sh *strictHandler) UpdateService(ctx echo.Context, serviceId EntityId) error {
+	var request UpdateServiceRequestObject
+
+	request.ServiceId = serviceId
+
+	var body UpdateServiceJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateService(ctx.Request().Context(), request.(UpdateServiceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateService")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateServiceResponseObject); ok {
+		return validResponse.VisitUpdateServiceResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
