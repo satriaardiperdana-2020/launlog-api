@@ -2,6 +2,8 @@
 
 The source of truth is [api/openapi.yaml](../api/openapi.yaml). The current server base path is `/`; versioning is deferred until a versioned public API is introduced.
 
+For interactive requests during local development, open `http://localhost:8080/swagger` after starting the API. The development server hosts Swagger UI and the checked-in contract at `/openapi.yaml`, and serves UI assets locally. Use **Try it out** for the same operations that clients call with curl. These documentation routes are disabled outside `APP_ENV=development`. Bearer-protected operations require an access token entered through the UI's Authorize control.
+
 ## Foundation endpoints
 
 - `GET /livez` is public process liveness and always returns `200 {"status":"ok"}` while Echo is running.

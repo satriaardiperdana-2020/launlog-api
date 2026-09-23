@@ -7,8 +7,9 @@ Launlog is the Go backend for a multi-outlet laundry POS. It uses Echo, PostgreS
 - Go 1.27.1
 - Docker Compose with PostgreSQL 16, or an equivalent local PostgreSQL 16 instance
 - GNU Make
+- PostgreSQL 16 client utilities (`psql`, `pg_dump`, `pg_restore`) and `curl` for the full release rehearsal
 
-The repository pins its generation, migration, and vulnerability-scan tools in the [Makefile](Makefile): sqlc `v1.31.1`, oapi-codegen `v2.7.0`, golang-migrate `v4.18.1`, and govulncheck `v1.8.0`.
+The repository pins its generation, migration, lint, and vulnerability-scan tools in the [Makefile](Makefile): sqlc `v1.31.1`, oapi-codegen `v2.7.0`, golang-migrate `v4.18.1`, golangci-lint `v2.13.2`, and govulncheck `v1.8.0`.
 
 | Component | Selected version |
 | --- | --- |
@@ -19,11 +20,13 @@ The repository pins its generation, migration, and vulnerability-scan tools in t
 | sqlc | v1.31.1 |
 | oapi-codegen | v2.7.0 |
 | golang-migrate | v4.18.1 |
+| golangci-lint | v2.13.2 |
+| Embedded Swagger UI assets | github.com/swaggo/files/v2 v2.0.1 |
 
 ## Local setup
 
 1. Copy `.env.example` to `.env.development`.
-2. Set a unique `JWT_SIGNING_SECRET` of at least 32 bytes. Do not commit this file.
+2. Generate a local key with `openssl rand -hex 32`, put its output in `JWT_SIGNING_SECRET`, and do not commit this file.
 3. Start PostgreSQL: `make compose-up`.
 4. Apply local migrations: `DATABASE_URL='...' make migrate-up` (the local example intentionally reuses the development database role).
 5. Start the API: `make run`.
@@ -49,14 +52,22 @@ Configuration loads `.env.<APP_ENV>` first (default `.env.development`) and then
 - `GET /readyz`: readiness; returns 503 while PostgreSQL is unavailable.
 - `GET /health`: compatibility alias for `/readyz`.
 
+## Interactive API docs
+
+In development (`APP_ENV=development`, the default), open [http://localhost:8080/swagger](http://localhost:8080/swagger) after starting the API. Swagger UI loads the checked-in OpenAPI contract from `/openapi.yaml`; its assets are served locally, so no CDN access is needed. Use **Try it out** to send requests to this running API. Authenticated operations accept a bearer access token via the Authorize control. The UI and contract routes are disabled outside development.
+
 ## Development commands
 
 ```shell
 make tools            # install pinned local generators into ./bin
 make generate          # regenerate OpenAPI and sqlc output
-make check             # formatting, generated-code drift, tests, vet, build, govulncheck
+make check             # formatting, generated-code drift, tests, vet, lint, build, govulncheck
 make migrate-verify    # up, down, and up again; requires MIGRATION_DATABASE_URL (DATABASE_URL fallback for local dev)
-TEST_DATABASE_URL='...' make test-integration # PostgreSQL migration and tenant-isolation integration suite
+make release-check     # complete release gate; requires separate disposable test/upgrade/restore database URLs
 ```
 
-`make check` is the local equivalent of the quality CI job. The migration CI job uses an isolated PostgreSQL service with separate migration and runtime roles; it never uses developer or production credentials. Production must use a non-superuser `DATABASE_URL` role with no schema-creation or audit-update/delete privileges. The application verifies this and requires `sslmode=verify-full` when `APP_ENV=production`. See [database role setup](docs/database.md#runtime-database-role).
+`make release-check` refuses to silently skip PostgreSQL-backed suites: provide `TEST_DATABASE_URL`, `TEST_ADMIN_DATABASE_URL`, `TEST_EXPECT_LEAST_PRIVILEGE=true`, `E2E_DATABASE_URL`, `UPGRADE_MIGRATION_DATABASE_URL`, `UPGRADE_ADMIN_DATABASE_URL`, `BACKUP_SOURCE_DATABASE_URL`, and `RESTORE_DATABASE_URL`. These must target isolated disposable databases and use separate runtime, migration, and test-administrator credentials. CI provisions them in ephemeral PostgreSQL 16. See the [release and operations runbook](docs/release-readiness.md).
+
+Production must use a non-superuser `DATABASE_URL` role with no schema-creation or audit-update/delete privileges. The application verifies this and requires `sslmode=verify-full` when `APP_ENV=production`. See [database role setup](docs/database.md#runtime-database-role).
+
+Deployment and rollback procedures are documented in the [release and operations runbook](docs/release-readiness.md).

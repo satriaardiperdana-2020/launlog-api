@@ -10,15 +10,15 @@ In scope: PostgreSQL integration suites, migration verification, generated-code 
 
 ## API/database changes
 
-No product feature change is required; this issue may add test fixtures, CI workflows, and documentation.
+No product feature change is required; this issue adds shared production-router test wiring, isolated PostgreSQL rehearsal scripts, stricter CI gates, and operational documentation. No business schema or frontend code is added.
 
 ## Acceptance criteria
 
-CI runs build, tests, vet, generator drift, migration up/down/up, and integration suites; documented configuration contains no secrets; release smoke checks cover liveness/readiness and OpenAPI.
+CI runs build, tests, vet, lint, dependency scanning, generator drift, migration up/down/up, real-PostgreSQL feature/concurrency tests through the production router, a data-preserving upgrade from migration 6, backup/restore, and a process-level HTTP smoke test. PostgreSQL gates fail if database credentials are missing; skipped integration tests are not treated as release evidence. Configuration examples contain no secrets; OpenAPI is parsed and regenerated reproducibly.
 
 ## Test cases
 
-Fresh clone/tool installation, empty-database migration, API smoke test, authentication/business-isolation regression suite, and rollback verification.
+Fresh clone/tool installation, empty-database migration, upgrade with legacy data/session backfill, actual binary HTTP smoke test, authentication/business-isolation and concurrency regressions, backup/restore into a separate database, generated OpenAPI/sqlc reproducibility, and documented application/schema rollback rehearsal.
 
 ## Branch name
 
@@ -26,4 +26,4 @@ Fresh clone/tool installation, empty-database migration, API smoke test, authent
 
 ## Definition of done
 
-All required checks are green, release notes/runbook are approved, and the backend release gate is signed off.
+All CI release gates and documented test/staging rehearsals are green, release notes/runbook are approved, and the backend release gate is signed off. Production readiness is not claimed until a deployment operator executes and approves the deployment-specific checklist in `docs/release-readiness.md`.

@@ -49,6 +49,10 @@ func orderActor(p Principal, c echo.Context) service.Actor {
 
 func orderError(c echo.Context, err error) error {
 	switch {
+	case errors.Is(err, service.ErrInvalidOrderQuantity):
+		return badRequest(c, "INVALID_QUANTITY", err.Error())
+	case errors.Is(err, service.ErrOrderDueAtBeforeReceive):
+		return badRequest(c, "INVALID_DUE_AT", err.Error())
 	case errors.Is(err, service.ErrInvalidOrder), errors.Is(err, service.ErrOrderTotalOverflow):
 		return badRequest(c, "INVALID_ORDER", err.Error())
 	case errors.Is(err, service.ErrInvalidCancellation):

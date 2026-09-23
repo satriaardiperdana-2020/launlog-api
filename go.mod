@@ -7,6 +7,7 @@ require (
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/labstack/echo/v4 v4.15.4
 	github.com/oapi-codegen/runtime v1.7.0
+	github.com/swaggo/files/v2 v2.0.1
 	golang.org/x/crypto v0.53.0
 )
 

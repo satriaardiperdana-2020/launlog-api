@@ -6,14 +6,17 @@ SQLC_VERSION := v1.31.1
 OAPI_CODEGEN_VERSION := v2.7.0
 MIGRATE_VERSION := v4.18.1
 VULNCHECK_VERSION := v1.8.0
+GOLANGCI_LINT_VERSION := v2.13.2
 
 SQLC := $(BIN_DIR)/sqlc
 OAPI_CODEGEN := $(BIN_DIR)/oapi-codegen
 MIGRATE := $(BIN_DIR)/migrate
 VULNCHECK := $(BIN_DIR)/govulncheck
+GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
 MIGRATION_DATABASE_URL ?= $(DATABASE_URL)
 
-.PHONY: tools fmt fmt-check generate generate-check build test test-race test-integration vet vulncheck check run compose-up compose-down migrate-up migrate-down migrate-version migrate-verify
+.PHONY: tools fmt fmt-check generate generate-check build test test-race test-integration test-integration-required e2e-smoke migrate-upgrade-check backup-restore-check vet lint vulncheck check release-check run compose-up compose-down migrate-up migrate-down migrate-version migrate-verify
+.NOTPARALLEL: release-check
 
 tools: $(SQLC) $(OAPI_CODEGEN) $(MIGRATE)
 
@@ -32,6 +35,10 @@ $(MIGRATE):
 $(VULNCHECK):
 	@mkdir -p $(BIN_DIR)
 	GOBIN=$(BIN_DIR) $(GO) install golang.org/x/vuln/cmd/govulncheck@$(VULNCHECK_VERSION)
+
+$(GOLANGCI_LINT):
+	@mkdir -p $(BIN_DIR)
+	GOBIN=$(BIN_DIR) $(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
 fmt:
 	$(GO) fmt ./...
@@ -63,15 +70,42 @@ test-race:
 	$(GO) test -race ./...
 
 test-integration:
+	@test -n "$(TEST_DATABASE_URL)" || (echo 'TEST_DATABASE_URL is required; refusing to silently skip PostgreSQL integration tests'; exit 1)
+	@test -n "$(TEST_ADMIN_DATABASE_URL)" || (echo 'TEST_ADMIN_DATABASE_URL is required for isolated fixture setup/cleanup'; exit 1)
+	@test "$(TEST_EXPECT_LEAST_PRIVILEGE)" = "true" || (echo 'TEST_EXPECT_LEAST_PRIVILEGE=true is required'; exit 1)
 	$(GO) test -tags=integration ./tests/integration
+
+test-integration-required: test-integration
+
+e2e-smoke:
+	@test -n "$(E2E_DATABASE_URL)" || (echo 'E2E_DATABASE_URL is required; use a disposable isolated database'; exit 1)
+	@temporary_directory=$$(mktemp -d); \
+	trap 'rm -rf "$$temporary_directory"' EXIT; \
+	$(GO) build -o "$$temporary_directory/launlog-api" ./cmd/api; \
+	APP_BINARY="$$temporary_directory/launlog-api" scripts/api-smoke.sh
+
+migrate-upgrade-check: $(MIGRATE)
+	@test -n "$(UPGRADE_MIGRATION_DATABASE_URL)" || (echo 'UPGRADE_MIGRATION_DATABASE_URL is required'; exit 1)
+	@test -n "$(UPGRADE_ADMIN_DATABASE_URL)" || (echo 'UPGRADE_ADMIN_DATABASE_URL is required'; exit 1)
+	UPGRADE_MIGRATION_DATABASE_URL="$(UPGRADE_MIGRATION_DATABASE_URL)" UPGRADE_ADMIN_DATABASE_URL="$(UPGRADE_ADMIN_DATABASE_URL)" MIGRATE="$(MIGRATE)" scripts/test-migration-upgrade.sh
+
+backup-restore-check:
+	@test -n "$(BACKUP_SOURCE_DATABASE_URL)" || (echo 'BACKUP_SOURCE_DATABASE_URL is required'; exit 1)
+	@test -n "$(RESTORE_DATABASE_URL)" || (echo 'RESTORE_DATABASE_URL is required and must target a disposable empty database'; exit 1)
+	BACKUP_SOURCE_DATABASE_URL="$(BACKUP_SOURCE_DATABASE_URL)" RESTORE_DATABASE_URL="$(RESTORE_DATABASE_URL)" scripts/test-backup-restore.sh
 
 vet:
 	$(GO) vet ./...
 
+lint: $(GOLANGCI_LINT)
+	$(GOLANGCI_LINT) run --default=none --enable-only=govet,staticcheck,ineffassign,unused ./...
+
 vulncheck: $(VULNCHECK)
 	$(VULNCHECK) ./...
 
-check: fmt-check generate-check test vet build vulncheck
+check: fmt-check generate-check test vet lint build vulncheck
+
+release-check: check test-integration-required migrate-upgrade-check backup-restore-check e2e-smoke
 
 run:
 	$(GO) run ./cmd/api
