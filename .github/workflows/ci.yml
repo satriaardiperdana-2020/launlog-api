@@ -40,6 +40,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://launlog:launlog_ci_only@localhost:5432/launlog_ci?sslmode=disable
+      TEST_DATABASE_URL: postgresql://launlog:launlog_ci_only@localhost:5432/launlog_ci?sslmode=disable
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -48,3 +49,4 @@ jobs:
           check-latest: true
           cache: true
       - run: make migrate-verify
+      - run: make test-integration
