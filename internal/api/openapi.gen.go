@@ -152,6 +152,27 @@ func (e OrderStatus) Valid() bool {
 	}
 }
 
+// Defines values for OrderStatusTransitionInputStatus.
+const (
+	COMPLETED      OrderStatusTransitionInputStatus = "COMPLETED"
+	PROCESSING     OrderStatusTransitionInputStatus = "PROCESSING"
+	READYFORPICKUP OrderStatusTransitionInputStatus = "READY_FOR_PICKUP"
+)
+
+// Valid indicates whether the value is a known member of the OrderStatusTransitionInputStatus enum.
+func (e OrderStatusTransitionInputStatus) Valid() bool {
+	switch e {
+	case COMPLETED:
+		return true
+	case PROCESSING:
+		return true
+	case READYFORPICKUP:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ServiceUnit.
 const (
 	KILOGRAM    ServiceUnit = "KILOGRAM"
@@ -213,6 +234,11 @@ func (e UserRole) Valid() bool {
 type AuthSessionResponse struct {
 	Tokens TokenPair   `json:"tokens"`
 	User   CurrentUser `json:"user"`
+}
+
+// CancelOrderInput defines model for CancelOrderInput.
+type CancelOrderInput struct {
+	Reason string `json:"reason"`
 }
 
 // CreateOrderInput defines model for CreateOrderInput.
@@ -468,6 +494,21 @@ type OrderItem struct {
 	UnitPriceAmountSnapshot RupiahAmount `json:"unit_price_amount_snapshot"`
 }
 
+// OrderLifecycleResult defines model for OrderLifecycleResult.
+type OrderLifecycleResult struct {
+	CancellationReason *string          `json:"cancellation_reason,omitempty"`
+	CancelledAt        *JakartaDateTime `json:"cancelled_at,omitempty"`
+	CompletedAt        *JakartaDateTime `json:"completed_at,omitempty"`
+
+	// OrderId Database identifier backed by a PostgreSQL BIGINT.
+	OrderId       EntityId           `json:"order_id"`
+	PaymentStatus OrderPaymentStatus `json:"payment_status"`
+	Status        OrderStatus        `json:"status"`
+
+	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	UpdatedAt JakartaDateTime `json:"updated_at"`
+}
+
 // OrderList defines model for OrderList.
 type OrderList struct {
 	Items      []OrderSummary `json:"items"`
@@ -479,6 +520,36 @@ type OrderPaymentStatus string
 
 // OrderStatus defines model for OrderStatus.
 type OrderStatus string
+
+// OrderStatusHistory defines model for OrderStatusHistory.
+type OrderStatusHistory struct {
+	Items []OrderStatusHistoryEntry `json:"items"`
+}
+
+// OrderStatusHistoryEntry defines model for OrderStatusHistoryEntry.
+type OrderStatusHistoryEntry struct {
+	// ChangedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	ChangedAt JakartaDateTime `json:"changed_at"`
+
+	// ChangedBy Database identifier backed by a PostgreSQL BIGINT.
+	ChangedBy     EntityId     `json:"changed_by"`
+	ChangedByName string       `json:"changed_by_name"`
+	FromStatus    *OrderStatus `json:"from_status,omitempty"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id       EntityId    `json:"id"`
+	Notes    *string     `json:"notes,omitempty"`
+	ToStatus OrderStatus `json:"to_status"`
+}
+
+// OrderStatusTransitionInput defines model for OrderStatusTransitionInput.
+type OrderStatusTransitionInput struct {
+	Notes  *string                          `json:"notes,omitempty"`
+	Status OrderStatusTransitionInputStatus `json:"status"`
+}
+
+// OrderStatusTransitionInputStatus defines model for OrderStatusTransitionInput.Status.
+type OrderStatusTransitionInputStatus string
 
 // OrderSummary defines model for OrderSummary.
 type OrderSummary struct {
@@ -903,6 +974,12 @@ type UpdateCustomerJSONRequestBody = CustomerInput
 // CreateOrderJSONRequestBody defines body for CreateOrder for application/json ContentType.
 type CreateOrderJSONRequestBody = CreateOrderInput
 
+// CancelOrderJSONRequestBody defines body for CancelOrder for application/json ContentType.
+type CancelOrderJSONRequestBody = CancelOrderInput
+
+// TransitionOrderStatusJSONRequestBody defines body for TransitionOrderStatus for application/json ContentType.
+type TransitionOrderStatusJSONRequestBody = OrderStatusTransitionInput
+
 // CreateOutletJSONRequestBody defines body for CreateOutlet for application/json ContentType.
 type CreateOutletJSONRequestBody = OutletCreate
 
@@ -980,6 +1057,15 @@ type ServerInterface interface {
 	// Get an order and its immutable item snapshots
 	// (GET /orders/{orderId})
 	GetOrder(ctx echo.Context, orderId EntityId) error
+	// Cancel an unpaid order and retain it as soft-deleted history
+	// (POST /orders/{orderId}/cancel)
+	CancelOrder(ctx echo.Context, orderId EntityId) error
+	// Advance an order through its allowed lifecycle
+	// (PATCH /orders/{orderId}/status)
+	TransitionOrderStatus(ctx echo.Context, orderId EntityId) error
+	// Get append-only status history for an order
+	// (GET /orders/{orderId}/status-history)
+	GetOrderStatusHistory(ctx echo.Context, orderId EntityId) error
 	// List outlets in the authenticated business
 	// (GET /outlets)
 	ListOutlets(ctx echo.Context, params ListOutletsParams) error
@@ -1333,6 +1419,60 @@ func (w *ServerInterfaceWrapper) GetOrder(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetOrder(ctx, orderId)
+	return err
+}
+
+// CancelOrder converts echo context to params.
+func (w *ServerInterfaceWrapper) CancelOrder(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "orderId" -------------
+	var orderId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orderId", ctx.Param("orderId"), &orderId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter orderId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CancelOrder(ctx, orderId)
+	return err
+}
+
+// TransitionOrderStatus converts echo context to params.
+func (w *ServerInterfaceWrapper) TransitionOrderStatus(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "orderId" -------------
+	var orderId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orderId", ctx.Param("orderId"), &orderId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter orderId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.TransitionOrderStatus(ctx, orderId)
+	return err
+}
+
+// GetOrderStatusHistory converts echo context to params.
+func (w *ServerInterfaceWrapper) GetOrderStatusHistory(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "orderId" -------------
+	var orderId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orderId", ctx.Param("orderId"), &orderId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter orderId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetOrderStatusHistory(ctx, orderId)
 	return err
 }
 
@@ -1821,6 +1961,9 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/orders", wrapper.ListOrders, options.OperationMiddlewares["listOrders"]...)
 	router.POST(options.BaseURL+"/orders", wrapper.CreateOrder, options.OperationMiddlewares["createOrder"]...)
 	router.GET(options.BaseURL+"/orders/:orderId", wrapper.GetOrder, options.OperationMiddlewares["getOrder"]...)
+	router.POST(options.BaseURL+"/orders/:orderId/cancel", wrapper.CancelOrder, options.OperationMiddlewares["cancelOrder"]...)
+	router.PATCH(options.BaseURL+"/orders/:orderId/status", wrapper.TransitionOrderStatus, options.OperationMiddlewares["transitionOrderStatus"]...)
+	router.GET(options.BaseURL+"/orders/:orderId/status-history", wrapper.GetOrderStatusHistory, options.OperationMiddlewares["getOrderStatusHistory"]...)
 	router.GET(options.BaseURL+"/outlets", wrapper.ListOutlets, options.OperationMiddlewares["listOutlets"]...)
 	router.POST(options.BaseURL+"/outlets", wrapper.CreateOutlet, options.OperationMiddlewares["createOutlet"]...)
 	router.GET(options.BaseURL+"/outlets/:outletId", wrapper.GetOutlet, options.OperationMiddlewares["getOutlet"]...)
@@ -3120,6 +3263,313 @@ type GetOrder500JSONResponse struct {
 }
 
 func (response GetOrder500JSONResponse) VisitGetOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelOrderRequestObject struct {
+	OrderId EntityId `json:"orderId"`
+	Body    *CancelOrderJSONRequestBody
+}
+
+type CancelOrderResponseObject interface {
+	VisitCancelOrderResponse(w http.ResponseWriter) error
+}
+
+type CancelOrder200JSONResponse OrderLifecycleResult
+
+func (response CancelOrder200JSONResponse) VisitCancelOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelOrder400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CancelOrder400JSONResponse) VisitCancelOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelOrder401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CancelOrder401JSONResponse) VisitCancelOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelOrder403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CancelOrder403JSONResponse) VisitCancelOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelOrder404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CancelOrder404JSONResponse) VisitCancelOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelOrder409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CancelOrder409JSONResponse) VisitCancelOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelOrder500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CancelOrder500JSONResponse) VisitCancelOrderResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TransitionOrderStatusRequestObject struct {
+	OrderId EntityId `json:"orderId"`
+	Body    *TransitionOrderStatusJSONRequestBody
+}
+
+type TransitionOrderStatusResponseObject interface {
+	VisitTransitionOrderStatusResponse(w http.ResponseWriter) error
+}
+
+type TransitionOrderStatus200JSONResponse OrderLifecycleResult
+
+func (response TransitionOrderStatus200JSONResponse) VisitTransitionOrderStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TransitionOrderStatus400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response TransitionOrderStatus400JSONResponse) VisitTransitionOrderStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TransitionOrderStatus401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response TransitionOrderStatus401JSONResponse) VisitTransitionOrderStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TransitionOrderStatus403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response TransitionOrderStatus403JSONResponse) VisitTransitionOrderStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TransitionOrderStatus404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response TransitionOrderStatus404JSONResponse) VisitTransitionOrderStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TransitionOrderStatus409JSONResponse struct{ ConflictJSONResponse }
+
+func (response TransitionOrderStatus409JSONResponse) VisitTransitionOrderStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TransitionOrderStatus500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response TransitionOrderStatus500JSONResponse) VisitTransitionOrderStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrderStatusHistoryRequestObject struct {
+	OrderId EntityId `json:"orderId"`
+}
+
+type GetOrderStatusHistoryResponseObject interface {
+	VisitGetOrderStatusHistoryResponse(w http.ResponseWriter) error
+}
+
+type GetOrderStatusHistory200JSONResponse OrderStatusHistory
+
+func (response GetOrderStatusHistory200JSONResponse) VisitGetOrderStatusHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrderStatusHistory401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetOrderStatusHistory401JSONResponse) VisitGetOrderStatusHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrderStatusHistory403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetOrderStatusHistory403JSONResponse) VisitGetOrderStatusHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrderStatusHistory404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetOrderStatusHistory404JSONResponse) VisitGetOrderStatusHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrderStatusHistory500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetOrderStatusHistory500JSONResponse) VisitGetOrderStatusHistoryResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -5187,6 +5637,15 @@ type StrictServerInterface interface {
 	// Get an order and its immutable item snapshots
 	// (GET /orders/{orderId})
 	GetOrder(ctx context.Context, request GetOrderRequestObject) (GetOrderResponseObject, error)
+	// Cancel an unpaid order and retain it as soft-deleted history
+	// (POST /orders/{orderId}/cancel)
+	CancelOrder(ctx context.Context, request CancelOrderRequestObject) (CancelOrderResponseObject, error)
+	// Advance an order through its allowed lifecycle
+	// (PATCH /orders/{orderId}/status)
+	TransitionOrderStatus(ctx context.Context, request TransitionOrderStatusRequestObject) (TransitionOrderStatusResponseObject, error)
+	// Get append-only status history for an order
+	// (GET /orders/{orderId}/status-history)
+	GetOrderStatusHistory(ctx context.Context, request GetOrderStatusHistoryRequestObject) (GetOrderStatusHistoryResponseObject, error)
 	// List outlets in the authenticated business
 	// (GET /outlets)
 	ListOutlets(ctx context.Context, request ListOutletsRequestObject) (ListOutletsResponseObject, error)
@@ -5659,6 +6118,93 @@ func (sh *strictHandler) GetOrder(ctx echo.Context, orderId EntityId) error {
 		return err
 	} else if validResponse, ok := response.(GetOrderResponseObject); ok {
 		return validResponse.VisitGetOrderResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CancelOrder operation middleware
+func (sh *strictHandler) CancelOrder(ctx echo.Context, orderId EntityId) error {
+	var request CancelOrderRequestObject
+
+	request.OrderId = orderId
+
+	var body CancelOrderJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CancelOrder(ctx.Request().Context(), request.(CancelOrderRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CancelOrder")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CancelOrderResponseObject); ok {
+		return validResponse.VisitCancelOrderResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// TransitionOrderStatus operation middleware
+func (sh *strictHandler) TransitionOrderStatus(ctx echo.Context, orderId EntityId) error {
+	var request TransitionOrderStatusRequestObject
+
+	request.OrderId = orderId
+
+	var body TransitionOrderStatusJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.TransitionOrderStatus(ctx.Request().Context(), request.(TransitionOrderStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "TransitionOrderStatus")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(TransitionOrderStatusResponseObject); ok {
+		return validResponse.VisitTransitionOrderStatusResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetOrderStatusHistory operation middleware
+func (sh *strictHandler) GetOrderStatusHistory(ctx echo.Context, orderId EntityId) error {
+	var request GetOrderStatusHistoryRequestObject
+
+	request.OrderId = orderId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOrderStatusHistory(ctx.Request().Context(), request.(GetOrderStatusHistoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOrderStatusHistory")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetOrderStatusHistoryResponseObject); ok {
+		return validResponse.VisitGetOrderStatusHistoryResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

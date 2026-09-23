@@ -120,6 +120,9 @@ func run(logger *slog.Logger) error {
 	orders.GET("", orderHandler.List, launmiddleware.RequirePermission("ORDERS_READ"))
 	orders.POST("", orderHandler.Create, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("ORDERS_CREATE"))
 	orders.GET("/:orderId", orderHandler.Get, launmiddleware.RequirePermission("ORDERS_READ"))
+	orders.PATCH("/:orderId/status", orderHandler.TransitionStatus, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("ORDERS_UPDATE"))
+	orders.POST("/:orderId/cancel", orderHandler.Cancel, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("ORDERS_UPDATE"))
+	orders.GET("/:orderId/status-history", orderHandler.StatusHistory, launmiddleware.RequirePermission("ORDERS_READ"))
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress(),

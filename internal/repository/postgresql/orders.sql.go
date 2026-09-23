@@ -38,6 +38,57 @@ func (q *Queries) AllocateInvoiceNumber(ctx context.Context, arg AllocateInvoice
 	return i, err
 }
 
+const cancelOrder = `-- name: CancelOrder :one
+UPDATE orders SET status='CANCELLED', cancelled_at=now(), cancelled_by=$1,
+    cancellation_reason=$2, deleted_at=now(), updated_at=now()
+WHERE business_id=$3 AND id=$4
+RETURNING id, business_id, outlet_id, status, payment_status, cancelled_at, cancelled_by,
+          cancellation_reason, deleted_at, updated_at
+`
+
+type CancelOrderParams struct {
+	ActorUserID pgtype.Int8 `json:"actor_user_id"`
+	Reason      pgtype.Text `json:"reason"`
+	BusinessID  int64       `json:"business_id"`
+	OrderID     int64       `json:"order_id"`
+}
+
+type CancelOrderRow struct {
+	ID                 int64              `json:"id"`
+	BusinessID         int64              `json:"business_id"`
+	OutletID           int64              `json:"outlet_id"`
+	Status             string             `json:"status"`
+	PaymentStatus      string             `json:"payment_status"`
+	CancelledAt        pgtype.Timestamptz `json:"cancelled_at"`
+	CancelledBy        pgtype.Int8        `json:"cancelled_by"`
+	CancellationReason pgtype.Text        `json:"cancellation_reason"`
+	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) CancelOrder(ctx context.Context, arg CancelOrderParams) (CancelOrderRow, error) {
+	row := q.db.QueryRow(ctx, cancelOrder,
+		arg.ActorUserID,
+		arg.Reason,
+		arg.BusinessID,
+		arg.OrderID,
+	)
+	var i CancelOrderRow
+	err := row.Scan(
+		&i.ID,
+		&i.BusinessID,
+		&i.OutletID,
+		&i.Status,
+		&i.PaymentStatus,
+		&i.CancelledAt,
+		&i.CancelledBy,
+		&i.CancellationReason,
+		&i.DeletedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const countOrders = `-- name: CountOrders :one
 SELECT count(*)
 FROM orders
@@ -461,6 +512,66 @@ func (q *Queries) GetOrderByIdempotencyKey(ctx context.Context, arg GetOrderById
 	return i, err
 }
 
+const getOrderForUpdate = `-- name: GetOrderForUpdate :one
+SELECT o.id, o.business_id, o.outlet_id, o.status, o.payment_status, o.completed_at,
+       o.cancelled_at, o.cancelled_by, o.cancellation_reason, o.deleted_at
+FROM orders AS o
+JOIN outlets AS outlet ON outlet.business_id=o.business_id AND outlet.id=o.outlet_id AND outlet.is_active
+JOIN users AS current_actor ON current_actor.business_id=o.business_id
+  AND current_actor.id=$1 AND current_actor.is_active
+  AND current_actor.role=CASE WHEN $2::boolean THEN 'ADMIN' ELSE 'LAUNDRY_STAFF' END
+WHERE o.business_id=$3 AND o.id=$4
+  AND ($2::boolean OR EXISTS (
+      SELECT 1 FROM user_outlets AS assignment
+      WHERE assignment.business_id=o.business_id AND assignment.outlet_id=o.outlet_id
+        AND assignment.user_id=$1
+  ))
+FOR UPDATE OF o, outlet, current_actor
+`
+
+type GetOrderForUpdateParams struct {
+	UserID     int64 `json:"user_id"`
+	IsAdmin    bool  `json:"is_admin"`
+	BusinessID int64 `json:"business_id"`
+	OrderID    int64 `json:"order_id"`
+}
+
+type GetOrderForUpdateRow struct {
+	ID                 int64              `json:"id"`
+	BusinessID         int64              `json:"business_id"`
+	OutletID           int64              `json:"outlet_id"`
+	Status             string             `json:"status"`
+	PaymentStatus      string             `json:"payment_status"`
+	CompletedAt        pgtype.Timestamptz `json:"completed_at"`
+	CancelledAt        pgtype.Timestamptz `json:"cancelled_at"`
+	CancelledBy        pgtype.Int8        `json:"cancelled_by"`
+	CancellationReason pgtype.Text        `json:"cancellation_reason"`
+	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
+}
+
+func (q *Queries) GetOrderForUpdate(ctx context.Context, arg GetOrderForUpdateParams) (GetOrderForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, getOrderForUpdate,
+		arg.UserID,
+		arg.IsAdmin,
+		arg.BusinessID,
+		arg.OrderID,
+	)
+	var i GetOrderForUpdateRow
+	err := row.Scan(
+		&i.ID,
+		&i.BusinessID,
+		&i.OutletID,
+		&i.Status,
+		&i.PaymentStatus,
+		&i.CompletedAt,
+		&i.CancelledAt,
+		&i.CancelledBy,
+		&i.CancellationReason,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getOrderTime = `-- name: GetOrderTime :one
 SELECT now()::timestamptz AS received_at, CURRENT_DATE::date AS counter_date
 `
@@ -502,6 +613,68 @@ func (q *Queries) InsertOrderAuditLog(ctx context.Context, arg InsertOrderAuditL
 		arg.NewValues,
 		arg.IpAddress,
 		arg.UserAgent,
+	)
+	return err
+}
+
+const insertOrderLifecycleAuditLog = `-- name: InsertOrderLifecycleAuditLog :exec
+INSERT INTO audit_logs (business_id, outlet_id, actor_user_id, action, entity_type, entity_id, old_values, new_values, ip_address, user_agent)
+VALUES ($1, $2, $3, $4, 'order',
+        $5, $6, $7, $8, $9)
+`
+
+type InsertOrderLifecycleAuditLogParams struct {
+	BusinessID  int64       `json:"business_id"`
+	OutletID    pgtype.Int8 `json:"outlet_id"`
+	ActorUserID pgtype.Int8 `json:"actor_user_id"`
+	Action      string      `json:"action"`
+	OrderID     pgtype.Int8 `json:"order_id"`
+	OldValues   []byte      `json:"old_values"`
+	NewValues   []byte      `json:"new_values"`
+	IpAddress   *netip.Addr `json:"ip_address"`
+	UserAgent   pgtype.Text `json:"user_agent"`
+}
+
+func (q *Queries) InsertOrderLifecycleAuditLog(ctx context.Context, arg InsertOrderLifecycleAuditLogParams) error {
+	_, err := q.db.Exec(ctx, insertOrderLifecycleAuditLog,
+		arg.BusinessID,
+		arg.OutletID,
+		arg.ActorUserID,
+		arg.Action,
+		arg.OrderID,
+		arg.OldValues,
+		arg.NewValues,
+		arg.IpAddress,
+		arg.UserAgent,
+	)
+	return err
+}
+
+const insertOrderStatusHistory = `-- name: InsertOrderStatusHistory :exec
+INSERT INTO order_status_history (business_id, outlet_id, order_id, from_status, to_status, changed_by, notes)
+VALUES ($1, $2, $3, $4,
+        $5, $6, $7)
+`
+
+type InsertOrderStatusHistoryParams struct {
+	BusinessID int64       `json:"business_id"`
+	OutletID   int64       `json:"outlet_id"`
+	OrderID    int64       `json:"order_id"`
+	FromStatus pgtype.Text `json:"from_status"`
+	ToStatus   string      `json:"to_status"`
+	ChangedBy  int64       `json:"changed_by"`
+	Notes      pgtype.Text `json:"notes"`
+}
+
+func (q *Queries) InsertOrderStatusHistory(ctx context.Context, arg InsertOrderStatusHistoryParams) error {
+	_, err := q.db.Exec(ctx, insertOrderStatusHistory,
+		arg.BusinessID,
+		arg.OutletID,
+		arg.OrderID,
+		arg.FromStatus,
+		arg.ToStatus,
+		arg.ChangedBy,
+		arg.Notes,
 	)
 	return err
 }
@@ -554,6 +727,60 @@ func (q *Queries) ListOrderItems(ctx context.Context, arg ListOrderItemsParams) 
 			&i.Quantity,
 			&i.LineTotalAmount,
 			&i.Notes,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOrderStatusHistory = `-- name: ListOrderStatusHistory :many
+SELECT h.id, h.from_status, h.to_status, h.changed_by, u.full_name AS changed_by_name,
+       h.notes, h.changed_at
+FROM order_status_history AS h
+JOIN users AS u ON u.business_id=h.business_id AND u.id=h.changed_by
+WHERE h.business_id=$1 AND h.outlet_id=$2
+  AND h.order_id=$3
+ORDER BY h.changed_at, h.id
+`
+
+type ListOrderStatusHistoryParams struct {
+	BusinessID int64 `json:"business_id"`
+	OutletID   int64 `json:"outlet_id"`
+	OrderID    int64 `json:"order_id"`
+}
+
+type ListOrderStatusHistoryRow struct {
+	ID            int64              `json:"id"`
+	FromStatus    pgtype.Text        `json:"from_status"`
+	ToStatus      string             `json:"to_status"`
+	ChangedBy     int64              `json:"changed_by"`
+	ChangedByName string             `json:"changed_by_name"`
+	Notes         pgtype.Text        `json:"notes"`
+	ChangedAt     pgtype.Timestamptz `json:"changed_at"`
+}
+
+func (q *Queries) ListOrderStatusHistory(ctx context.Context, arg ListOrderStatusHistoryParams) ([]ListOrderStatusHistoryRow, error) {
+	rows, err := q.db.Query(ctx, listOrderStatusHistory, arg.BusinessID, arg.OutletID, arg.OrderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListOrderStatusHistoryRow
+	for rows.Next() {
+		var i ListOrderStatusHistoryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.FromStatus,
+			&i.ToStatus,
+			&i.ChangedBy,
+			&i.ChangedByName,
+			&i.Notes,
+			&i.ChangedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -647,6 +874,25 @@ func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListO
 	return items, nil
 }
 
+const lockCurrentOrderOutletAssignment = `-- name: LockCurrentOrderOutletAssignment :one
+SELECT user_id FROM user_outlets
+WHERE business_id=$1 AND user_id=$2 AND outlet_id=$3
+FOR SHARE
+`
+
+type LockCurrentOrderOutletAssignmentParams struct {
+	BusinessID int64 `json:"business_id"`
+	UserID     int64 `json:"user_id"`
+	OutletID   int64 `json:"outlet_id"`
+}
+
+func (q *Queries) LockCurrentOrderOutletAssignment(ctx context.Context, arg LockCurrentOrderOutletAssignmentParams) (int64, error) {
+	row := q.db.QueryRow(ctx, lockCurrentOrderOutletAssignment, arg.BusinessID, arg.UserID, arg.OutletID)
+	var user_id int64
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const lockOrderIdempotency = `-- name: LockOrderIdempotency :exec
 SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))
 `
@@ -654,4 +900,43 @@ SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))
 func (q *Queries) LockOrderIdempotency(ctx context.Context, lockKey string) error {
 	_, err := q.db.Exec(ctx, lockOrderIdempotency, lockKey)
 	return err
+}
+
+const transitionOrderStatus = `-- name: TransitionOrderStatus :one
+UPDATE orders SET status=$1,
+    completed_at=CASE WHEN $1::text='COMPLETED' THEN now() ELSE NULL END,
+    updated_at=now()
+WHERE business_id=$2 AND id=$3
+RETURNING id, business_id, outlet_id, status, payment_status, completed_at, updated_at
+`
+
+type TransitionOrderStatusParams struct {
+	ToStatus   string `json:"to_status"`
+	BusinessID int64  `json:"business_id"`
+	OrderID    int64  `json:"order_id"`
+}
+
+type TransitionOrderStatusRow struct {
+	ID            int64              `json:"id"`
+	BusinessID    int64              `json:"business_id"`
+	OutletID      int64              `json:"outlet_id"`
+	Status        string             `json:"status"`
+	PaymentStatus string             `json:"payment_status"`
+	CompletedAt   pgtype.Timestamptz `json:"completed_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) TransitionOrderStatus(ctx context.Context, arg TransitionOrderStatusParams) (TransitionOrderStatusRow, error) {
+	row := q.db.QueryRow(ctx, transitionOrderStatus, arg.ToStatus, arg.BusinessID, arg.OrderID)
+	var i TransitionOrderStatusRow
+	err := row.Scan(
+		&i.ID,
+		&i.BusinessID,
+		&i.OutletID,
+		&i.Status,
+		&i.PaymentStatus,
+		&i.CompletedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

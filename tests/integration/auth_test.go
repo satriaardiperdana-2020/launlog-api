@@ -132,6 +132,11 @@ func newAuthFixture(t *testing.T) *authFixture {
 	services.GET("/:serviceId", serviceHandler.Get, authmiddleware.RequirePermission("SERVICES_READ"))
 	services.PUT("/:serviceId", serviceHandler.Update, authmiddleware.RequirePermission("SERVICES_WRITE"))
 	services.DELETE("/:serviceId", serviceHandler.Delete, authmiddleware.RequirePermission("SERVICES_WRITE"))
+	orders := f.echo.Group("/orders", authmiddleware.Authenticate(database, tokens))
+	orderHandler := handlers.NewOrderHandler(database)
+	orders.GET("/:orderId/status-history", orderHandler.StatusHistory, authmiddleware.RequirePermission("ORDERS_READ"))
+	orders.PATCH("/:orderId/status", orderHandler.TransitionStatus, authmiddleware.RequirePermission("ORDERS_UPDATE"))
+	orders.POST("/:orderId/cancel", orderHandler.Cancel, authmiddleware.RequirePermission("ORDERS_UPDATE"))
 	return f
 }
 
