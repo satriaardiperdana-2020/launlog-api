@@ -62,6 +62,7 @@ func newAuthFixture(t *testing.T) *authFixture {
 		_, _ = pool.Exec(ctx, "DELETE FROM order_status_history WHERE business_id=$1", f.businessID)
 		_, _ = pool.Exec(ctx, "DELETE FROM order_items WHERE business_id=$1", f.businessID)
 		_, _ = pool.Exec(ctx, "DELETE FROM orders WHERE business_id=$1", f.businessID)
+		_, _ = pool.Exec(ctx, "DELETE FROM services WHERE business_id=$1", f.businessID)
 		_, _ = pool.Exec(ctx, "DELETE FROM invoice_counters WHERE business_id=$1", f.businessID)
 		_, _ = pool.Exec(ctx, "DELETE FROM refresh_tokens WHERE business_id=$1", f.businessID)
 		_, _ = pool.Exec(ctx, "DELETE FROM session_families WHERE business_id=$1", f.businessID)
@@ -123,6 +124,13 @@ func newAuthFixture(t *testing.T) *authFixture {
 	customers.PUT("/:customerId", customerHandler.Update, authmiddleware.RequirePermission("CUSTOMERS_WRITE"))
 	customers.DELETE("/:customerId", customerHandler.Deactivate, authmiddleware.RequirePermission("CUSTOMERS_WRITE"))
 	customers.GET("/:customerId/orders", customerHandler.OrderHistory, authmiddleware.RequirePermission("CUSTOMERS_READ"), authmiddleware.RequirePermission("ORDERS_READ"))
+	services := f.echo.Group("/services", authmiddleware.Authenticate(database, tokens))
+	serviceHandler := handlers.NewServiceHandler(database)
+	services.GET("", serviceHandler.List, authmiddleware.RequirePermission("SERVICES_READ"))
+	services.POST("", serviceHandler.Create, authmiddleware.RequirePermission("SERVICES_WRITE"))
+	services.GET("/:serviceId", serviceHandler.Get, authmiddleware.RequirePermission("SERVICES_READ"))
+	services.PUT("/:serviceId", serviceHandler.Update, authmiddleware.RequirePermission("SERVICES_WRITE"))
+	services.DELETE("/:serviceId", serviceHandler.Delete, authmiddleware.RequirePermission("SERVICES_WRITE"))
 	return f
 }
 

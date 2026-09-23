@@ -31,6 +31,12 @@ Staff creation always creates `LAUNDRY_STAFF`, requires at least one active outl
 
 Staff needs `CUSTOMERS_READ` to list/detail customers, `CUSTOMERS_WRITE` to create/update/deactivate, and both `CUSTOMERS_READ` and `ORDERS_READ` for customer order history. Staff history is restricted to their current active outlet assignments. Admin history uses the same business filter and bypasses grants only. History is read from the existing `orders` table, paginated by `created_at` and ID, and includes cancelled orders because cancellation is a retained soft-delete state.
 
+## Services (ISSUE-006)
+
+`GET/POST /services` and `GET/PUT/DELETE /services/{serviceId}` manage the business-shared catalog. Staff requires `SERVICES_READ` for reads and `SERVICES_WRITE` for writes; administrators bypass action grants but never business ownership. List supports `q` over name/description, exact `unit`, optional `isActive`, and shared pagination. Inactive services remain visible to authorized readers; soft-deleted services do not. `PUT` is a full update and uses `isActive` to deactivate/reactivate; `DELETE` soft-deletes. A service cannot be restored after soft deletion through this API.
+
+The existing `unit` field is the service measurement type: `KILOGRAM`, `PIECE`, `METER`, or `SQUARE_METER`. Codes are case-sensitive and match the database CHECK; there is no second `service_type`. Prices are nonnegative, exact whole-rupiah `int64` values (zero is allowed by the current schema). Duration is a nonnegative `int32` number of minutes, defaulting to zero on create. Service names are unique per business and unit among non-deleted rows. All writes are audited. Changing or deleting a service never rewrites an existing order-item snapshot.
+
 ## Contract rules
 
 - Add all endpoint changes to OpenAPI before generating Echo types with `make generate`.

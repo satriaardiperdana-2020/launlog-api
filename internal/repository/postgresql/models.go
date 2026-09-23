@@ -248,6 +248,8 @@ type Service struct {
 	CreatedAt                pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt                pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt                pgtype.Timestamptz `json:"deleted_at"`
+	// Optional business-shared service description; changing it does not rewrite historical order-item snapshots.
+	Description pgtype.Text `json:"description"`
 }
 
 // Stable session lineage; refresh rotation and logout serialize on this row.

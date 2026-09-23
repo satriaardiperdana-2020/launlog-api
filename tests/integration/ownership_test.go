@@ -123,8 +123,8 @@ func assertSchemaVersion(t *testing.T, ctx context.Context, tx pgx.Tx) {
 	if err := tx.QueryRow(ctx, `SELECT version, dirty FROM schema_migrations`).Scan(&version, &dirty); err != nil {
 		t.Fatalf("read schema migration state: %v", err)
 	}
-	if version != 10 || dirty {
-		t.Fatalf("expected clean customer phone policy migration at version 10, got version=%d dirty=%t", version, dirty)
+	if version != 11 || dirty {
+		t.Fatalf("expected clean service description migration at version 11, got version=%d dirty=%t", version, dirty)
 	}
 }
 
