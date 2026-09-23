@@ -20,6 +20,57 @@ const (
 	BearerAuthScopes bearerAuthContextKey = "BearerAuth.Scopes"
 )
 
+// Defines values for CustomerOrderSummaryPaymentStatus.
+const (
+	PAID          CustomerOrderSummaryPaymentStatus = "PAID"
+	PARTIALLYPAID CustomerOrderSummaryPaymentStatus = "PARTIALLY_PAID"
+	REFUNDED      CustomerOrderSummaryPaymentStatus = "REFUNDED"
+	UNPAID        CustomerOrderSummaryPaymentStatus = "UNPAID"
+)
+
+// Valid indicates whether the value is a known member of the CustomerOrderSummaryPaymentStatus enum.
+func (e CustomerOrderSummaryPaymentStatus) Valid() bool {
+	switch e {
+	case PAID:
+		return true
+	case PARTIALLYPAID:
+		return true
+	case REFUNDED:
+		return true
+	case UNPAID:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomerOrderSummaryStatus.
+const (
+	CANCELLED      CustomerOrderSummaryStatus = "CANCELLED"
+	COMPLETED      CustomerOrderSummaryStatus = "COMPLETED"
+	PROCESSING     CustomerOrderSummaryStatus = "PROCESSING"
+	READYFORPICKUP CustomerOrderSummaryStatus = "READY_FOR_PICKUP"
+	RECEIVED       CustomerOrderSummaryStatus = "RECEIVED"
+)
+
+// Valid indicates whether the value is a known member of the CustomerOrderSummaryStatus enum.
+func (e CustomerOrderSummaryStatus) Valid() bool {
+	switch e {
+	case CANCELLED:
+		return true
+	case COMPLETED:
+		return true
+	case PROCESSING:
+		return true
+	case READYFORPICKUP:
+		return true
+	case RECEIVED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for HealthResponseStatus.
 const (
 	Ok HealthResponseStatus = "ok"
@@ -102,6 +153,80 @@ type CurrentUser struct {
 	Permissions []string   `json:"permissions"`
 	Role        UserRole   `json:"role"`
 }
+
+// Customer defines model for Customer.
+type Customer struct {
+	Address *string `json:"address,omitempty"`
+
+	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
+	BusinessId EntityId `json:"business_id"`
+
+	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	CreatedAt JakartaDateTime `json:"created_at"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id    EntityId `json:"id"`
+	Name  string   `json:"name"`
+	Phone *string  `json:"phone,omitempty"`
+
+	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	UpdatedAt JakartaDateTime `json:"updated_at"`
+}
+
+// CustomerInput defines model for CustomerInput.
+type CustomerInput struct {
+	Address *string `json:"address,omitempty"`
+	Name    string  `json:"name"`
+	Phone   *string `json:"phone,omitempty"`
+}
+
+// CustomerList defines model for CustomerList.
+type CustomerList struct {
+	Items      []Customer     `json:"items"`
+	Pagination PaginationMeta `json:"pagination"`
+}
+
+// CustomerOrderHistory defines model for CustomerOrderHistory.
+type CustomerOrderHistory struct {
+	Items      []CustomerOrderSummary `json:"items"`
+	Pagination PaginationMeta         `json:"pagination"`
+}
+
+// CustomerOrderSummary defines model for CustomerOrderSummary.
+type CustomerOrderSummary struct {
+	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
+	BusinessId  EntityId         `json:"business_id"`
+	CancelledAt *JakartaDateTime `json:"cancelled_at,omitempty"`
+	CompletedAt *JakartaDateTime `json:"completed_at,omitempty"`
+
+	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	CreatedAt JakartaDateTime `json:"created_at"`
+
+	// CustomerId Database identifier backed by a PostgreSQL BIGINT.
+	CustomerId EntityId         `json:"customer_id"`
+	DueAt      *JakartaDateTime `json:"due_at,omitempty"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id            EntityId `json:"id"`
+	InvoiceNumber string   `json:"invoice_number"`
+
+	// OutletId Database identifier backed by a PostgreSQL BIGINT.
+	OutletId      EntityId                          `json:"outlet_id"`
+	PaymentStatus CustomerOrderSummaryPaymentStatus `json:"payment_status"`
+
+	// ReceivedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	ReceivedAt JakartaDateTime            `json:"received_at"`
+	Status     CustomerOrderSummaryStatus `json:"status"`
+
+	// TotalAmount Whole rupiah.
+	TotalAmount int64 `json:"total_amount"`
+}
+
+// CustomerOrderSummaryPaymentStatus defines model for CustomerOrderSummary.PaymentStatus.
+type CustomerOrderSummaryPaymentStatus string
+
+// CustomerOrderSummaryStatus defines model for CustomerOrderSummary.Status.
+type CustomerOrderSummaryStatus string
 
 // DecimalQuantity Positive decimal quantity with up to three fractional digits, encoded as a string for exact transport.
 type DecimalQuantity = string
@@ -364,6 +489,27 @@ type Unauthorized = ErrorResponse
 // bearerAuthContextKey is the context key for BearerAuth security scheme
 type bearerAuthContextKey string
 
+// ListCustomersParams defines parameters for ListCustomers.
+type ListCustomersParams struct {
+	// Page One-based page number.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of records per page, capped at 100.
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Q Case-insensitive substring search over customer name and phone.
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+}
+
+// GetCustomerOrderHistoryParams defines parameters for GetCustomerOrderHistory.
+type GetCustomerOrderHistoryParams struct {
+	// Page One-based page number.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of records per page, capped at 100.
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
 // ListOutletsParams defines parameters for ListOutlets.
 type ListOutletsParams struct {
 	// Page One-based page number.
@@ -390,6 +536,12 @@ type LogoutJSONRequestBody = LogoutRequest
 
 // RefreshTokenJSONRequestBody defines body for RefreshToken for application/json ContentType.
 type RefreshTokenJSONRequestBody = RefreshRequest
+
+// CreateCustomerJSONRequestBody defines body for CreateCustomer for application/json ContentType.
+type CreateCustomerJSONRequestBody = CustomerInput
+
+// UpdateCustomerJSONRequestBody defines body for UpdateCustomer for application/json ContentType.
+type UpdateCustomerJSONRequestBody = CustomerInput
 
 // CreateOutletJSONRequestBody defines body for CreateOutlet for application/json ContentType.
 type CreateOutletJSONRequestBody = OutletCreate
@@ -423,6 +575,24 @@ type ServerInterface interface {
 	// Refresh an authentication session
 	// (POST /auth/refresh)
 	RefreshToken(ctx echo.Context) error
+	// Search or list customers in the authenticated business
+	// (GET /customers)
+	ListCustomers(ctx echo.Context, params ListCustomersParams) error
+	// Create a customer in the authenticated business
+	// (POST /customers)
+	CreateCustomer(ctx echo.Context) error
+	// Deactivate a customer without deleting order references
+	// (DELETE /customers/{customerId})
+	DeactivateCustomer(ctx echo.Context, customerId EntityId) error
+	// Get an active customer in the authenticated business
+	// (GET /customers/{customerId})
+	GetCustomer(ctx echo.Context, customerId EntityId) error
+	// Update an active customer
+	// (PUT /customers/{customerId})
+	UpdateCustomer(ctx echo.Context, customerId EntityId) error
+	// List paginated order history for a customer
+	// (GET /customers/{customerId}/orders)
+	GetCustomerOrderHistory(ctx echo.Context, customerId EntityId, params GetCustomerOrderHistoryParams) error
 	// Compatibility readiness check
 	// (GET /health)
 	GetHealth(ctx echo.Context) error
@@ -509,6 +679,139 @@ func (w *ServerInterfaceWrapper) RefreshToken(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.RefreshToken(ctx)
+	return err
+}
+
+// ListCustomers converts echo context to params.
+func (w *ServerInterfaceWrapper) ListCustomers(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListCustomersParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", ctx.QueryParams(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListCustomers(ctx, params)
+	return err
+}
+
+// CreateCustomer converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateCustomer(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateCustomer(ctx)
+	return err
+}
+
+// DeactivateCustomer converts echo context to params.
+func (w *ServerInterfaceWrapper) DeactivateCustomer(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "customerId" -------------
+	var customerId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", ctx.Param("customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter customerId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeactivateCustomer(ctx, customerId)
+	return err
+}
+
+// GetCustomer converts echo context to params.
+func (w *ServerInterfaceWrapper) GetCustomer(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "customerId" -------------
+	var customerId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", ctx.Param("customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter customerId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetCustomer(ctx, customerId)
+	return err
+}
+
+// UpdateCustomer converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateCustomer(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "customerId" -------------
+	var customerId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", ctx.Param("customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter customerId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateCustomer(ctx, customerId)
+	return err
+}
+
+// GetCustomerOrderHistory converts echo context to params.
+func (w *ServerInterfaceWrapper) GetCustomerOrderHistory(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "customerId" -------------
+	var customerId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", ctx.Param("customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter customerId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCustomerOrderHistoryParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetCustomerOrderHistory(ctx, customerId, params)
 	return err
 }
 
@@ -785,6 +1088,12 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.POST(options.BaseURL+"/auth/logout", wrapper.Logout, options.OperationMiddlewares["logout"]...)
 	router.GET(options.BaseURL+"/auth/me", wrapper.GetCurrentUser, options.OperationMiddlewares["getCurrentUser"]...)
 	router.POST(options.BaseURL+"/auth/refresh", wrapper.RefreshToken, options.OperationMiddlewares["refreshToken"]...)
+	router.GET(options.BaseURL+"/customers", wrapper.ListCustomers, options.OperationMiddlewares["listCustomers"]...)
+	router.POST(options.BaseURL+"/customers", wrapper.CreateCustomer, options.OperationMiddlewares["createCustomer"]...)
+	router.DELETE(options.BaseURL+"/customers/:customerId", wrapper.DeactivateCustomer, options.OperationMiddlewares["deactivateCustomer"]...)
+	router.GET(options.BaseURL+"/customers/:customerId", wrapper.GetCustomer, options.OperationMiddlewares["getCustomer"]...)
+	router.PUT(options.BaseURL+"/customers/:customerId", wrapper.UpdateCustomer, options.OperationMiddlewares["updateCustomer"]...)
+	router.GET(options.BaseURL+"/customers/:customerId/orders", wrapper.GetCustomerOrderHistory, options.OperationMiddlewares["getCustomerOrderHistory"]...)
 	router.GET(options.BaseURL+"/health", wrapper.GetHealth, options.OperationMiddlewares["getHealth"]...)
 	router.GET(options.BaseURL+"/livez", wrapper.GetLiveness, options.OperationMiddlewares["getLiveness"]...)
 	router.GET(options.BaseURL+"/outlets", wrapper.ListOutlets, options.OperationMiddlewares["listOutlets"]...)
@@ -1168,6 +1477,556 @@ type RefreshToken500JSONResponse struct {
 }
 
 func (response RefreshToken500JSONResponse) VisitRefreshTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomersRequestObject struct {
+	Params ListCustomersParams
+}
+
+type ListCustomersResponseObject interface {
+	VisitListCustomersResponse(w http.ResponseWriter) error
+}
+
+type ListCustomers200JSONResponse CustomerList
+
+func (response ListCustomers200JSONResponse) VisitListCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomers400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListCustomers400JSONResponse) VisitListCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomers401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListCustomers401JSONResponse) VisitListCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomers403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListCustomers403JSONResponse) VisitListCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomers500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListCustomers500JSONResponse) VisitListCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCustomerRequestObject struct {
+	Body *CreateCustomerJSONRequestBody
+}
+
+type CreateCustomerResponseObject interface {
+	VisitCreateCustomerResponse(w http.ResponseWriter) error
+}
+
+type CreateCustomer201JSONResponse Customer
+
+func (response CreateCustomer201JSONResponse) VisitCreateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCustomer400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateCustomer400JSONResponse) VisitCreateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCustomer401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateCustomer401JSONResponse) VisitCreateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCustomer403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateCustomer403JSONResponse) VisitCreateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCustomer500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateCustomer500JSONResponse) VisitCreateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeactivateCustomerRequestObject struct {
+	CustomerId EntityId `json:"customerId"`
+}
+
+type DeactivateCustomerResponseObject interface {
+	VisitDeactivateCustomerResponse(w http.ResponseWriter) error
+}
+
+type DeactivateCustomer204Response struct {
+}
+
+func (response DeactivateCustomer204Response) VisitDeactivateCustomerResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeactivateCustomer400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response DeactivateCustomer400JSONResponse) VisitDeactivateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeactivateCustomer401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response DeactivateCustomer401JSONResponse) VisitDeactivateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeactivateCustomer403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeactivateCustomer403JSONResponse) VisitDeactivateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeactivateCustomer404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeactivateCustomer404JSONResponse) VisitDeactivateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeactivateCustomer500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response DeactivateCustomer500JSONResponse) VisitDeactivateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerRequestObject struct {
+	CustomerId EntityId `json:"customerId"`
+}
+
+type GetCustomerResponseObject interface {
+	VisitGetCustomerResponse(w http.ResponseWriter) error
+}
+
+type GetCustomer200JSONResponse Customer
+
+func (response GetCustomer200JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomer400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetCustomer400JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomer401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetCustomer401JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomer403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetCustomer403JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomer404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetCustomer404JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomer500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetCustomer500JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCustomerRequestObject struct {
+	CustomerId EntityId `json:"customerId"`
+	Body       *UpdateCustomerJSONRequestBody
+}
+
+type UpdateCustomerResponseObject interface {
+	VisitUpdateCustomerResponse(w http.ResponseWriter) error
+}
+
+type UpdateCustomer200JSONResponse Customer
+
+func (response UpdateCustomer200JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCustomer400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateCustomer400JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCustomer401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateCustomer401JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCustomer403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateCustomer403JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCustomer404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateCustomer404JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCustomer500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateCustomer500JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerOrderHistoryRequestObject struct {
+	CustomerId EntityId `json:"customerId"`
+	Params     GetCustomerOrderHistoryParams
+}
+
+type GetCustomerOrderHistoryResponseObject interface {
+	VisitGetCustomerOrderHistoryResponse(w http.ResponseWriter) error
+}
+
+type GetCustomerOrderHistory200JSONResponse CustomerOrderHistory
+
+func (response GetCustomerOrderHistory200JSONResponse) VisitGetCustomerOrderHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerOrderHistory400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetCustomerOrderHistory400JSONResponse) VisitGetCustomerOrderHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerOrderHistory401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetCustomerOrderHistory401JSONResponse) VisitGetCustomerOrderHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerOrderHistory403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetCustomerOrderHistory403JSONResponse) VisitGetCustomerOrderHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerOrderHistory404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetCustomerOrderHistory404JSONResponse) VisitGetCustomerOrderHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerOrderHistory500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetCustomerOrderHistory500JSONResponse) VisitGetCustomerOrderHistoryResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -2298,6 +3157,24 @@ type StrictServerInterface interface {
 	// Refresh an authentication session
 	// (POST /auth/refresh)
 	RefreshToken(ctx context.Context, request RefreshTokenRequestObject) (RefreshTokenResponseObject, error)
+	// Search or list customers in the authenticated business
+	// (GET /customers)
+	ListCustomers(ctx context.Context, request ListCustomersRequestObject) (ListCustomersResponseObject, error)
+	// Create a customer in the authenticated business
+	// (POST /customers)
+	CreateCustomer(ctx context.Context, request CreateCustomerRequestObject) (CreateCustomerResponseObject, error)
+	// Deactivate a customer without deleting order references
+	// (DELETE /customers/{customerId})
+	DeactivateCustomer(ctx context.Context, request DeactivateCustomerRequestObject) (DeactivateCustomerResponseObject, error)
+	// Get an active customer in the authenticated business
+	// (GET /customers/{customerId})
+	GetCustomer(ctx context.Context, request GetCustomerRequestObject) (GetCustomerResponseObject, error)
+	// Update an active customer
+	// (PUT /customers/{customerId})
+	UpdateCustomer(ctx context.Context, request UpdateCustomerRequestObject) (UpdateCustomerResponseObject, error)
+	// List paginated order history for a customer
+	// (GET /customers/{customerId}/orders)
+	GetCustomerOrderHistory(ctx context.Context, request GetCustomerOrderHistoryRequestObject) (GetCustomerOrderHistoryResponseObject, error)
 	// Compatibility readiness check
 	// (GET /health)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
@@ -2458,6 +3335,167 @@ func (sh *strictHandler) RefreshToken(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(RefreshTokenResponseObject); ok {
 		return validResponse.VisitRefreshTokenResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListCustomers operation middleware
+func (sh *strictHandler) ListCustomers(ctx echo.Context, params ListCustomersParams) error {
+	var request ListCustomersRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCustomers(ctx.Request().Context(), request.(ListCustomersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCustomers")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListCustomersResponseObject); ok {
+		return validResponse.VisitListCustomersResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateCustomer operation middleware
+func (sh *strictHandler) CreateCustomer(ctx echo.Context) error {
+	var request CreateCustomerRequestObject
+
+	var body CreateCustomerJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateCustomer(ctx.Request().Context(), request.(CreateCustomerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateCustomer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateCustomerResponseObject); ok {
+		return validResponse.VisitCreateCustomerResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeactivateCustomer operation middleware
+func (sh *strictHandler) DeactivateCustomer(ctx echo.Context, customerId EntityId) error {
+	var request DeactivateCustomerRequestObject
+
+	request.CustomerId = customerId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeactivateCustomer(ctx.Request().Context(), request.(DeactivateCustomerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeactivateCustomer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeactivateCustomerResponseObject); ok {
+		return validResponse.VisitDeactivateCustomerResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetCustomer operation middleware
+func (sh *strictHandler) GetCustomer(ctx echo.Context, customerId EntityId) error {
+	var request GetCustomerRequestObject
+
+	request.CustomerId = customerId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCustomer(ctx.Request().Context(), request.(GetCustomerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCustomer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetCustomerResponseObject); ok {
+		return validResponse.VisitGetCustomerResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateCustomer operation middleware
+func (sh *strictHandler) UpdateCustomer(ctx echo.Context, customerId EntityId) error {
+	var request UpdateCustomerRequestObject
+
+	request.CustomerId = customerId
+
+	var body UpdateCustomerJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateCustomer(ctx.Request().Context(), request.(UpdateCustomerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateCustomer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateCustomerResponseObject); ok {
+		return validResponse.VisitUpdateCustomerResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetCustomerOrderHistory operation middleware
+func (sh *strictHandler) GetCustomerOrderHistory(ctx echo.Context, customerId EntityId, params GetCustomerOrderHistoryParams) error {
+	var request GetCustomerOrderHistoryRequestObject
+
+	request.CustomerId = customerId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCustomerOrderHistory(ctx.Request().Context(), request.(GetCustomerOrderHistoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCustomerOrderHistory")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetCustomerOrderHistoryResponseObject); ok {
+		return validResponse.VisitGetCustomerOrderHistoryResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

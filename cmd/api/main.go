@@ -67,6 +67,7 @@ func run(logger *slog.Logger) error {
 	healthHandler := handlers.NewHealthHandler(database, cfg.ReadinessTimeout)
 	authHandler := handlers.NewAuthHandler(database, jwtTokens, cfg.JWTRefreshTokenTTL)
 	managementHandler := handlers.NewManagementHandler(database)
+	customerHandler := handlers.NewCustomerHandler(database)
 	authLimiter := launmiddleware.NewAuthLimiter(4096, 10, time.Minute)
 	authBody := launmiddleware.AuthBodyLimit(4096)
 	e.GET("/livez", healthHandler.Live)
@@ -89,6 +90,14 @@ func run(logger *slog.Logger) error {
 	owner.PUT("/staff/:userId/outlets", managementHandler.ReplaceStaffOutlets)
 	owner.GET("/permissions", managementHandler.ListPermissions)
 	owner.PUT("/staff/:userId/permissions", managementHandler.ReplaceStaffPermissions)
+
+	customers := e.Group("/customers", launmiddleware.Authenticate(database, jwtTokens))
+	customers.GET("", customerHandler.List, launmiddleware.RequirePermission("CUSTOMERS_READ"))
+	customers.POST("", customerHandler.Create, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("CUSTOMERS_WRITE"))
+	customers.GET("/:customerId", customerHandler.Get, launmiddleware.RequirePermission("CUSTOMERS_READ"))
+	customers.PUT("/:customerId", customerHandler.Update, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("CUSTOMERS_WRITE"))
+	customers.DELETE("/:customerId", customerHandler.Deactivate, launmiddleware.RequirePermission("CUSTOMERS_WRITE"))
+	customers.GET("/:customerId/orders", customerHandler.OrderHistory, launmiddleware.RequirePermission("CUSTOMERS_READ"), launmiddleware.RequirePermission("ORDERS_READ"))
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress(),

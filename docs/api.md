@@ -25,6 +25,12 @@ Staff creation always creates `LAUNDRY_STAFF`, requires at least one active outl
 
 `ADMIN` bypasses action grants only. All management queries remain scoped to the authenticated `business_id`; the `ADMIN` role cannot address another business by changing a path or body ID. `LAUNDRY_STAFF` authorization on operational endpoints must use a current session, active outlet assignment, and the endpoint's explicit action grant.
 
+## Customers (ISSUE-005)
+
+`GET/POST /customers`, `GET/PUT/DELETE /customers/{customerId}`, and `GET /customers/{customerId}/orders` use the authenticated business scope. List/search uses `page`, `pageSize`, and optional case-insensitive `q` over name and phone. Name is required; phone and address are optional and phone values may repeat. On full `PUT`, omitted or null optional fields are cleared. `DELETE` sets `customers.deleted_at`; it does not remove a customer row or break its order foreign keys. Deactivated customers are omitted from active list/detail results, while their retained order history remains accessible.
+
+Staff needs `CUSTOMERS_READ` to list/detail customers, `CUSTOMERS_WRITE` to create/update/deactivate, and both `CUSTOMERS_READ` and `ORDERS_READ` for customer order history. Staff history is restricted to their current active outlet assignments. Admin history uses the same business filter and bypasses grants only. History is read from the existing `orders` table, paginated by `created_at` and ID, and includes cancelled orders because cancellation is a retained soft-delete state.
+
 ## Contract rules
 
 - Add all endpoint changes to OpenAPI before generating Echo types with `make generate`.

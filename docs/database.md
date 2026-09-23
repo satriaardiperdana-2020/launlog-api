@@ -51,7 +51,7 @@ Groups all rotations of one login session under a stable key. Refresh and logout
 
 ### `customers`
 
-A business-wide customer record shared by its outlets. Names are indexed for search, and non-deleted phone numbers are unique within a business. Orders reference customers with `(business_id, customer_id)`.
+A business-wide customer record shared by its outlets. Names are indexed for search. Phone numbers are optional and deliberately non-unique. Migration `000010_customer_phone_nonunique` removes the earlier partial unique index without rewriting customer rows. Its down migration recreates that index and will intentionally fail if duplicate active numbers have been added. Orders reference customers with `(business_id, customer_id)`; customer deactivation sets `deleted_at` and preserves those historical foreign-key references.
 
 ### `services`
 
@@ -124,6 +124,7 @@ An immutable business audit stream. It records an optional outlet and actor, act
 7. `000007_ownership_hardening`
 8. `000008_session_families`
 9. `000009_permission_catalog`
+10. `000010_customer_phone_nonunique`
 
 Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run in reverse order because later domains reference earlier ownership and order tables.
 
