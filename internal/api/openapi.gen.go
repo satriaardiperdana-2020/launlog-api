@@ -71,6 +71,21 @@ func (e CustomerOrderSummaryStatus) Valid() bool {
 	}
 }
 
+// Defines values for ExpenseListTimezone.
+const (
+	AsiaJakarta ExpenseListTimezone = "Asia/Jakarta"
+)
+
+// Valid indicates whether the value is a known member of the ExpenseListTimezone enum.
+func (e ExpenseListTimezone) Valid() bool {
+	switch e {
+	case AsiaJakarta:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for HealthResponseStatus.
 const (
 	Ok HealthResponseStatus = "ok"
@@ -437,6 +452,119 @@ type ErrorResponse struct {
 
 	// RequestId Request identifier for support and log correlation.
 	RequestId *string `json:"requestId,omitempty"`
+}
+
+// Expense defines model for Expense.
+type Expense struct {
+	// Amount Exact whole rupiah; manual income is not accepted here.
+	Amount int64 `json:"amount"`
+
+	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
+	BusinessId EntityId `json:"business_id"`
+
+	// CategoryId Database identifier backed by a PostgreSQL BIGINT.
+	CategoryId EntityId `json:"category_id"`
+
+	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	CreatedAt JakartaDateTime `json:"created_at"`
+
+	// CreatedBy Database identifier backed by a PostgreSQL BIGINT.
+	CreatedBy   EntityId `json:"created_by"`
+	Description string   `json:"description"`
+
+	// ExpenseAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	ExpenseAt JakartaDateTime `json:"expense_at"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id EntityId `json:"id"`
+
+	// OutletId Database identifier backed by a PostgreSQL BIGINT.
+	OutletId         EntityId `json:"outlet_id"`
+	ReceiptReference *string  `json:"receipt_reference"`
+
+	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	UpdatedAt JakartaDateTime `json:"updated_at"`
+	Version   int64           `json:"version"`
+}
+
+// ExpenseCategory defines model for ExpenseCategory.
+type ExpenseCategory struct {
+	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
+	BusinessId EntityId `json:"business_id"`
+
+	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	CreatedAt   JakartaDateTime `json:"created_at"`
+	Description *string         `json:"description"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id       EntityId `json:"id"`
+	IsActive bool     `json:"is_active"`
+	Name     string   `json:"name"`
+
+	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	UpdatedAt JakartaDateTime `json:"updated_at"`
+}
+
+// ExpenseCategoryInput defines model for ExpenseCategoryInput.
+type ExpenseCategoryInput struct {
+	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name"`
+}
+
+// ExpenseCategoryList defines model for ExpenseCategoryList.
+type ExpenseCategoryList struct {
+	Items      []ExpenseCategory `json:"items"`
+	Pagination PaginationMeta    `json:"pagination"`
+}
+
+// ExpenseCategoryUpdate defines model for ExpenseCategoryUpdate.
+type ExpenseCategoryUpdate struct {
+	Description *string `json:"description,omitempty"`
+	IsActive    bool    `json:"isActive"`
+	Name        string  `json:"name"`
+}
+
+// ExpenseCreateInput defines model for ExpenseCreateInput.
+type ExpenseCreateInput struct {
+	// Amount Exact whole rupiah.
+	Amount int64 `json:"amount"`
+
+	// CategoryId Database identifier backed by a PostgreSQL BIGINT.
+	CategoryId  EntityId `json:"categoryId"`
+	Description string   `json:"description"`
+
+	// ExpenseAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	ExpenseAt *JakartaDateTime `json:"expenseAt,omitempty"`
+
+	// OutletId Database identifier backed by a PostgreSQL BIGINT.
+	OutletId         EntityId `json:"outletId"`
+	ReceiptReference *string  `json:"receiptReference,omitempty"`
+}
+
+// ExpenseList defines model for ExpenseList.
+type ExpenseList struct {
+	DateFrom   openapi_types.Date  `json:"date_from"`
+	DateTo     openapi_types.Date  `json:"date_to"`
+	Items      []Expense           `json:"items"`
+	Pagination PaginationMeta      `json:"pagination"`
+	Timezone   ExpenseListTimezone `json:"timezone"`
+}
+
+// ExpenseListTimezone defines model for ExpenseList.Timezone.
+type ExpenseListTimezone string
+
+// ExpenseUpdateInput defines model for ExpenseUpdateInput.
+type ExpenseUpdateInput struct {
+	// Amount Exact whole rupiah.
+	Amount int64 `json:"amount"`
+
+	// CategoryId Database identifier backed by a PostgreSQL BIGINT.
+	CategoryId  EntityId `json:"categoryId"`
+	Description string   `json:"description"`
+
+	// ExpenseAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	ExpenseAt        JakartaDateTime `json:"expenseAt"`
+	ReceiptReference *string         `json:"receiptReference,omitempty"`
 }
 
 // HealthResponse defines model for HealthResponse.
@@ -1027,6 +1155,36 @@ type GetCustomerOrderHistoryParams struct {
 	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 }
 
+// ListExpenseCategoriesParams defines parameters for ListExpenseCategories.
+type ListExpenseCategoriesParams struct {
+	// Page One-based page number.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of records per page, capped at 100.
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Q        *string   `form:"q,omitempty" json:"q,omitempty"`
+
+	// IncludeInactive Defaults to false.
+	IncludeInactive *bool `form:"includeInactive,omitempty" json:"includeInactive,omitempty"`
+}
+
+// ListExpensesParams defines parameters for ListExpenses.
+type ListExpensesParams struct {
+	// Page One-based page number.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of records per page, capped at 100.
+	PageSize *PageSize           `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	OutletId *EntityId           `form:"outletId,omitempty" json:"outletId,omitempty"`
+	FromDate *openapi_types.Date `form:"fromDate,omitempty" json:"fromDate,omitempty"`
+	ToDate   *openapi_types.Date `form:"toDate,omitempty" json:"toDate,omitempty"`
+}
+
+// UpdateExpenseParams defines parameters for UpdateExpense.
+type UpdateExpenseParams struct {
+	IfMatch string `json:"If-Match"`
+}
+
 // ListOrdersParams defines parameters for ListOrders.
 type ListOrdersParams struct {
 	// Page One-based page number.
@@ -1125,6 +1283,18 @@ type CreateCustomerJSONRequestBody = CustomerInput
 // UpdateCustomerJSONRequestBody defines body for UpdateCustomer for application/json ContentType.
 type UpdateCustomerJSONRequestBody = CustomerInput
 
+// CreateExpenseCategoryJSONRequestBody defines body for CreateExpenseCategory for application/json ContentType.
+type CreateExpenseCategoryJSONRequestBody = ExpenseCategoryInput
+
+// UpdateExpenseCategoryJSONRequestBody defines body for UpdateExpenseCategory for application/json ContentType.
+type UpdateExpenseCategoryJSONRequestBody = ExpenseCategoryUpdate
+
+// CreateExpenseJSONRequestBody defines body for CreateExpense for application/json ContentType.
+type CreateExpenseJSONRequestBody = ExpenseCreateInput
+
+// UpdateExpenseJSONRequestBody defines body for UpdateExpense for application/json ContentType.
+type UpdateExpenseJSONRequestBody = ExpenseUpdateInput
+
 // CreateOrderJSONRequestBody defines body for CreateOrder for application/json ContentType.
 type CreateOrderJSONRequestBody = CreateOrderInput
 
@@ -1202,6 +1372,30 @@ type ServerInterface interface {
 	// List paginated order history for a customer
 	// (GET /customers/{customerId}/orders)
 	GetCustomerOrderHistory(ctx echo.Context, customerId EntityId, params GetCustomerOrderHistoryParams) error
+	// List expense categories in the authenticated business
+	// (GET /expense-categories)
+	ListExpenseCategories(ctx echo.Context, params ListExpenseCategoriesParams) error
+	// Create an expense category
+	// (POST /expense-categories)
+	CreateExpenseCategory(ctx echo.Context) error
+	// Get an expense category
+	// (GET /expense-categories/{categoryId})
+	GetExpenseCategory(ctx echo.Context, categoryId EntityId) error
+	// Update or deactivate an expense category
+	// (PUT /expense-categories/{categoryId})
+	UpdateExpenseCategory(ctx echo.Context, categoryId EntityId) error
+	// List expenses, defaulting to today in Asia/Jakarta
+	// (GET /expenses)
+	ListExpenses(ctx echo.Context, params ListExpensesParams) error
+	// Record an expense
+	// (POST /expenses)
+	CreateExpense(ctx echo.Context) error
+	// Get an expense in the authenticated business and outlet scope
+	// (GET /expenses/{expenseId})
+	GetExpense(ctx echo.Context, expenseId EntityId) error
+	// Update an expense using optimistic concurrency
+	// (PUT /expenses/{expenseId})
+	UpdateExpense(ctx echo.Context, expenseId EntityId, params UpdateExpenseParams) error
 	// Compatibility readiness check
 	// (GET /health)
 	GetHealth(ctx echo.Context) error
@@ -1478,6 +1672,211 @@ func (w *ServerInterfaceWrapper) GetCustomerOrderHistory(ctx echo.Context) error
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetCustomerOrderHistory(ctx, customerId, params)
+	return err
+}
+
+// ListExpenseCategories converts echo context to params.
+func (w *ServerInterfaceWrapper) ListExpenseCategories(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListExpenseCategoriesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", ctx.QueryParams(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "includeInactive" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "includeInactive", ctx.QueryParams(), &params.IncludeInactive, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter includeInactive: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListExpenseCategories(ctx, params)
+	return err
+}
+
+// CreateExpenseCategory converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateExpenseCategory(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateExpenseCategory(ctx)
+	return err
+}
+
+// GetExpenseCategory converts echo context to params.
+func (w *ServerInterfaceWrapper) GetExpenseCategory(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "categoryId" -------------
+	var categoryId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "categoryId", ctx.Param("categoryId"), &categoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter categoryId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetExpenseCategory(ctx, categoryId)
+	return err
+}
+
+// UpdateExpenseCategory converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateExpenseCategory(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "categoryId" -------------
+	var categoryId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "categoryId", ctx.Param("categoryId"), &categoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter categoryId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateExpenseCategory(ctx, categoryId)
+	return err
+}
+
+// ListExpenses converts echo context to params.
+func (w *ServerInterfaceWrapper) ListExpenses(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListExpensesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "outletId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "outletId", ctx.QueryParams(), &params.OutletId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	// ------------- Optional query parameter "fromDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fromDate", ctx.QueryParams(), &params.FromDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter fromDate: %s", err))
+	}
+
+	// ------------- Optional query parameter "toDate" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "toDate", ctx.QueryParams(), &params.ToDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter toDate: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListExpenses(ctx, params)
+	return err
+}
+
+// CreateExpense converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateExpense(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateExpense(ctx)
+	return err
+}
+
+// GetExpense converts echo context to params.
+func (w *ServerInterfaceWrapper) GetExpense(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "expenseId" -------------
+	var expenseId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "expenseId", ctx.Param("expenseId"), &expenseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter expenseId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetExpense(ctx, expenseId)
+	return err
+}
+
+// UpdateExpense converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateExpense(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "expenseId" -------------
+	var expenseId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "expenseId", ctx.Param("expenseId"), &expenseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter expenseId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params UpdateExpenseParams
+
+	headers := ctx.Request().Header
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch string
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for If-Match, got %d", n))
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter If-Match: %s", err))
+		}
+
+		params.IfMatch = IfMatch
+	} else {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Header parameter If-Match is required, but not found"))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateExpense(ctx, expenseId, params)
 	return err
 }
 
@@ -2225,6 +2624,14 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/customers/:customerId", wrapper.GetCustomer, options.OperationMiddlewares["getCustomer"]...)
 	router.PUT(options.BaseURL+"/customers/:customerId", wrapper.UpdateCustomer, options.OperationMiddlewares["updateCustomer"]...)
 	router.GET(options.BaseURL+"/customers/:customerId/orders", wrapper.GetCustomerOrderHistory, options.OperationMiddlewares["getCustomerOrderHistory"]...)
+	router.GET(options.BaseURL+"/expense-categories", wrapper.ListExpenseCategories, options.OperationMiddlewares["listExpenseCategories"]...)
+	router.POST(options.BaseURL+"/expense-categories", wrapper.CreateExpenseCategory, options.OperationMiddlewares["createExpenseCategory"]...)
+	router.GET(options.BaseURL+"/expense-categories/:categoryId", wrapper.GetExpenseCategory, options.OperationMiddlewares["getExpenseCategory"]...)
+	router.PUT(options.BaseURL+"/expense-categories/:categoryId", wrapper.UpdateExpenseCategory, options.OperationMiddlewares["updateExpenseCategory"]...)
+	router.GET(options.BaseURL+"/expenses", wrapper.ListExpenses, options.OperationMiddlewares["listExpenses"]...)
+	router.POST(options.BaseURL+"/expenses", wrapper.CreateExpense, options.OperationMiddlewares["createExpense"]...)
+	router.GET(options.BaseURL+"/expenses/:expenseId", wrapper.GetExpense, options.OperationMiddlewares["getExpense"]...)
+	router.PUT(options.BaseURL+"/expenses/:expenseId", wrapper.UpdateExpense, options.OperationMiddlewares["updateExpense"]...)
 	router.GET(options.BaseURL+"/health", wrapper.GetHealth, options.OperationMiddlewares["getHealth"]...)
 	router.GET(options.BaseURL+"/livez", wrapper.GetLiveness, options.OperationMiddlewares["getLiveness"]...)
 	router.GET(options.BaseURL+"/orders", wrapper.ListOrders, options.OperationMiddlewares["listOrders"]...)
@@ -3177,6 +3584,815 @@ type GetCustomerOrderHistory500JSONResponse struct {
 }
 
 func (response GetCustomerOrderHistory500JSONResponse) VisitGetCustomerOrderHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpenseCategoriesRequestObject struct {
+	Params ListExpenseCategoriesParams
+}
+
+type ListExpenseCategoriesResponseObject interface {
+	VisitListExpenseCategoriesResponse(w http.ResponseWriter) error
+}
+
+type ListExpenseCategories200JSONResponse ExpenseCategoryList
+
+func (response ListExpenseCategories200JSONResponse) VisitListExpenseCategoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpenseCategories401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListExpenseCategories401JSONResponse) VisitListExpenseCategoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpenseCategories403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListExpenseCategories403JSONResponse) VisitListExpenseCategoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpenseCategories500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListExpenseCategories500JSONResponse) VisitListExpenseCategoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpenseCategoryRequestObject struct {
+	Body *CreateExpenseCategoryJSONRequestBody
+}
+
+type CreateExpenseCategoryResponseObject interface {
+	VisitCreateExpenseCategoryResponse(w http.ResponseWriter) error
+}
+
+type CreateExpenseCategory201JSONResponse ExpenseCategory
+
+func (response CreateExpenseCategory201JSONResponse) VisitCreateExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpenseCategory400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateExpenseCategory400JSONResponse) VisitCreateExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpenseCategory401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateExpenseCategory401JSONResponse) VisitCreateExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpenseCategory403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateExpenseCategory403JSONResponse) VisitCreateExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpenseCategory409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateExpenseCategory409JSONResponse) VisitCreateExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpenseCategory500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateExpenseCategory500JSONResponse) VisitCreateExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpenseCategoryRequestObject struct {
+	CategoryId EntityId `json:"categoryId"`
+}
+
+type GetExpenseCategoryResponseObject interface {
+	VisitGetExpenseCategoryResponse(w http.ResponseWriter) error
+}
+
+type GetExpenseCategory200JSONResponse ExpenseCategory
+
+func (response GetExpenseCategory200JSONResponse) VisitGetExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpenseCategory401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetExpenseCategory401JSONResponse) VisitGetExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpenseCategory403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetExpenseCategory403JSONResponse) VisitGetExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpenseCategory404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetExpenseCategory404JSONResponse) VisitGetExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpenseCategory409JSONResponse struct{ ConflictJSONResponse }
+
+func (response GetExpenseCategory409JSONResponse) VisitGetExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpenseCategory500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetExpenseCategory500JSONResponse) VisitGetExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpenseCategoryRequestObject struct {
+	CategoryId EntityId `json:"categoryId"`
+	Body       *UpdateExpenseCategoryJSONRequestBody
+}
+
+type UpdateExpenseCategoryResponseObject interface {
+	VisitUpdateExpenseCategoryResponse(w http.ResponseWriter) error
+}
+
+type UpdateExpenseCategory200JSONResponse ExpenseCategory
+
+func (response UpdateExpenseCategory200JSONResponse) VisitUpdateExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpenseCategory400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateExpenseCategory400JSONResponse) VisitUpdateExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpenseCategory401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateExpenseCategory401JSONResponse) VisitUpdateExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpenseCategory403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateExpenseCategory403JSONResponse) VisitUpdateExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpenseCategory404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateExpenseCategory404JSONResponse) VisitUpdateExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpenseCategory409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateExpenseCategory409JSONResponse) VisitUpdateExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpenseCategory500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateExpenseCategory500JSONResponse) VisitUpdateExpenseCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpensesRequestObject struct {
+	Params ListExpensesParams
+}
+
+type ListExpensesResponseObject interface {
+	VisitListExpensesResponse(w http.ResponseWriter) error
+}
+
+type ListExpenses200JSONResponse ExpenseList
+
+func (response ListExpenses200JSONResponse) VisitListExpensesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpenses400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListExpenses400JSONResponse) VisitListExpensesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpenses401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListExpenses401JSONResponse) VisitListExpensesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpenses403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListExpenses403JSONResponse) VisitListExpensesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpenses500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListExpenses500JSONResponse) VisitListExpensesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpenseRequestObject struct {
+	Body *CreateExpenseJSONRequestBody
+}
+
+type CreateExpenseResponseObject interface {
+	VisitCreateExpenseResponse(w http.ResponseWriter) error
+}
+
+type CreateExpense201ResponseHeaders struct {
+	ETag *string
+}
+
+type CreateExpense201JSONResponse struct {
+	Body    Expense
+	Headers CreateExpense201ResponseHeaders
+}
+
+func (response CreateExpense201JSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.ETag != nil {
+		w.Header().Set("ETag", fmt.Sprint(*response.Headers.ETag))
+	}
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateExpense400JSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateExpense401JSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateExpense403JSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateExpense404JSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateExpense409JSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateExpense500JSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpenseRequestObject struct {
+	ExpenseId EntityId `json:"expenseId"`
+}
+
+type GetExpenseResponseObject interface {
+	VisitGetExpenseResponse(w http.ResponseWriter) error
+}
+
+type GetExpense200ResponseHeaders struct {
+	ETag *string
+}
+
+type GetExpense200JSONResponse struct {
+	Body    Expense
+	Headers GetExpense200ResponseHeaders
+}
+
+func (response GetExpense200JSONResponse) VisitGetExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.ETag != nil {
+		w.Header().Set("ETag", fmt.Sprint(*response.Headers.ETag))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpense401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetExpense401JSONResponse) VisitGetExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpense403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetExpense403JSONResponse) VisitGetExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpense404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetExpense404JSONResponse) VisitGetExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpense500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetExpense500JSONResponse) VisitGetExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpenseRequestObject struct {
+	ExpenseId EntityId `json:"expenseId"`
+	Params    UpdateExpenseParams
+	Body      *UpdateExpenseJSONRequestBody
+}
+
+type UpdateExpenseResponseObject interface {
+	VisitUpdateExpenseResponse(w http.ResponseWriter) error
+}
+
+type UpdateExpense200ResponseHeaders struct {
+	ETag *string
+}
+
+type UpdateExpense200JSONResponse struct {
+	Body    Expense
+	Headers UpdateExpense200ResponseHeaders
+}
+
+func (response UpdateExpense200JSONResponse) VisitUpdateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.ETag != nil {
+		w.Header().Set("ETag", fmt.Sprint(*response.Headers.ETag))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpense400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateExpense400JSONResponse) VisitUpdateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpense401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateExpense401JSONResponse) VisitUpdateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpense403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateExpense403JSONResponse) VisitUpdateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpense404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateExpense404JSONResponse) VisitUpdateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpense409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateExpense409JSONResponse) VisitUpdateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpense428JSONResponse ErrorResponse
+
+func (response UpdateExpense428JSONResponse) VisitUpdateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(428)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateExpense500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateExpense500JSONResponse) VisitUpdateExpenseResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -6228,6 +7444,30 @@ type StrictServerInterface interface {
 	// List paginated order history for a customer
 	// (GET /customers/{customerId}/orders)
 	GetCustomerOrderHistory(ctx context.Context, request GetCustomerOrderHistoryRequestObject) (GetCustomerOrderHistoryResponseObject, error)
+	// List expense categories in the authenticated business
+	// (GET /expense-categories)
+	ListExpenseCategories(ctx context.Context, request ListExpenseCategoriesRequestObject) (ListExpenseCategoriesResponseObject, error)
+	// Create an expense category
+	// (POST /expense-categories)
+	CreateExpenseCategory(ctx context.Context, request CreateExpenseCategoryRequestObject) (CreateExpenseCategoryResponseObject, error)
+	// Get an expense category
+	// (GET /expense-categories/{categoryId})
+	GetExpenseCategory(ctx context.Context, request GetExpenseCategoryRequestObject) (GetExpenseCategoryResponseObject, error)
+	// Update or deactivate an expense category
+	// (PUT /expense-categories/{categoryId})
+	UpdateExpenseCategory(ctx context.Context, request UpdateExpenseCategoryRequestObject) (UpdateExpenseCategoryResponseObject, error)
+	// List expenses, defaulting to today in Asia/Jakarta
+	// (GET /expenses)
+	ListExpenses(ctx context.Context, request ListExpensesRequestObject) (ListExpensesResponseObject, error)
+	// Record an expense
+	// (POST /expenses)
+	CreateExpense(ctx context.Context, request CreateExpenseRequestObject) (CreateExpenseResponseObject, error)
+	// Get an expense in the authenticated business and outlet scope
+	// (GET /expenses/{expenseId})
+	GetExpense(ctx context.Context, request GetExpenseRequestObject) (GetExpenseResponseObject, error)
+	// Update an expense using optimistic concurrency
+	// (PUT /expenses/{expenseId})
+	UpdateExpense(ctx context.Context, request UpdateExpenseRequestObject) (UpdateExpenseResponseObject, error)
 	// Compatibility readiness check
 	// (GET /health)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
@@ -6606,6 +7846,227 @@ func (sh *strictHandler) GetCustomerOrderHistory(ctx echo.Context, customerId En
 		return err
 	} else if validResponse, ok := response.(GetCustomerOrderHistoryResponseObject); ok {
 		return validResponse.VisitGetCustomerOrderHistoryResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListExpenseCategories operation middleware
+func (sh *strictHandler) ListExpenseCategories(ctx echo.Context, params ListExpenseCategoriesParams) error {
+	var request ListExpenseCategoriesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListExpenseCategories(ctx.Request().Context(), request.(ListExpenseCategoriesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListExpenseCategories")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListExpenseCategoriesResponseObject); ok {
+		return validResponse.VisitListExpenseCategoriesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateExpenseCategory operation middleware
+func (sh *strictHandler) CreateExpenseCategory(ctx echo.Context) error {
+	var request CreateExpenseCategoryRequestObject
+
+	var body CreateExpenseCategoryJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateExpenseCategory(ctx.Request().Context(), request.(CreateExpenseCategoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateExpenseCategory")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateExpenseCategoryResponseObject); ok {
+		return validResponse.VisitCreateExpenseCategoryResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetExpenseCategory operation middleware
+func (sh *strictHandler) GetExpenseCategory(ctx echo.Context, categoryId EntityId) error {
+	var request GetExpenseCategoryRequestObject
+
+	request.CategoryId = categoryId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetExpenseCategory(ctx.Request().Context(), request.(GetExpenseCategoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetExpenseCategory")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetExpenseCategoryResponseObject); ok {
+		return validResponse.VisitGetExpenseCategoryResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateExpenseCategory operation middleware
+func (sh *strictHandler) UpdateExpenseCategory(ctx echo.Context, categoryId EntityId) error {
+	var request UpdateExpenseCategoryRequestObject
+
+	request.CategoryId = categoryId
+
+	var body UpdateExpenseCategoryJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateExpenseCategory(ctx.Request().Context(), request.(UpdateExpenseCategoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateExpenseCategory")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateExpenseCategoryResponseObject); ok {
+		return validResponse.VisitUpdateExpenseCategoryResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListExpenses operation middleware
+func (sh *strictHandler) ListExpenses(ctx echo.Context, params ListExpensesParams) error {
+	var request ListExpensesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListExpenses(ctx.Request().Context(), request.(ListExpensesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListExpenses")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListExpensesResponseObject); ok {
+		return validResponse.VisitListExpensesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateExpense operation middleware
+func (sh *strictHandler) CreateExpense(ctx echo.Context) error {
+	var request CreateExpenseRequestObject
+
+	var body CreateExpenseJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateExpense(ctx.Request().Context(), request.(CreateExpenseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateExpense")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateExpenseResponseObject); ok {
+		return validResponse.VisitCreateExpenseResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetExpense operation middleware
+func (sh *strictHandler) GetExpense(ctx echo.Context, expenseId EntityId) error {
+	var request GetExpenseRequestObject
+
+	request.ExpenseId = expenseId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetExpense(ctx.Request().Context(), request.(GetExpenseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetExpense")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetExpenseResponseObject); ok {
+		return validResponse.VisitGetExpenseResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateExpense operation middleware
+func (sh *strictHandler) UpdateExpense(ctx echo.Context, expenseId EntityId, params UpdateExpenseParams) error {
+	var request UpdateExpenseRequestObject
+
+	request.ExpenseId = expenseId
+	request.Params = params
+
+	var body UpdateExpenseJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateExpense(ctx.Request().Context(), request.(UpdateExpenseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateExpense")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateExpenseResponseObject); ok {
+		return validResponse.VisitUpdateExpenseResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

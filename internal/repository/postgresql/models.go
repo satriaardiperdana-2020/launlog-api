@@ -65,6 +65,8 @@ type Expense struct {
 	CreatedBy        int64              `json:"created_by"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	// Optimistic concurrency version. Updated atomically for each expense edit to prevent lost updates.
+	Version int64 `json:"version"`
 }
 
 type ExpenseCategory struct {
