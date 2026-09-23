@@ -73,6 +73,7 @@ func run(logger *slog.Logger) error {
 	orderHandler := handlers.NewOrderHandler(database)
 	paymentHandler := handlers.NewPaymentHandler(database)
 	expenseHandler := handlers.NewExpenseHandler(database)
+	dashboardHandler := handlers.NewDashboardHandler(database)
 	authLimiter := launmiddleware.NewAuthLimiter(4096, 10, time.Minute)
 	authBody := launmiddleware.AuthBodyLimit(4096)
 	e.GET("/livez", healthHandler.Live)
@@ -140,6 +141,9 @@ func run(logger *slog.Logger) error {
 	expenses.POST("", expenseHandler.Create, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("EXPENSES_WRITE"))
 	expenses.GET("/:expenseId", expenseHandler.Get, launmiddleware.RequirePermission("EXPENSES_READ"))
 	expenses.PUT("/:expenseId", expenseHandler.Update, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("EXPENSES_WRITE"))
+
+	outletDashboards := e.Group("/outlets", launmiddleware.Authenticate(database, jwtTokens))
+	outletDashboards.GET("/:outletId/dashboard", dashboardHandler.GetOutlet, launmiddleware.RequirePermission("REPORTS_READ"))
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress(),

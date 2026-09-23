@@ -68,6 +68,7 @@ type Querier interface {
 	GetOrderPaymentForUpdate(ctx context.Context, arg GetOrderPaymentForUpdateParams) (GetOrderPaymentForUpdateRow, error)
 	GetOrderTime(ctx context.Context) (GetOrderTimeRow, error)
 	GetOutlet(ctx context.Context, arg GetOutletParams) (Outlet, error)
+	GetOutletDashboard(ctx context.Context, arg GetOutletDashboardParams) (GetOutletDashboardRow, error)
 	GetOutletForUpdate(ctx context.Context, arg GetOutletForUpdateParams) (GetOutletForUpdateRow, error)
 	GetPaymentByIdempotencyKey(ctx context.Context, arg GetPaymentByIdempotencyKeyParams) (GetPaymentByIdempotencyKeyRow, error)
 	GetPerfume(ctx context.Context, arg GetPerfumeParams) (GetPerfumeRow, error)

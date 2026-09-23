@@ -35,6 +35,8 @@ tags:
     description: Confirmed cash, BCA transfer, and QRIS payment receipts and order balances
   - name: Expenses
     description: Business expense categories and outlet expense records
+  - name: Dashboard
+    description: Outlet profile and current-day confirmed payment and expense totals
 
 paths:
   /expense-categories:
@@ -1062,6 +1064,28 @@ paths:
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
+  /outlets/{outletId}/dashboard:
+    get:
+      operationId: getOutletDashboard
+      summary: Get an outlet profile and today's cashflow totals
+      description: Uses the business timezone stored for the outlet (currently Asia/Jakarta). Payments are summed from rows whose status is CONFIRMED by confirmed_at; expenses are summed by expense_at. Child tables are aggregated independently. This reports gross confirmed receipts and does not implement or net refunds.
+      tags: [Dashboard]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: outletId
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/EntityId" }
+      responses:
+        "200":
+          description: Outlet dashboard for its current local calendar day.
+          content: { application/json: { schema: { $ref: "#/components/schemas/OutletDashboard" } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
   /staff:
     get:
       operationId: listStaff
@@ -2040,6 +2064,25 @@ components:
       properties:
         items: { type: array, items: { $ref: "#/components/schemas/Outlet" } }
         pagination: { $ref: "#/components/schemas/PaginationMeta" }
+    OutletDashboard:
+      type: object
+      required: [outlet, business_date, timezone, payments, expenses]
+      properties:
+        outlet: { $ref: "#/components/schemas/Outlet" }
+        business_date: { type: string, format: date }
+        timezone: { type: string, enum: [Asia/Jakarta] }
+        payments:
+          type: object
+          required: [confirmed_count, confirmed_total_amount]
+          properties:
+            confirmed_count: { type: integer, format: int64, minimum: 0 }
+            confirmed_total_amount: { type: integer, format: int64, minimum: 0, description: Exact whole rupiah from confirmed received payments. Gross receipts; refunds are not implemented by this endpoint. }
+        expenses:
+          type: object
+          required: [count, total_amount]
+          properties:
+            count: { type: integer, format: int64, minimum: 0 }
+            total_amount: { type: integer, format: int64, minimum: 0, description: Exact whole rupiah from expenses whose expense_at falls within the local day. }
     Staff:
       type: object
       required: [id, businessId, email, fullName, role, isActive, outletIds, permissions]
