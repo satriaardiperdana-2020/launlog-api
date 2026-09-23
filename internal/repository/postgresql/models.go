@@ -157,11 +157,13 @@ type Outlet struct {
 }
 
 type Payment struct {
-	ID                int64              `json:"id"`
-	BusinessID        int64              `json:"business_id"`
-	OutletID          int64              `json:"outlet_id"`
-	OrderID           int64              `json:"order_id"`
-	Amount            int64              `json:"amount"`
+	ID         int64 `json:"id"`
+	BusinessID int64 `json:"business_id"`
+	OutletID   int64 `json:"outlet_id"`
+	OrderID    int64 `json:"order_id"`
+	// Whole rupiah credited to the order; for cash, tender above the outstanding balance is excluded and returned as change.
+	Amount int64 `json:"amount"`
+	// Payment method constrained to CASH, BCA_TRANSFER, or QRIS; BCA_TRANSFER is displayed as BCA Transfer in UI.
 	Method            string             `json:"method"`
 	Status            string             `json:"status"`
 	ExternalReference pgtype.Text        `json:"external_reference"`
@@ -172,6 +174,10 @@ type Payment struct {
 	VoidReason        pgtype.Text        `json:"void_reason"`
 	CreatedBy         int64              `json:"created_by"`
 	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	// Client retry key scoped to business, outlet, and order; NULL for legacy rows.
+	IdempotencyKey pgtype.Text `json:"idempotency_key"`
+	// SHA-256 hash of the normalized payment request used to detect idempotency-key payload conflicts.
+	RequestHash []byte `json:"request_hash"`
 }
 
 type PaymentRefund struct {

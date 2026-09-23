@@ -137,6 +137,10 @@ func newAuthFixture(t *testing.T) *authFixture {
 	orders.GET("/:orderId/status-history", orderHandler.StatusHistory, authmiddleware.RequirePermission("ORDERS_READ"))
 	orders.PATCH("/:orderId/status", orderHandler.TransitionStatus, authmiddleware.RequirePermission("ORDERS_UPDATE"))
 	orders.POST("/:orderId/cancel", orderHandler.Cancel, authmiddleware.RequirePermission("ORDERS_UPDATE"))
+	paymentHandler := handlers.NewPaymentHandler(database)
+	orders.GET("/:orderId/payments", paymentHandler.List, authmiddleware.RequirePermission("PAYMENTS_READ"))
+	orders.POST("/:orderId/payments", paymentHandler.Record, authmiddleware.RequirePermission("PAYMENTS_RECORD"))
+	orders.POST("/:orderId/payments/:paymentId/void", paymentHandler.Void, authmiddleware.RequirePermission("PAYMENTS_RECORD"))
 	return f
 }
 

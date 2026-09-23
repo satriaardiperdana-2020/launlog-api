@@ -87,13 +87,13 @@ Maintains the next invoice sequence per business, outlet, and date. Invoice gene
 
 ### `payments`
 
-Records positive rupiah payments against an order. Multiple confirmed rows provide partial-payment support. Methods are constrained to `CASH`, `BCA_TRANSFER`, or `QRIS`; lifecycle states are `PENDING`, `CONFIRMED`, and `VOIDED`. Confirmed-payment timestamps are the source for income reporting.
+Records positive rupiah payments against an order. Multiple confirmed rows provide partial-payment support. The existing `method` CHECK constraint is the canonical method catalog: `CASH`, `BCA_TRANSFER`, and `QRIS`; the current UI-facing label for `BCA_TRANSFER` is “BCA Transfer”. There is no independent payment-method configuration table to reconcile or seed. The application records receipts as `CONFIRMED`; schema lifecycle states also retain `PENDING` and `VOIDED` for existing/future compatibility. Confirmed-payment timestamps are the source for income reporting. For cash, the input tender may exceed the outstanding balance, but `payments.amount` stores only the amount applied to the order; excess is returned as change and is never order revenue.
 
-Recording or voiding a payment must lock the order, calculate the net confirmed amount, and update `orders.payment_status` in the same transaction. This transactional calculation prevents aggregate values from becoming stale and avoids an unsafe cross-row `CHECK` constraint.
+Recording or voiding a payment must lock the parent order, calculate the confirmed amount, and update `orders.payment_status` in the same transaction. Cancellation locks that same order row and accepts only `UNPAID` orders, so payment and cancellation cannot both commit against stale state. A bounded idempotency key and request hash are added by migration `000013_payment_idempotency`; same key/payload returns the existing receipt and a payload mismatch fails. The order total minus confirmed payment amounts is the outstanding balance. This transactional calculation prevents aggregate values from becoming stale and avoids an unsafe cross-row `CHECK` constraint.
 
 ### `payment_refunds`
 
-Records one or more positive refunds against a specific payment, with actor, reason, and timestamp. The four-column composite foreign key guarantees the payment belongs to the same business, outlet, and order. Refund totals are validated transactionally while locking the payment and order.
+The actual earlier schema reserves this table for one or more positive refunds against a specific payment, with actor, reason, and timestamp. ISSUE-010 does not insert, expose, or calculate refunds because refund policy is not approved. Its presence alone does not authorize refunds or paid-order cancellation.
 
 ## Expenses
 
@@ -129,6 +129,7 @@ An immutable business audit stream. It records an optional outlet and actor, act
 10. `000010_customer_phone_nonunique`
 11. `000011_service_description`
 12. `000012_order_idempotency`
+13. `000013_payment_idempotency`
 
 Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run in reverse order because later domains reference earlier ownership and order tables.
 
@@ -140,7 +141,7 @@ Applied migrations are immutable: correct a deployed schema with a later migrati
 
 ## Reconciliation note
 
-The repository's actual migration history already contains master-data, order, payment, expense, receipt, and audit tables in `000002` through `000006`, even though their HTTP and service-layer work belongs to later issues. Their presence is schema reservation only; it does not mark those issues complete. In particular, the pre-existing `payment_refunds` table is not changed or exposed by this issue; no refund behavior is approved or implemented here. ISSUE-002 therefore adds only the forward-safe `000007_ownership_hardening` migration: a non-partial session lookup index and ownership comments. It has no data-shape change and therefore no data backfill. Existing businesses, outlets, users, and refresh sessions are neither deleted nor rewritten.
+The repository's actual migration history contains master-data, order, payment, expense, receipt, and audit tables in `000002` through `000006`; later issues progressively implement their API behavior. Their earlier presence alone did not mark those issues complete. In particular, the pre-existing `payment_refunds` table remains reserved and unused because refund policy is not approved. Migration `000013_payment_idempotency` adds only nullable request-key/hash metadata and a partial unique index; it preserves all existing payment rows and leaves their idempotency fields NULL.
 
 ## Deliberately excluded
 
