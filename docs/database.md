@@ -59,7 +59,7 @@ A business-shared laundry service: every outlet in its owning business can use i
 
 ### `perfumes`
 
-A business-owned perfume catalog. Perfume names are unique among non-deleted records in one business. Perfumes can be disabled or soft-deleted without changing historical order data.
+A business-owned perfume catalog. Perfume names are unique among non-deleted records in one business. `PERFUMES_READ` and `PERFUMES_WRITE` gate staff reads and writes. Perfumes can be disabled or soft-deleted without changing historical order data. Order selection is optional; an unselected perfume is represented by NULL foreign-key and snapshot values, never a synthetic master record.
 
 ## Orders
 
@@ -71,7 +71,7 @@ Cancellation is the order soft-delete operation. A cancelled row must have `canc
 
 ### `order_items`
 
-An order line references its source service and optional perfume, while also storing immutable service name, unit, unit price, and perfume-name snapshots. This prevents later catalog changes from rewriting historical receipts and reports. Quantity uses `NUMERIC(12,3)`, piece quantities must be integral, and the line total must equal the rounded snapshot price multiplied by quantity.
+An order line references its source service and optional perfume, while also storing immutable service name, unit, unit price, and perfume-name snapshots. No perfume selection is represented by NULL in both `perfume_id` and `perfume_name_snapshot`; a synthetic perfume record is not used. The agreed order behavior allows at most one selected perfume across the order; ISSUE-008 must validate that invariant transactionally because the current row-level schema allows a different perfume on each line. The order creation transaction writes the chosen perfume name snapshot to its item rows. Later catalog edits, deactivation, or soft deletion cannot rewrite historical snapshots. Quantity uses `NUMERIC(12,3)`, piece quantities must be integral, and the line total must equal the rounded snapshot price multiplied by quantity.
 
 ### `order_status_history`
 

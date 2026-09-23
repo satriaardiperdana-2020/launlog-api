@@ -37,6 +37,12 @@ Staff needs `CUSTOMERS_READ` to list/detail customers, `CUSTOMERS_WRITE` to crea
 
 The existing `unit` field is the service measurement type: `KILOGRAM`, `PIECE`, `METER`, or `SQUARE_METER`. Codes are case-sensitive and match the database CHECK; there is no second `service_type`. Prices are nonnegative, exact whole-rupiah `int64` values (zero is allowed by the current schema). Duration is a nonnegative `int32` number of minutes, defaulting to zero on create. Service names are unique per business and unit among non-deleted rows. All writes are audited. Changing or deleting a service never rewrites an existing order-item snapshot.
 
+## Perfumes (ISSUE-007)
+
+`GET/POST /perfumes` and `GET/PUT/DELETE /perfumes/{perfumeId}` manage the authenticated business's catalog. Staff needs `PERFUMES_READ` for reads and `PERFUMES_WRITE` for writes; ADMIN bypasses action grants while queries remain business-scoped. List supports `q` across name/description, optional `isActive`, and `page`/`pageSize`. Names are unique per business among non-deleted rows. `PUT` replaces name/description and active state; `DELETE` sets inactive and soft-deletes, retaining the row for existing order foreign keys. All writes are audited.
+
+Perfume selection is optional for orders. No selection means `order_items.perfume_id` and `perfume_name_snapshot` are both NULL; no placeholder perfume row is needed. ISSUE-008 must enforce the agreed maximum of one selected perfume across an order, and snapshot the selected name on order items in the order transaction. Later catalog edits/deactivation/deletion must not change those snapshots.
+
 ## Contract rules
 
 - Add all endpoint changes to OpenAPI before generating Echo types with `make generate`.

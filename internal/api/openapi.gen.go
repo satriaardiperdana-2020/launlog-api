@@ -164,6 +164,12 @@ type AuthSessionResponse struct {
 	User   CurrentUser `json:"user"`
 }
 
+// CreatePerfumeInput defines model for CreatePerfumeInput.
+type CreatePerfumeInput struct {
+	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name"`
+}
+
 // CreateServiceInput defines model for CreateServiceInput.
 type CreateServiceInput struct {
 	Description              *string `json:"description,omitempty"`
@@ -389,6 +395,30 @@ type PaginationMeta struct {
 	TotalPages int32 `json:"totalPages"`
 }
 
+// Perfume defines model for Perfume.
+type Perfume struct {
+	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
+	BusinessId EntityId `json:"business_id"`
+
+	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	CreatedAt   JakartaDateTime `json:"created_at"`
+	Description *string         `json:"description"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id       EntityId `json:"id"`
+	IsActive bool     `json:"is_active"`
+	Name     string   `json:"name"`
+
+	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	UpdatedAt JakartaDateTime `json:"updated_at"`
+}
+
+// PerfumeList defines model for PerfumeList.
+type PerfumeList struct {
+	Items      []Perfume      `json:"items"`
+	Pagination PaginationMeta `json:"pagination"`
+}
+
 // Permission defines model for Permission.
 type Permission struct {
 	Code        string `json:"code"`
@@ -521,6 +551,13 @@ type TokenPair struct {
 // TokenPairTokenType defines model for TokenPair.TokenType.
 type TokenPairTokenType string
 
+// UpdatePerfumeInput defines model for UpdatePerfumeInput.
+type UpdatePerfumeInput struct {
+	Description *string `json:"description,omitempty"`
+	IsActive    bool    `json:"isActive"`
+	Name        string  `json:"name"`
+}
+
 // UpdateServiceInput defines model for UpdateServiceInput.
 type UpdateServiceInput struct {
 	Description              *string `json:"description,omitempty"`
@@ -604,6 +641,21 @@ type ListOutletsParams struct {
 	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 }
 
+// ListPerfumesParams defines parameters for ListPerfumes.
+type ListPerfumesParams struct {
+	// Page One-based page number.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of records per page, capped at 100.
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Q Case-insensitive substring search over perfume name and description.
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+
+	// IsActive Omit to include both active and inactive perfumes. Soft-deleted perfumes are excluded.
+	IsActive *bool `form:"isActive,omitempty" json:"isActive,omitempty"`
+}
+
 // ListServicesParams defines parameters for ListServices.
 type ListServicesParams struct {
 	// Page One-based page number.
@@ -649,6 +701,12 @@ type CreateOutletJSONRequestBody = OutletCreate
 
 // UpdateOutletJSONRequestBody defines body for UpdateOutlet for application/json ContentType.
 type UpdateOutletJSONRequestBody = OutletUpdate
+
+// CreatePerfumeJSONRequestBody defines body for CreatePerfume for application/json ContentType.
+type CreatePerfumeJSONRequestBody = CreatePerfumeInput
+
+// UpdatePerfumeJSONRequestBody defines body for UpdatePerfume for application/json ContentType.
+type UpdatePerfumeJSONRequestBody = UpdatePerfumeInput
 
 // CreateServiceJSONRequestBody defines body for CreateService for application/json ContentType.
 type CreateServiceJSONRequestBody = CreateServiceInput
@@ -718,6 +776,21 @@ type ServerInterface interface {
 	// Update an outlet profile or active state
 	// (PUT /outlets/{outletId})
 	UpdateOutlet(ctx echo.Context, outletId EntityId) error
+	// Search perfumes in the authenticated business
+	// (GET /perfumes)
+	ListPerfumes(ctx echo.Context, params ListPerfumesParams) error
+	// Create a perfume catalog entry
+	// (POST /perfumes)
+	CreatePerfume(ctx echo.Context) error
+	// Soft-delete a perfume while retaining order references
+	// (DELETE /perfumes/{perfumeId})
+	DeletePerfume(ctx echo.Context, perfumeId EntityId) error
+	// Get a perfume in the authenticated business
+	// (GET /perfumes/{perfumeId})
+	GetPerfume(ctx echo.Context, perfumeId EntityId) error
+	// Update a perfume and its active state
+	// (PUT /perfumes/{perfumeId})
+	UpdatePerfume(ctx echo.Context, perfumeId EntityId) error
 	// List available action grants
 	// (GET /permissions)
 	ListPermissions(ctx echo.Context) error
@@ -1029,6 +1102,112 @@ func (w *ServerInterfaceWrapper) UpdateOutlet(ctx echo.Context) error {
 	return err
 }
 
+// ListPerfumes converts echo context to params.
+func (w *ServerInterfaceWrapper) ListPerfumes(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListPerfumesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", ctx.QueryParams(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "isActive" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "isActive", ctx.QueryParams(), &params.IsActive, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter isActive: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListPerfumes(ctx, params)
+	return err
+}
+
+// CreatePerfume converts echo context to params.
+func (w *ServerInterfaceWrapper) CreatePerfume(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreatePerfume(ctx)
+	return err
+}
+
+// DeletePerfume converts echo context to params.
+func (w *ServerInterfaceWrapper) DeletePerfume(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "perfumeId" -------------
+	var perfumeId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "perfumeId", ctx.Param("perfumeId"), &perfumeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter perfumeId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeletePerfume(ctx, perfumeId)
+	return err
+}
+
+// GetPerfume converts echo context to params.
+func (w *ServerInterfaceWrapper) GetPerfume(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "perfumeId" -------------
+	var perfumeId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "perfumeId", ctx.Param("perfumeId"), &perfumeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter perfumeId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetPerfume(ctx, perfumeId)
+	return err
+}
+
+// UpdatePerfume converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdatePerfume(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "perfumeId" -------------
+	var perfumeId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "perfumeId", ctx.Param("perfumeId"), &perfumeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter perfumeId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdatePerfume(ctx, perfumeId)
+	return err
+}
+
 // ListPermissions converts echo context to params.
 func (w *ServerInterfaceWrapper) ListPermissions(ctx echo.Context) error {
 	var err error
@@ -1335,6 +1514,11 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.POST(options.BaseURL+"/outlets", wrapper.CreateOutlet, options.OperationMiddlewares["createOutlet"]...)
 	router.GET(options.BaseURL+"/outlets/:outletId", wrapper.GetOutlet, options.OperationMiddlewares["getOutlet"]...)
 	router.PUT(options.BaseURL+"/outlets/:outletId", wrapper.UpdateOutlet, options.OperationMiddlewares["updateOutlet"]...)
+	router.GET(options.BaseURL+"/perfumes", wrapper.ListPerfumes, options.OperationMiddlewares["listPerfumes"]...)
+	router.POST(options.BaseURL+"/perfumes", wrapper.CreatePerfume, options.OperationMiddlewares["createPerfume"]...)
+	router.DELETE(options.BaseURL+"/perfumes/:perfumeId", wrapper.DeletePerfume, options.OperationMiddlewares["deletePerfume"]...)
+	router.GET(options.BaseURL+"/perfumes/:perfumeId", wrapper.GetPerfume, options.OperationMiddlewares["getPerfume"]...)
+	router.PUT(options.BaseURL+"/perfumes/:perfumeId", wrapper.UpdatePerfume, options.OperationMiddlewares["updatePerfume"]...)
 	router.GET(options.BaseURL+"/permissions", wrapper.ListPermissions, options.OperationMiddlewares["listPermissions"]...)
 	router.GET(options.BaseURL+"/readyz", wrapper.GetReadiness, options.OperationMiddlewares["getReadiness"]...)
 	router.GET(options.BaseURL+"/services", wrapper.ListServices, options.OperationMiddlewares["listServices"]...)
@@ -2695,6 +2879,486 @@ func (response UpdateOutlet500JSONResponse) VisitUpdateOutletResponse(w http.Res
 	return err
 }
 
+type ListPerfumesRequestObject struct {
+	Params ListPerfumesParams
+}
+
+type ListPerfumesResponseObject interface {
+	VisitListPerfumesResponse(w http.ResponseWriter) error
+}
+
+type ListPerfumes200JSONResponse PerfumeList
+
+func (response ListPerfumes200JSONResponse) VisitListPerfumesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPerfumes400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListPerfumes400JSONResponse) VisitListPerfumesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPerfumes401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListPerfumes401JSONResponse) VisitListPerfumesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPerfumes403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListPerfumes403JSONResponse) VisitListPerfumesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPerfumes500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListPerfumes500JSONResponse) VisitListPerfumesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePerfumeRequestObject struct {
+	Body *CreatePerfumeJSONRequestBody
+}
+
+type CreatePerfumeResponseObject interface {
+	VisitCreatePerfumeResponse(w http.ResponseWriter) error
+}
+
+type CreatePerfume201JSONResponse Perfume
+
+func (response CreatePerfume201JSONResponse) VisitCreatePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePerfume400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreatePerfume400JSONResponse) VisitCreatePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePerfume401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreatePerfume401JSONResponse) VisitCreatePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePerfume403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreatePerfume403JSONResponse) VisitCreatePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePerfume409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreatePerfume409JSONResponse) VisitCreatePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePerfume500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreatePerfume500JSONResponse) VisitCreatePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePerfumeRequestObject struct {
+	PerfumeId EntityId `json:"perfumeId"`
+}
+
+type DeletePerfumeResponseObject interface {
+	VisitDeletePerfumeResponse(w http.ResponseWriter) error
+}
+
+type DeletePerfume204Response struct {
+}
+
+func (response DeletePerfume204Response) VisitDeletePerfumeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeletePerfume400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response DeletePerfume400JSONResponse) VisitDeletePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePerfume401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response DeletePerfume401JSONResponse) VisitDeletePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePerfume403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeletePerfume403JSONResponse) VisitDeletePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePerfume404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeletePerfume404JSONResponse) VisitDeletePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePerfume500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response DeletePerfume500JSONResponse) VisitDeletePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPerfumeRequestObject struct {
+	PerfumeId EntityId `json:"perfumeId"`
+}
+
+type GetPerfumeResponseObject interface {
+	VisitGetPerfumeResponse(w http.ResponseWriter) error
+}
+
+type GetPerfume200JSONResponse Perfume
+
+func (response GetPerfume200JSONResponse) VisitGetPerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPerfume400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetPerfume400JSONResponse) VisitGetPerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPerfume401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetPerfume401JSONResponse) VisitGetPerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPerfume403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetPerfume403JSONResponse) VisitGetPerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPerfume404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetPerfume404JSONResponse) VisitGetPerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPerfume500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetPerfume500JSONResponse) VisitGetPerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePerfumeRequestObject struct {
+	PerfumeId EntityId `json:"perfumeId"`
+	Body      *UpdatePerfumeJSONRequestBody
+}
+
+type UpdatePerfumeResponseObject interface {
+	VisitUpdatePerfumeResponse(w http.ResponseWriter) error
+}
+
+type UpdatePerfume200JSONResponse Perfume
+
+func (response UpdatePerfume200JSONResponse) VisitUpdatePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePerfume400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdatePerfume400JSONResponse) VisitUpdatePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePerfume401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdatePerfume401JSONResponse) VisitUpdatePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePerfume403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdatePerfume403JSONResponse) VisitUpdatePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePerfume404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdatePerfume404JSONResponse) VisitUpdatePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePerfume409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdatePerfume409JSONResponse) VisitUpdatePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePerfume500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdatePerfume500JSONResponse) VisitUpdatePerfumeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListPermissionsRequestObject struct {
 }
 
@@ -3913,6 +4577,21 @@ type StrictServerInterface interface {
 	// Update an outlet profile or active state
 	// (PUT /outlets/{outletId})
 	UpdateOutlet(ctx context.Context, request UpdateOutletRequestObject) (UpdateOutletResponseObject, error)
+	// Search perfumes in the authenticated business
+	// (GET /perfumes)
+	ListPerfumes(ctx context.Context, request ListPerfumesRequestObject) (ListPerfumesResponseObject, error)
+	// Create a perfume catalog entry
+	// (POST /perfumes)
+	CreatePerfume(ctx context.Context, request CreatePerfumeRequestObject) (CreatePerfumeResponseObject, error)
+	// Soft-delete a perfume while retaining order references
+	// (DELETE /perfumes/{perfumeId})
+	DeletePerfume(ctx context.Context, request DeletePerfumeRequestObject) (DeletePerfumeResponseObject, error)
+	// Get a perfume in the authenticated business
+	// (GET /perfumes/{perfumeId})
+	GetPerfume(ctx context.Context, request GetPerfumeRequestObject) (GetPerfumeResponseObject, error)
+	// Update a perfume and its active state
+	// (PUT /perfumes/{perfumeId})
+	UpdatePerfume(ctx context.Context, request UpdatePerfumeRequestObject) (UpdatePerfumeResponseObject, error)
 	// List available action grants
 	// (GET /permissions)
 	ListPermissions(ctx context.Context, request ListPermissionsRequestObject) (ListPermissionsResponseObject, error)
@@ -4387,6 +5066,141 @@ func (sh *strictHandler) UpdateOutlet(ctx echo.Context, outletId EntityId) error
 		return err
 	} else if validResponse, ok := response.(UpdateOutletResponseObject); ok {
 		return validResponse.VisitUpdateOutletResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListPerfumes operation middleware
+func (sh *strictHandler) ListPerfumes(ctx echo.Context, params ListPerfumesParams) error {
+	var request ListPerfumesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPerfumes(ctx.Request().Context(), request.(ListPerfumesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPerfumes")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListPerfumesResponseObject); ok {
+		return validResponse.VisitListPerfumesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreatePerfume operation middleware
+func (sh *strictHandler) CreatePerfume(ctx echo.Context) error {
+	var request CreatePerfumeRequestObject
+
+	var body CreatePerfumeJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePerfume(ctx.Request().Context(), request.(CreatePerfumeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePerfume")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreatePerfumeResponseObject); ok {
+		return validResponse.VisitCreatePerfumeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeletePerfume operation middleware
+func (sh *strictHandler) DeletePerfume(ctx echo.Context, perfumeId EntityId) error {
+	var request DeletePerfumeRequestObject
+
+	request.PerfumeId = perfumeId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeletePerfume(ctx.Request().Context(), request.(DeletePerfumeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeletePerfume")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeletePerfumeResponseObject); ok {
+		return validResponse.VisitDeletePerfumeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetPerfume operation middleware
+func (sh *strictHandler) GetPerfume(ctx echo.Context, perfumeId EntityId) error {
+	var request GetPerfumeRequestObject
+
+	request.PerfumeId = perfumeId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPerfume(ctx.Request().Context(), request.(GetPerfumeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPerfume")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetPerfumeResponseObject); ok {
+		return validResponse.VisitGetPerfumeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdatePerfume operation middleware
+func (sh *strictHandler) UpdatePerfume(ctx echo.Context, perfumeId EntityId) error {
+	var request UpdatePerfumeRequestObject
+
+	request.PerfumeId = perfumeId
+
+	var body UpdatePerfumeJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdatePerfume(ctx.Request().Context(), request.(UpdatePerfumeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdatePerfume")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdatePerfumeResponseObject); ok {
+		return validResponse.VisitUpdatePerfumeResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
