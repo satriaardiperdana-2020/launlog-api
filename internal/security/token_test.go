@@ -53,3 +53,27 @@ func TestTokenManagerRejectsShortSigningSecret(t *testing.T) {
 		t.Fatal("short signing secret was accepted")
 	}
 }
+
+func TestTokenManagerRejectsPublicExampleSecret(t *testing.T) {
+	if _, err := NewTokenManager("replace-with-a-random-secret-of-at-least-32-bytes", time.Minute); err == nil {
+		t.Fatal("public example signing secret was accepted")
+	}
+}
+
+func TestAccessTokenReturnsSignedExpiration(t *testing.T) {
+	manager, err := NewTokenManager(testSigningSecret, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, expiration, err := manager.NewAccessToken(1, 2, 3, "ADMIN", nil, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	claims, err := manager.ParseAccessToken(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !expiration.Equal(claims.ExpiresAt.Time) {
+		t.Fatalf("returned expiration %s differs from signed claim %s", expiration, claims.ExpiresAt.Time)
+	}
+}

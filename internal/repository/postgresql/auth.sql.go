@@ -12,14 +12,15 @@ import (
 )
 
 const createRefreshToken = `-- name: CreateRefreshToken :one
-INSERT INTO refresh_tokens (business_id, user_id, token_hash, expires_at)
-VALUES ($1, $2, $3, $4)
-RETURNING id, business_id, user_id, token_hash, expires_at, revoked_at
+INSERT INTO refresh_tokens (business_id, user_id, family_id, token_hash, expires_at)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, business_id, user_id, family_id, token_hash, expires_at, revoked_at
 `
 
 type CreateRefreshTokenParams struct {
 	BusinessID int64              `json:"business_id"`
 	UserID     int64              `json:"user_id"`
+	FamilyID   int64              `json:"family_id"`
 	TokenHash  string             `json:"token_hash"`
 	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
 }
@@ -28,6 +29,7 @@ type CreateRefreshTokenRow struct {
 	ID         int64              `json:"id"`
 	BusinessID int64              `json:"business_id"`
 	UserID     int64              `json:"user_id"`
+	FamilyID   int64              `json:"family_id"`
 	TokenHash  string             `json:"token_hash"`
 	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
 	RevokedAt  pgtype.Timestamptz `json:"revoked_at"`
@@ -37,6 +39,7 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 	row := q.db.QueryRow(ctx, createRefreshToken,
 		arg.BusinessID,
 		arg.UserID,
+		arg.FamilyID,
 		arg.TokenHash,
 		arg.ExpiresAt,
 	)
@@ -45,6 +48,7 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 		&i.ID,
 		&i.BusinessID,
 		&i.UserID,
+		&i.FamilyID,
 		&i.TokenHash,
 		&i.ExpiresAt,
 		&i.RevokedAt,
@@ -52,14 +56,53 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 	return i, err
 }
 
-const getActiveRefreshSession = `-- name: GetActiveRefreshSession :one
-SELECT id, business_id, user_id, expires_at, revoked_at
+const createSessionFamily = `-- name: CreateSessionFamily :one
+INSERT INTO session_families (business_id, user_id)
+VALUES ($1, $2)
+RETURNING id
+`
+
+type CreateSessionFamilyParams struct {
+	BusinessID int64 `json:"business_id"`
+	UserID     int64 `json:"user_id"`
+}
+
+func (q *Queries) CreateSessionFamily(ctx context.Context, arg CreateSessionFamilyParams) (int64, error) {
+	row := q.db.QueryRow(ctx, createSessionFamily, arg.BusinessID, arg.UserID)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const findRefreshTokenFamily = `-- name: FindRefreshTokenFamily :one
+SELECT family_id, business_id, user_id
 FROM refresh_tokens
-WHERE id = $1
-  AND business_id = $2
-  AND user_id = $3
-  AND revoked_at IS NULL
-  AND expires_at > now()
+WHERE token_hash = $1
+`
+
+type FindRefreshTokenFamilyRow struct {
+	FamilyID   int64 `json:"family_id"`
+	BusinessID int64 `json:"business_id"`
+	UserID     int64 `json:"user_id"`
+}
+
+func (q *Queries) FindRefreshTokenFamily(ctx context.Context, tokenHash string) (FindRefreshTokenFamilyRow, error) {
+	row := q.db.QueryRow(ctx, findRefreshTokenFamily, tokenHash)
+	var i FindRefreshTokenFamilyRow
+	err := row.Scan(&i.FamilyID, &i.BusinessID, &i.UserID)
+	return i, err
+}
+
+const getActiveRefreshSession = `-- name: GetActiveRefreshSession :one
+SELECT rt.id, rt.business_id, rt.user_id, rt.expires_at, rt.revoked_at
+FROM refresh_tokens rt
+JOIN session_families sf ON sf.id = rt.family_id AND sf.business_id = rt.business_id AND sf.user_id = rt.user_id
+WHERE rt.id = $1
+  AND rt.business_id = $2
+  AND rt.user_id = $3
+  AND rt.revoked_at IS NULL
+  AND rt.expires_at > now()
+  AND sf.revoked_at IS NULL
 `
 
 type GetActiveRefreshSessionParams struct {
@@ -90,9 +133,10 @@ func (q *Queries) GetActiveRefreshSession(ctx context.Context, arg GetActiveRefr
 }
 
 const getActiveUser = `-- name: GetActiveUser :one
-SELECT id, business_id, email, full_name, role, is_active
+SELECT users.id, users.business_id, users.email, users.full_name, users.role, users.is_active
 FROM users
-WHERE id = $1 AND business_id = $2 AND is_active = TRUE
+JOIN businesses b ON b.id = users.business_id AND b.is_active = TRUE
+WHERE users.id = $1 AND users.business_id = $2 AND users.is_active = TRUE
 `
 
 type GetActiveUserParams struct {
@@ -123,17 +167,74 @@ func (q *Queries) GetActiveUser(ctx context.Context, arg GetActiveUserParams) (G
 	return i, err
 }
 
+const getLogoutSession = `-- name: GetLogoutSession :one
+SELECT rt.id, rt.business_id, rt.user_id, rt.family_id
+FROM refresh_tokens rt
+JOIN session_families sf ON sf.id = rt.family_id AND sf.business_id = rt.business_id AND sf.user_id = rt.user_id
+WHERE rt.id = $1 AND rt.business_id = $2 AND rt.user_id = $3
+  AND rt.expires_at > now() AND sf.revoked_at IS NULL
+`
+
+type GetLogoutSessionParams struct {
+	ID         int64 `json:"id"`
+	BusinessID int64 `json:"business_id"`
+	UserID     int64 `json:"user_id"`
+}
+
+type GetLogoutSessionRow struct {
+	ID         int64 `json:"id"`
+	BusinessID int64 `json:"business_id"`
+	UserID     int64 `json:"user_id"`
+	FamilyID   int64 `json:"family_id"`
+}
+
+func (q *Queries) GetLogoutSession(ctx context.Context, arg GetLogoutSessionParams) (GetLogoutSessionRow, error) {
+	row := q.db.QueryRow(ctx, getLogoutSession, arg.ID, arg.BusinessID, arg.UserID)
+	var i GetLogoutSessionRow
+	err := row.Scan(
+		&i.ID,
+		&i.BusinessID,
+		&i.UserID,
+		&i.FamilyID,
+	)
+	return i, err
+}
+
+const getRefreshTokenByID = `-- name: GetRefreshTokenByID :one
+SELECT id, family_id
+FROM refresh_tokens
+WHERE id = $1 AND business_id = $2 AND user_id = $3
+`
+
+type GetRefreshTokenByIDParams struct {
+	ID         int64 `json:"id"`
+	BusinessID int64 `json:"business_id"`
+	UserID     int64 `json:"user_id"`
+}
+
+type GetRefreshTokenByIDRow struct {
+	ID       int64 `json:"id"`
+	FamilyID int64 `json:"family_id"`
+}
+
+func (q *Queries) GetRefreshTokenByID(ctx context.Context, arg GetRefreshTokenByIDParams) (GetRefreshTokenByIDRow, error) {
+	row := q.db.QueryRow(ctx, getRefreshTokenByID, arg.ID, arg.BusinessID, arg.UserID)
+	var i GetRefreshTokenByIDRow
+	err := row.Scan(&i.ID, &i.FamilyID)
+	return i, err
+}
+
 const getRefreshTokenForUpdate = `-- name: GetRefreshTokenForUpdate :one
-SELECT id, business_id, user_id, token_hash, expires_at, revoked_at
+SELECT id, business_id, user_id, family_id, token_hash, expires_at, revoked_at
 FROM refresh_tokens
 WHERE token_hash = $1
-FOR UPDATE
 `
 
 type GetRefreshTokenForUpdateRow struct {
 	ID         int64              `json:"id"`
 	BusinessID int64              `json:"business_id"`
 	UserID     int64              `json:"user_id"`
+	FamilyID   int64              `json:"family_id"`
 	TokenHash  string             `json:"token_hash"`
 	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
 	RevokedAt  pgtype.Timestamptz `json:"revoked_at"`
@@ -146,6 +247,7 @@ func (q *Queries) GetRefreshTokenForUpdate(ctx context.Context, tokenHash string
 		&i.ID,
 		&i.BusinessID,
 		&i.UserID,
+		&i.FamilyID,
 		&i.TokenHash,
 		&i.ExpiresAt,
 		&i.RevokedAt,
@@ -154,8 +256,9 @@ func (q *Queries) GetRefreshTokenForUpdate(ctx context.Context, tokenHash string
 }
 
 const getUserForLogin = `-- name: GetUserForLogin :one
-SELECT id, business_id, email, full_name, password_hash, role, is_active
+SELECT users.id, users.business_id, users.email, users.full_name, users.password_hash, users.role, users.is_active
 FROM users
+JOIN businesses b ON b.id = users.business_id AND b.is_active = TRUE
 WHERE lower(email) = lower($1)
 `
 
@@ -186,8 +289,9 @@ func (q *Queries) GetUserForLogin(ctx context.Context, lower string) (GetUserFor
 
 const listUserOutletIDs = `-- name: ListUserOutletIDs :many
 SELECT outlet_id
-FROM user_outlets
-WHERE business_id = $1 AND user_id = $2
+FROM user_outlets uo
+JOIN outlets o ON o.id = uo.outlet_id AND o.business_id = uo.business_id AND o.is_active = TRUE
+WHERE uo.business_id = $1 AND uo.user_id = $2
 ORDER BY outlet_id
 `
 
@@ -248,6 +352,38 @@ func (q *Queries) ListUserPermissionCodes(ctx context.Context, arg ListUserPermi
 	return items, nil
 }
 
+const lockSessionFamily = `-- name: LockSessionFamily :one
+SELECT id, business_id, user_id, revoked_at
+FROM session_families
+WHERE id = $1 AND business_id = $2 AND user_id = $3
+FOR UPDATE
+`
+
+type LockSessionFamilyParams struct {
+	ID         int64 `json:"id"`
+	BusinessID int64 `json:"business_id"`
+	UserID     int64 `json:"user_id"`
+}
+
+type LockSessionFamilyRow struct {
+	ID         int64              `json:"id"`
+	BusinessID int64              `json:"business_id"`
+	UserID     int64              `json:"user_id"`
+	RevokedAt  pgtype.Timestamptz `json:"revoked_at"`
+}
+
+func (q *Queries) LockSessionFamily(ctx context.Context, arg LockSessionFamilyParams) (LockSessionFamilyRow, error) {
+	row := q.db.QueryRow(ctx, lockSessionFamily, arg.ID, arg.BusinessID, arg.UserID)
+	var i LockSessionFamilyRow
+	err := row.Scan(
+		&i.ID,
+		&i.BusinessID,
+		&i.UserID,
+		&i.RevokedAt,
+	)
+	return i, err
+}
+
 const revokeRefreshToken = `-- name: RevokeRefreshToken :execrows
 UPDATE refresh_tokens
 SET revoked_at = now()
@@ -266,4 +402,20 @@ func (q *Queries) RevokeRefreshToken(ctx context.Context, arg RevokeRefreshToken
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const revokeSessionFamily = `-- name: RevokeSessionFamily :exec
+UPDATE session_families SET revoked_at = now()
+WHERE id = $1 AND business_id = $2 AND user_id = $3 AND revoked_at IS NULL
+`
+
+type RevokeSessionFamilyParams struct {
+	ID         int64 `json:"id"`
+	BusinessID int64 `json:"business_id"`
+	UserID     int64 `json:"user_id"`
+}
+
+func (q *Queries) RevokeSessionFamily(ctx context.Context, arg RevokeSessionFamilyParams) error {
+	_, err := q.db.Exec(ctx, revokeSessionFamily, arg.ID, arg.BusinessID, arg.UserID)
+	return err
 }

@@ -185,8 +185,8 @@ func (c Config) validate() error {
 	if c.DatabaseURL == "" {
 		return errors.New("DATABASE_URL is required")
 	}
-	if len(c.JWTSigningSecret) < 32 {
-		return errors.New("JWT_SIGNING_SECRET must contain at least 32 bytes")
+	if len(c.JWTSigningSecret) < 32 || c.JWTSigningSecret == "replace-with-a-random-secret-of-at-least-32-bytes" {
+		return errors.New("JWT_SIGNING_SECRET must be a non-placeholder secret of at least 32 bytes")
 	}
 	if c.JWTAccessTokenTTL <= 0 || c.JWTAccessTokenTTL > time.Hour {
 		return errors.New("JWT_ACCESS_TOKEN_TTL must be between 1ns and 1h")

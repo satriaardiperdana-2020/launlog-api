@@ -12,6 +12,10 @@ The source of truth is [api/openapi.yaml](../api/openapi.yaml). The current serv
 
 - `POST /auth/login` and `POST /auth/refresh` are public.
 - `POST /auth/logout` and `GET /auth/me` require `Authorization: Bearer <access-token>`.
+- Auth request bodies are capped at 4096 bytes. One per-process limiter allows 10 requests per minute for each direct TCP peer and route; forwarding headers are not trusted. A full 4096-key limiter rejects new keys until entries expire.
+- Credential failures use the same 401 response. A valid, cost-12 dummy bcrypt hash is checked when the email has no active account.
+- At password creation or change, require 8–128 Unicode characters and at most 72 UTF-8 bytes. Login checks existing passwords without imposing that character minimum; bcrypt's byte limit still applies. OpenAPI `minLength`/`maxLength` count characters, not UTF-8 bytes.
+- Rotating refresh tokens retain consumed hashes to detect replay. Replay revokes the session family. If a committed rotation response is lost, the client must log in again because the raw replacement token is not stored.
 
 ## Contract rules
 

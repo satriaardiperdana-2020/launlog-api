@@ -93,6 +93,7 @@ func TestLoadValidation(t *testing.T) {
 		{name: "unsupported timezone", variable: "APP_TIMEZONE", value: "UTC", errorPart: "APP_TIMEZONE", setDatabase: true},
 		{name: "invalid maximum connections", variable: "DATABASE_MAX_CONNS", value: "0", errorPart: "DATABASE_MAX_CONNS", setDatabase: true},
 		{name: "minimum exceeds maximum", variable: "DATABASE_MIN_CONNS", value: "11", errorPart: "DATABASE_MIN_CONNS", setDatabase: true},
+		{name: "public example signing secret", variable: "JWT_SIGNING_SECRET", value: "replace-with-a-random-secret-of-at-least-32-bytes", errorPart: "JWT_SIGNING_SECRET", setDatabase: true},
 	}
 
 	for _, test := range tests {

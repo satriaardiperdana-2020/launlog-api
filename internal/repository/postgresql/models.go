@@ -227,9 +227,11 @@ type RefreshToken struct {
 	TokenHash string `json:"token_hash"`
 	// Exclusive refresh-session expiry timestamp.
 	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
-	// Timestamp of revocation; NULL means the session has not been revoked.
+	// Token consumed by rotation or revoked by logout; retained for replay detection.
 	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	// Stable family across refresh rotations; historical token hashes remain stored for replay detection.
+	FamilyID int64 `json:"family_id"`
 }
 
 // Business-shared service catalog. A service applies to every outlet in its business; outlet-specific pricing is not modelled.
@@ -246,6 +248,16 @@ type Service struct {
 	CreatedAt                pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt                pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt                pgtype.Timestamptz `json:"deleted_at"`
+}
+
+// Stable session lineage; refresh rotation and logout serialize on this row.
+type SessionFamily struct {
+	ID         int64              `json:"id"`
+	BusinessID int64              `json:"business_id"`
+	UserID     int64              `json:"user_id"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	// Revokes every access and refresh token in this family, including consumed descendants.
+	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
 }
 
 // Authenticated account owned by one business; it is not a global operator account.

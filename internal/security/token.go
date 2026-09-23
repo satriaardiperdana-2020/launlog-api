@@ -28,14 +28,14 @@ type TokenManager struct {
 }
 
 func NewTokenManager(key string, accessTTL time.Duration) (*TokenManager, error) {
-	if len(key) < 32 {
-		return nil, errors.New("JWT_SIGNING_SECRET must contain at least 32 bytes")
+	if len(key) < 32 || key == "replace-with-a-random-secret-of-at-least-32-bytes" {
+		return nil, errors.New("JWT_SIGNING_SECRET must be a non-placeholder secret of at least 32 bytes")
 	}
 	return &TokenManager{key: []byte(key), accessTTL: accessTTL}, nil
 }
 
 func (m *TokenManager) NewAccessToken(userID, businessID, sessionID int64, role string, outletIDs []int64, now time.Time) (string, time.Time, error) {
-	expiresAt := now.Add(m.accessTTL)
+	expiresAt := jwt.NewNumericDate(now.Add(m.accessTTL)).Time
 	claims := AccessClaims{
 		BusinessID: businessID, Role: role, OutletIDs: outletIDs, SessionID: sessionID,
 		RegisteredClaims: jwt.RegisteredClaims{
