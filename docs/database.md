@@ -99,11 +99,15 @@ The actual earlier schema reserves this table for one or more positive refunds a
 
 ### `expense_categories`
 
-A business-wide expense classification such as utilities or supplies. Category names are unique within a business and categories can be disabled while existing expenses remain intact.
+A business-wide expense classification such as utilities or supplies. Category names are unique within a business and categories can be disabled while existing expenses remain intact. `EXPENSES_READ` and `EXPENSES_WRITE` protect category and expense operations; ADMIN bypasses these grants but never the authenticated business scope.
 
 ### `expenses`
 
-An outlet expense with an exact positive rupiah amount, category, description, occurrence time, optional receipt reference, and creating user. Composite foreign keys ensure the outlet, category, and actor all belong to the same business.
+An outlet expense with an exact positive rupiah amount, category, description, occurrence time (`expense_at`), optional receipt reference, and creating user. Composite foreign keys ensure the outlet, category, and actor all belong to the same business. Expense history stays attached to the original outlet. Reads and writes require a currently active outlet and, for staff, a current assignment to that outlet. Inactive categories cannot be selected for a new or updated expense.
+
+Expense reporting filters by `expense_at`, never `created_at`. Inclusive local date bounds are converted to timestamp boundaries in `Asia/Jakarta`; omitted bounds default to today's local date. This timezone selection is explicit in SQL and is independent of the connection session timezone. Income is calculated from confirmed `payments`; expenses cannot create manual income entries.
+
+Migration `000014_expense_versions` adds a positive `version BIGINT NOT NULL DEFAULT 1` to existing records, preserving their data. Expense updates require the client's current ETag (`If-Match: "<version>"`), lock the expense row, compare the version, increment it, and append audit data in the same transaction. A stale version returns 409 instead of overwriting another update. Audit payloads use an allowlist and replace free-text description and receipt reference with `[REDACTED]`; failed auditing rolls back the expense mutation.
 
 ## Settings and history
 
@@ -130,6 +134,7 @@ An immutable business audit stream. It records an optional outlet and actor, act
 11. `000011_service_description`
 12. `000012_order_idempotency`
 13. `000013_payment_idempotency`
+14. `000014_expense_versions`
 
 Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run in reverse order because later domains reference earlier ownership and order tables.
 

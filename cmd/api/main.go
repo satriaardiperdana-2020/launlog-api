@@ -72,6 +72,7 @@ func run(logger *slog.Logger) error {
 	perfumeHandler := handlers.NewPerfumeHandler(database)
 	orderHandler := handlers.NewOrderHandler(database)
 	paymentHandler := handlers.NewPaymentHandler(database)
+	expenseHandler := handlers.NewExpenseHandler(database)
 	authLimiter := launmiddleware.NewAuthLimiter(4096, 10, time.Minute)
 	authBody := launmiddleware.AuthBodyLimit(4096)
 	e.GET("/livez", healthHandler.Live)
@@ -127,6 +128,18 @@ func run(logger *slog.Logger) error {
 	orders.GET("/:orderId/payments", paymentHandler.List, launmiddleware.RequirePermission("PAYMENTS_READ"))
 	orders.POST("/:orderId/payments", paymentHandler.Record, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("PAYMENTS_RECORD"))
 	orders.POST("/:orderId/payments/:paymentId/void", paymentHandler.Void, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("PAYMENTS_RECORD"))
+
+	expenseCategories := e.Group("/expense-categories", launmiddleware.Authenticate(database, jwtTokens))
+	expenseCategories.GET("", expenseHandler.ListCategories, launmiddleware.RequirePermission("EXPENSES_READ"))
+	expenseCategories.POST("", expenseHandler.CreateCategory, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("EXPENSES_WRITE"))
+	expenseCategories.GET("/:categoryId", expenseHandler.GetCategory, launmiddleware.RequirePermission("EXPENSES_READ"))
+	expenseCategories.PUT("/:categoryId", expenseHandler.UpdateCategory, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("EXPENSES_WRITE"))
+
+	expenses := e.Group("/expenses", launmiddleware.Authenticate(database, jwtTokens))
+	expenses.GET("", expenseHandler.List, launmiddleware.RequirePermission("EXPENSES_READ"))
+	expenses.POST("", expenseHandler.Create, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("EXPENSES_WRITE"))
+	expenses.GET("/:expenseId", expenseHandler.Get, launmiddleware.RequirePermission("EXPENSES_READ"))
+	expenses.PUT("/:expenseId", expenseHandler.Update, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("EXPENSES_WRITE"))
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress(),
