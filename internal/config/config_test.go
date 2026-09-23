@@ -11,6 +11,7 @@ import (
 func TestLoadDefaults(t *testing.T) {
 	clearConfigEnvironment(t)
 	t.Setenv("DATABASE_URL", "postgres://user:password@localhost:5432/launlog")
+	t.Setenv("JWT_SIGNING_SECRET", "01234567890123456789012345678901")
 
 	cfg, err := loadFromEnvironment()
 	if err != nil {
@@ -48,6 +49,7 @@ func TestLoadOverrides(t *testing.T) {
 	t.Setenv("HTTP_IDLE_TIMEOUT", "4s")
 	t.Setenv("SHUTDOWN_TIMEOUT", "5s")
 	t.Setenv("DATABASE_URL", "postgres://user:password@localhost:5432/launlog")
+	t.Setenv("JWT_SIGNING_SECRET", "01234567890123456789012345678901")
 	t.Setenv("DATABASE_CONNECT_TIMEOUT", "6s")
 	t.Setenv("DATABASE_MAX_CONNS", "20")
 	t.Setenv("DATABASE_MIN_CONNS", "2")
@@ -91,6 +93,7 @@ func TestLoadValidation(t *testing.T) {
 			clearConfigEnvironment(t)
 			if test.setDatabase {
 				t.Setenv("DATABASE_URL", "postgres://user:password@localhost:5432/launlog")
+				t.Setenv("JWT_SIGNING_SECRET", "01234567890123456789012345678901")
 			}
 			if test.variable != "" {
 				t.Setenv(test.variable, test.value)
@@ -114,7 +117,7 @@ func TestLoadReadsEnvironmentSpecificDotenv(t *testing.T) {
 	temporaryDirectory := t.TempDir()
 	if err := os.WriteFile(
 		filepath.Join(temporaryDirectory, ".env.test"),
-		[]byte("DATABASE_URL=postgres://dotenv@localhost:5432/launlog\nHTTP_PORT=9091\n"),
+		[]byte("DATABASE_URL=postgres://dotenv@localhost:5432/launlog\nJWT_SIGNING_SECRET=01234567890123456789012345678901\nHTTP_PORT=9091\n"),
 		0600,
 	); err != nil {
 		t.Fatalf("os.WriteFile() error = %v", err)
@@ -137,6 +140,7 @@ func TestLoadPreservesExplicitEnvironment(t *testing.T) {
 	unsetConfigEnvironment(t)
 	t.Setenv("APP_ENV", "test")
 	t.Setenv("DATABASE_URL", "postgres://explicit@localhost:5432/launlog")
+	t.Setenv("JWT_SIGNING_SECRET", "01234567890123456789012345678901")
 	workingDirectory, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("os.Getwd() error = %v", err)
@@ -144,7 +148,7 @@ func TestLoadPreservesExplicitEnvironment(t *testing.T) {
 	temporaryDirectory := t.TempDir()
 	if err := os.WriteFile(
 		filepath.Join(temporaryDirectory, ".env.test"),
-		[]byte("DATABASE_URL=postgres://dotenv@localhost:5432/launlog\n"),
+		[]byte("DATABASE_URL=postgres://dotenv@localhost:5432/launlog\nJWT_SIGNING_SECRET=dotenv-secret-that-must-not-override\n"),
 		0600,
 	); err != nil {
 		t.Fatalf("os.WriteFile() error = %v", err)
@@ -177,6 +181,9 @@ func clearConfigEnvironment(t *testing.T) {
 		"DATABASE_CONNECT_TIMEOUT",
 		"DATABASE_MAX_CONNS",
 		"DATABASE_MIN_CONNS",
+		"JWT_SIGNING_SECRET",
+		"JWT_ACCESS_TOKEN_TTL",
+		"JWT_REFRESH_TOKEN_TTL",
 	} {
 		t.Setenv(name, "")
 	}

@@ -6,13 +6,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/satriaardiperdana-2020/launlog-api/internal/repository/postgresql"
 )
 
 // Postgres owns the shared PostgreSQL connection pool.
 type Postgres struct {
 	pool *pgxpool.Pool
 }
+
+func (p *Postgres) Queries() *postgresql.Queries { return postgresql.New(p.pool) }
+
+func (p *Postgres) Begin(ctx context.Context) (pgx.Tx, error) { return p.pool.Begin(ctx) }
 
 // NewPostgres builds and verifies a PostgreSQL pool within a bounded timeout.
 func NewPostgres(
