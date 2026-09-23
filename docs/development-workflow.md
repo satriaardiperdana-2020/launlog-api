@@ -25,3 +25,5 @@ Use one branch per issue, based on current `main`: `feature/issue-001-project-se
 - CI must be green before merge.
 
 Generator versions are pinned in the Makefile. Generated files are committed after regeneration. Never commit secrets, local dotenv files, the `bin/` tool directory, or production database URLs.
+
+In deployed environments use a separate `MIGRATION_DATABASE_URL` and `DATABASE_URL`; the first is a schema owner and the second is the verified least-privilege runtime role. Local Compose credentials are for development only. `make check` includes the pinned `govulncheck` scan against the Go vulnerability database.

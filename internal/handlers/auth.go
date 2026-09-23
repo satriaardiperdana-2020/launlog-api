@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/netip"
 	"strings"
 	"time"
 
@@ -124,6 +125,9 @@ func (h *AuthHandler) Refresh(c echo.Context) error {
 		if err := q.RevokeSessionFamily(commitCtx, postgresql.RevokeSessionFamilyParams{ID: family.ID, BusinessID: family.BusinessID, UserID: family.UserID}); err != nil {
 			return internalError(c)
 		}
+		if err := auditSession(commitCtx, q, c, family.BusinessID, family.UserID, family.ID, "AUTH_REFRESH_REPLAY_DETECTED"); err != nil {
+			return internalError(c)
+		}
 		if err := tx.Commit(commitCtx); err != nil {
 			return internalError(c)
 		}
@@ -157,6 +161,9 @@ func (h *AuthHandler) Refresh(c echo.Context) error {
 	}
 	affected, err := q.RevokeRefreshToken(ctx, postgresql.RevokeRefreshTokenParams{ID: session.ID, BusinessID: session.BusinessID, UserID: session.UserID})
 	if err != nil || affected != 1 {
+		return internalError(c)
+	}
+	if err := auditSession(ctx, q, c, family.BusinessID, family.UserID, family.ID, "AUTH_SESSION_REFRESHED"); err != nil {
 		return internalError(c)
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -199,6 +206,9 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 		return unauthorized(c)
 	}
 	if err := q.RevokeSessionFamily(ctx, postgresql.RevokeSessionFamilyParams{ID: family.ID, BusinessID: family.BusinessID, UserID: family.UserID}); err != nil {
+		return internalError(c)
+	}
+	if err := auditSession(ctx, q, c, family.BusinessID, family.UserID, family.ID, "AUTH_SESSION_REVOKED"); err != nil {
 		return internalError(c)
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -246,10 +256,33 @@ func (h *AuthHandler) issue(c echo.Context, id, bid int64, email, name, role str
 	if err != nil {
 		return internalError(c)
 	}
+	if err := auditSession(ctx, q, c, bid, id, familyID, "AUTH_SESSION_CREATED"); err != nil {
+		return internalError(c)
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return internalError(c)
 	}
 	return c.JSON(http.StatusOK, response)
+}
+
+func auditSession(ctx context.Context, q *postgresql.Queries, c echo.Context, businessID, userID, familyID int64, action string) error {
+	values, err := json.Marshal(map[string]string{"event": action})
+	if err != nil {
+		return err
+	}
+	var address *netip.Addr
+	if parsed, err := netip.ParseAddr(c.RealIP()); err == nil {
+		address = &parsed
+	}
+	userAgent := c.Request().UserAgent()
+	if len(userAgent) > 512 {
+		userAgent = userAgent[:512]
+	}
+	return q.InsertAuditLog(ctx, postgresql.InsertAuditLogParams{
+		BusinessID: businessID, ActorUserID: pgtype.Int8{Int64: userID, Valid: true},
+		Action: action, EntityType: "session_family", EntityID: pgtype.Int8{Int64: familyID, Valid: true},
+		NewValues: values, IpAddress: address, UserAgent: pgtype.Text{String: userAgent, Valid: userAgent != ""},
+	})
 }
 
 func (h *AuthHandler) authorization(ctx context.Context, q *postgresql.Queries, bid, uid int64, role string) ([]int64, []string, error) {

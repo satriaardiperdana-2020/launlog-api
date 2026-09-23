@@ -268,8 +268,8 @@ func customerOptionalText(value *string) pgtype.Text {
 	return pgtype.Text{String: trimmed, Valid: true}
 }
 
-func customerAuditValues(id int64, name string, phone, address pgtype.Text) map[string]any {
-	return map[string]any{"id": id, "name": name, "phone": nullableCustomerText(phone), "address": nullableCustomerText(address)}
+func customerAuditValues(id int64, _ string, _ pgtype.Text, _ pgtype.Text) map[string]any {
+	return map[string]any{"id": id, "personal_data": "[REDACTED]"}
 }
 
 func nullableCustomerText(value pgtype.Text) *string {

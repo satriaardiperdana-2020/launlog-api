@@ -5,12 +5,15 @@ BIN_DIR ?= $(CURDIR)/bin
 SQLC_VERSION := v1.31.1
 OAPI_CODEGEN_VERSION := v2.7.0
 MIGRATE_VERSION := v4.18.1
+VULNCHECK_VERSION := v1.8.0
 
 SQLC := $(BIN_DIR)/sqlc
 OAPI_CODEGEN := $(BIN_DIR)/oapi-codegen
 MIGRATE := $(BIN_DIR)/migrate
+VULNCHECK := $(BIN_DIR)/govulncheck
+MIGRATION_DATABASE_URL ?= $(DATABASE_URL)
 
-.PHONY: tools fmt fmt-check generate generate-check build test test-race test-integration vet check run compose-up compose-down migrate-up migrate-down migrate-version migrate-verify
+.PHONY: tools fmt fmt-check generate generate-check build test test-race test-integration vet vulncheck check run compose-up compose-down migrate-up migrate-down migrate-version migrate-verify
 
 tools: $(SQLC) $(OAPI_CODEGEN) $(MIGRATE)
 
@@ -25,6 +28,10 @@ $(OAPI_CODEGEN):
 $(MIGRATE):
 	@mkdir -p $(BIN_DIR)
 	GOBIN=$(BIN_DIR) $(GO) install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@$(MIGRATE_VERSION)
+
+$(VULNCHECK):
+	@mkdir -p $(BIN_DIR)
+	GOBIN=$(BIN_DIR) $(GO) install golang.org/x/vuln/cmd/govulncheck@$(VULNCHECK_VERSION)
 
 fmt:
 	$(GO) fmt ./...
@@ -61,7 +68,10 @@ test-integration:
 vet:
 	$(GO) vet ./...
 
-check: fmt-check generate-check test vet build
+vulncheck: $(VULNCHECK)
+	$(VULNCHECK) ./...
+
+check: fmt-check generate-check test vet build vulncheck
 
 run:
 	$(GO) run ./cmd/api
@@ -73,19 +83,19 @@ compose-down:
 	docker compose down
 
 migrate-up: $(MIGRATE)
-	@test -n "$(DATABASE_URL)" || (echo 'DATABASE_URL is required'; exit 1)
-	$(MIGRATE) -path db/migrations -database "$(DATABASE_URL)" up
+	@test -n "$(MIGRATION_DATABASE_URL)" || (echo 'MIGRATION_DATABASE_URL (or DATABASE_URL for local development) is required'; exit 1)
+	$(MIGRATE) -path db/migrations -database "$(MIGRATION_DATABASE_URL)" up
 
 migrate-down: $(MIGRATE)
-	@test -n "$(DATABASE_URL)" || (echo 'DATABASE_URL is required'; exit 1)
+	@test -n "$(MIGRATION_DATABASE_URL)" || (echo 'MIGRATION_DATABASE_URL (or DATABASE_URL for local development) is required'; exit 1)
 	@test "$(CONFIRM_MIGRATE_DOWN)" = "1" || (echo 'Set CONFIRM_MIGRATE_DOWN=1 to run destructive down migrations'; exit 1)
-	$(MIGRATE) -path db/migrations -database "$(DATABASE_URL)" down -all
+	$(MIGRATE) -path db/migrations -database "$(MIGRATION_DATABASE_URL)" down -all
 
 migrate-version: $(MIGRATE)
-	@test -n "$(DATABASE_URL)" || (echo 'DATABASE_URL is required'; exit 1)
-	$(MIGRATE) -path db/migrations -database "$(DATABASE_URL)" version
+	@test -n "$(MIGRATION_DATABASE_URL)" || (echo 'MIGRATION_DATABASE_URL (or DATABASE_URL for local development) is required'; exit 1)
+	$(MIGRATE) -path db/migrations -database "$(MIGRATION_DATABASE_URL)" version
 
 migrate-verify:
-	$(MAKE) migrate-up DATABASE_URL="$(DATABASE_URL)"
-	$(MAKE) migrate-down DATABASE_URL="$(DATABASE_URL)" CONFIRM_MIGRATE_DOWN=1
-	$(MAKE) migrate-up DATABASE_URL="$(DATABASE_URL)"
+	$(MAKE) migrate-up MIGRATION_DATABASE_URL="$(or $(MIGRATION_DATABASE_URL),$(DATABASE_URL))"
+	$(MAKE) migrate-down MIGRATION_DATABASE_URL="$(or $(MIGRATION_DATABASE_URL),$(DATABASE_URL))" CONFIRM_MIGRATE_DOWN=1
+	$(MAKE) migrate-up MIGRATION_DATABASE_URL="$(or $(MIGRATION_DATABASE_URL),$(DATABASE_URL))"

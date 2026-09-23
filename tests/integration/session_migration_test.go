@@ -13,7 +13,10 @@ import (
 )
 
 func TestSessionFamilyMigrationPreservesLegacySessions(t *testing.T) {
-	url := os.Getenv("TEST_DATABASE_URL")
+	url := os.Getenv("TEST_ADMIN_DATABASE_URL")
+	if url == "" {
+		url = os.Getenv("TEST_DATABASE_URL")
+	}
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL is required")
 	}

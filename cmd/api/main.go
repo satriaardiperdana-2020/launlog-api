@@ -51,6 +51,13 @@ func run(logger *slog.Logger) error {
 		return fmt.Errorf("connect to PostgreSQL: %w", err)
 	}
 	defer database.Close()
+	if cfg.Environment == "production" {
+		privilegeContext, cancel := context.WithTimeout(appContext, cfg.DatabaseConnectTimeout)
+		defer cancel()
+		if err := database.VerifyLeastPrivilege(privilegeContext); err != nil {
+			return fmt.Errorf("verify PostgreSQL runtime role: %w", err)
+		}
+	}
 	jwtTokens, err := security.NewTokenManager(cfg.JWTSigningSecret, cfg.JWTAccessTokenTTL)
 	if err != nil {
 		return fmt.Errorf("configure JWT: %w", err)
@@ -62,7 +69,10 @@ func run(logger *slog.Logger) error {
 	// Trust only the direct TCP peer. Reverse proxies must enforce their own
 	// limits; untrusted X-Forwarded-For/Real-IP headers never select a key.
 	e.IPExtractor = echo.ExtractIPDirect()
-	e.Use(middleware.RequestID(), middleware.Recover())
+	e.Use(middleware.RequestID(), middleware.Recover(), launmiddleware.SecurityHeaders)
+	if len(cfg.CORSAllowedOrigins) > 0 {
+		e.Use(launmiddleware.CORSConfig(cfg.CORSAllowedOrigins))
+	}
 
 	healthHandler := handlers.NewHealthHandler(database, cfg.ReadinessTimeout)
 	authHandler := handlers.NewAuthHandler(database, jwtTokens, cfg.JWTRefreshTokenTTL)
@@ -81,10 +91,10 @@ func run(logger *slog.Logger) error {
 	e.GET("/livez", healthHandler.Live)
 	e.GET("/readyz", healthHandler.Ready)
 	e.GET("/health", healthHandler.Health)
-	e.POST("/auth/login", authHandler.Login, authBody, authLimiter.Middleware)
-	e.POST("/auth/refresh", authHandler.Refresh, authBody, authLimiter.Middleware)
-	e.POST("/auth/logout", authHandler.Logout, authBody, launmiddleware.AuthenticateForLogout(database, jwtTokens))
-	e.GET("/auth/me", authHandler.Me, launmiddleware.Authenticate(database, jwtTokens))
+	e.POST("/auth/login", authHandler.Login, authBody, authLimiter.Middleware, launmiddleware.NoStore)
+	e.POST("/auth/refresh", authHandler.Refresh, authBody, authLimiter.Middleware, launmiddleware.NoStore)
+	e.POST("/auth/logout", authHandler.Logout, authBody, launmiddleware.AuthenticateForLogout(database, jwtTokens), launmiddleware.NoStore)
+	e.GET("/auth/me", authHandler.Me, launmiddleware.Authenticate(database, jwtTokens), launmiddleware.NoStore)
 
 	owner := e.Group("", launmiddleware.Authenticate(database, jwtTokens), launmiddleware.RequireAdmin())
 	owner.GET("/outlets", managementHandler.ListOutlets)
