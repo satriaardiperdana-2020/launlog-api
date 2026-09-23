@@ -41,7 +41,11 @@ Grants a permission to a staff user and records the granting user. Both the reci
 
 ### `refresh_tokens`
 
-Stores only hashes of refresh tokens, never raw tokens. A token belongs to a user and business, has a required expiry, and may be revoked. The active-token index supports session validation and cleanup.
+Stores only hashes of refresh tokens, never raw tokens. A token belongs to a user, business, and stable session family, has a required expiry, and may be consumed by rotation. Consumed hashes remain stored to detect replay. The active-token index supports session validation and cleanup.
+
+### `session_families`
+
+Groups all rotations of one login session under a stable key. Refresh and logout lock the family row before changing session state. Revoking a family invalidates all of its access and refresh tokens. Migration `000008` explicitly backfills one family per existing refresh token because earlier rotations did not record ancestry; it preserves all token hashes and business records.
 
 ## Master data
 
@@ -118,6 +122,7 @@ An immutable business audit stream. It records an optional outlet and actor, act
 5. `000005_expenses`
 6. `000006_receipts_and_audit`
 7. `000007_ownership_hardening`
+8. `000008_session_families`
 
 Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run in reverse order because later domains reference earlier ownership and order tables.
 

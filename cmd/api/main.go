@@ -59,16 +59,21 @@ func run(logger *slog.Logger) error {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
+	// Trust only the direct TCP peer. Reverse proxies must enforce their own
+	// limits; untrusted X-Forwarded-For/Real-IP headers never select a key.
+	e.IPExtractor = echo.ExtractIPDirect()
 	e.Use(middleware.RequestID(), middleware.Recover())
 
 	healthHandler := handlers.NewHealthHandler(database, cfg.ReadinessTimeout)
 	authHandler := handlers.NewAuthHandler(database, jwtTokens, cfg.JWTRefreshTokenTTL)
+	authLimiter := launmiddleware.NewAuthLimiter(4096, 10, time.Minute)
+	authBody := launmiddleware.AuthBodyLimit(4096)
 	e.GET("/livez", healthHandler.Live)
 	e.GET("/readyz", healthHandler.Ready)
 	e.GET("/health", healthHandler.Health)
-	e.POST("/auth/login", authHandler.Login)
-	e.POST("/auth/refresh", authHandler.Refresh)
-	e.POST("/auth/logout", authHandler.Logout, launmiddleware.Authenticate(database, jwtTokens))
+	e.POST("/auth/login", authHandler.Login, authBody, authLimiter.Middleware)
+	e.POST("/auth/refresh", authHandler.Refresh, authBody, authLimiter.Middleware)
+	e.POST("/auth/logout", authHandler.Logout, authBody, launmiddleware.AuthenticateForLogout(database, jwtTokens))
 	e.GET("/auth/me", authHandler.Me, launmiddleware.Authenticate(database, jwtTokens))
 
 	server := &http.Server{

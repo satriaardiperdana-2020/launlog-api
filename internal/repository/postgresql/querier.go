@@ -11,13 +11,19 @@ import (
 type Querier interface {
 	CheckDatabaseHealth(ctx context.Context) (int32, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (CreateRefreshTokenRow, error)
+	CreateSessionFamily(ctx context.Context, arg CreateSessionFamilyParams) (int64, error)
+	FindRefreshTokenFamily(ctx context.Context, tokenHash string) (FindRefreshTokenFamilyRow, error)
 	GetActiveRefreshSession(ctx context.Context, arg GetActiveRefreshSessionParams) (GetActiveRefreshSessionRow, error)
 	GetActiveUser(ctx context.Context, arg GetActiveUserParams) (GetActiveUserRow, error)
+	GetLogoutSession(ctx context.Context, arg GetLogoutSessionParams) (GetLogoutSessionRow, error)
+	GetRefreshTokenByID(ctx context.Context, arg GetRefreshTokenByIDParams) (GetRefreshTokenByIDRow, error)
 	GetRefreshTokenForUpdate(ctx context.Context, tokenHash string) (GetRefreshTokenForUpdateRow, error)
 	GetUserForLogin(ctx context.Context, lower string) (GetUserForLoginRow, error)
 	ListUserOutletIDs(ctx context.Context, arg ListUserOutletIDsParams) ([]int64, error)
 	ListUserPermissionCodes(ctx context.Context, arg ListUserPermissionCodesParams) ([]string, error)
+	LockSessionFamily(ctx context.Context, arg LockSessionFamilyParams) (LockSessionFamilyRow, error)
 	RevokeRefreshToken(ctx context.Context, arg RevokeRefreshTokenParams) (int64, error)
+	RevokeSessionFamily(ctx context.Context, arg RevokeSessionFamilyParams) error
 }
 
 var _ Querier = (*Queries)(nil)

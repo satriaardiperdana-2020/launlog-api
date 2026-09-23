@@ -12,6 +12,16 @@ import (
 )
 
 func Authenticate(db *repository.Postgres, tokens *security.TokenManager) echo.MiddlewareFunc {
+	return authenticate(db, tokens, false)
+}
+
+// AuthenticateForLogout permits an already consumed bearer session so logout
+// can revoke its family if refresh committed just before logout began.
+func AuthenticateForLogout(db *repository.Postgres, tokens *security.TokenManager) echo.MiddlewareFunc {
+	return authenticate(db, tokens, true)
+}
+
+func authenticate(db *repository.Postgres, tokens *security.TokenManager, forLogout bool) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			h := c.Request().Header.Get(echo.HeaderAuthorization)
@@ -28,8 +38,14 @@ func Authenticate(db *repository.Postgres, tokens *security.TokenManager) echo.M
 				return unauthorized(c)
 			}
 			q := db.Queries()
-			if _, err = q.GetActiveRefreshSession(c.Request().Context(), postgresql.GetActiveRefreshSessionParams{ID: claims.SessionID, BusinessID: claims.BusinessID, UserID: uid}); err != nil {
-				return unauthorized(c)
+			if forLogout {
+				if _, err = q.GetLogoutSession(c.Request().Context(), postgresql.GetLogoutSessionParams{ID: claims.SessionID, BusinessID: claims.BusinessID, UserID: uid}); err != nil {
+					return unauthorized(c)
+				}
+			} else {
+				if _, err = q.GetActiveRefreshSession(c.Request().Context(), postgresql.GetActiveRefreshSessionParams{ID: claims.SessionID, BusinessID: claims.BusinessID, UserID: uid}); err != nil {
+					return unauthorized(c)
+				}
 			}
 			u, err := q.GetActiveUser(c.Request().Context(), postgresql.GetActiveUserParams{ID: uid, BusinessID: claims.BusinessID})
 			if err != nil {
@@ -43,6 +59,9 @@ func Authenticate(db *repository.Postgres, tokens *security.TokenManager) echo.M
 				return unauthorized(c)
 			}
 			if !same(outs, claims.OutletIDs) {
+				return unauthorized(c)
+			}
+			if u.Role == "LAUNDRY_STAFF" && len(outs) == 0 {
 				return unauthorized(c)
 			}
 			perms, err := q.ListUserPermissionCodes(c.Request().Context(), postgresql.ListUserPermissionCodesParams{BusinessID: claims.BusinessID, UserID: uid})

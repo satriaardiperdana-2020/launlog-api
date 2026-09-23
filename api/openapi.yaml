@@ -106,6 +106,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -115,7 +117,7 @@ paths:
     post:
       operationId: refreshToken
       summary: Refresh an authentication session
-      description: Rotates a valid refresh token and returns a new token pair.
+      description: Rotates a valid refresh token and returns a new token pair. Reuse of a consumed token revokes its entire session family.
       tags:
         - Authentication
       security: []
@@ -127,15 +129,17 @@ paths:
               $ref: "#/components/schemas/RefreshRequest"
       responses:
         "200":
-          description: Refresh token accepted and rotated.
+          description: Refresh token accepted and rotated; returns the same session envelope as login.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TokenPair"
+                $ref: "#/components/schemas/AuthSessionResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -162,6 +166,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -251,6 +257,12 @@ components:
             format: int32
             minimum: 1
           description: Seconds to wait before retrying.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    RequestTooLarge:
+      description: The authentication request body exceeds 4096 bytes.
       content:
         application/json:
           schema:
@@ -408,9 +420,8 @@ components:
         password:
           type: string
           format: password
-          minLength: 8
-          maxLength: 128
           writeOnly: true
+          description: Existing credentials are checked as stored. New or changed passwords require 8 to 128 Unicode characters and at most 72 UTF-8 bytes for bcrypt. The character policy is not imposed retroactively at login.
 
     RefreshRequest:
       type: object

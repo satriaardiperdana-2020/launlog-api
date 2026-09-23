@@ -149,8 +149,10 @@ type LocalDate = openapi_types.Date
 
 // LoginRequest defines model for LoginRequest.
 type LoginRequest struct {
-	Email    openapi_types.Email `json:"email"`
-	Password *string             `json:"password,omitempty"`
+	Email openapi_types.Email `json:"email"`
+
+	// Password Existing credentials are checked as stored. New or changed passwords require 8 to 128 Unicode characters and at most 72 UTF-8 bytes for bcrypt. The character policy is not imposed retroactively at login.
+	Password *string `json:"password,omitempty"`
 }
 
 // LogoutRequest defines model for LogoutRequest.
@@ -205,6 +207,9 @@ type Forbidden = ErrorResponse
 
 // InternalServerError defines model for InternalServerError.
 type InternalServerError = ErrorResponse
+
+// RequestTooLarge defines model for RequestTooLarge.
+type RequestTooLarge = ErrorResponse
 
 // ServiceUnavailable defines model for ServiceUnavailable.
 type ServiceUnavailable = ErrorResponse
@@ -387,6 +392,8 @@ type ForbiddenJSONResponse ErrorResponse
 
 type InternalServerErrorJSONResponse ErrorResponse
 
+type RequestTooLargeJSONResponse ErrorResponse
+
 type ServiceUnavailableJSONResponse ErrorResponse
 
 type TooManyRequestsResponseHeaders struct {
@@ -456,6 +463,20 @@ func (response Login401JSONResponse) VisitLoginResponse(w http.ResponseWriter) e
 		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
 	}
 	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type Login413JSONResponse struct{ RequestTooLargeJSONResponse }
+
+func (response Login413JSONResponse) VisitLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -536,6 +557,20 @@ func (response Logout401JSONResponse) VisitLogoutResponse(w http.ResponseWriter)
 		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
 	}
 	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type Logout413JSONResponse struct{ RequestTooLargeJSONResponse }
+
+func (response Logout413JSONResponse) VisitLogoutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -632,7 +667,7 @@ type RefreshTokenResponseObject interface {
 	VisitRefreshTokenResponse(w http.ResponseWriter) error
 }
 
-type RefreshToken200JSONResponse TokenPair
+type RefreshToken200JSONResponse AuthSessionResponse
 
 func (response RefreshToken200JSONResponse) VisitRefreshTokenResponse(w http.ResponseWriter) error {
 
@@ -673,6 +708,20 @@ func (response RefreshToken401JSONResponse) VisitRefreshTokenResponse(w http.Res
 		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
 	}
 	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshToken413JSONResponse struct{ RequestTooLargeJSONResponse }
+
+func (response RefreshToken413JSONResponse) VisitRefreshTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
 	_, err := buf.WriteTo(w)
 	return err
 }

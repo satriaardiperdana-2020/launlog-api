@@ -62,11 +62,12 @@ func TestOwnershipMigrationAndTenantIsolation(t *testing.T) {
 	assertForeignKeyViolation(t, mustExecErr(ctx, tx,
 		`INSERT INTO user_outlets (business_id, user_id, outlet_id) VALUES ($1, $2, $3)`, businessAID, userAID, outletBID))
 
-	mustExec(t, ctx, tx, `INSERT INTO refresh_tokens (id, business_id, user_id, token_hash, expires_at) VALUES
-		(-10031, $1, $2, 'ownership-test-token-a', now() + interval '1 hour')`, businessAID, userAID)
+	mustExec(t, ctx, tx, `INSERT INTO session_families (id, business_id, user_id) VALUES (-10031, $1, $2)`, businessAID, userAID)
+	mustExec(t, ctx, tx, `INSERT INTO refresh_tokens (id, business_id, user_id, family_id, token_hash, expires_at) VALUES
+		(-10031, $1, $2, -10031, 'ownership-test-token-a', now() + interval '1 hour')`, businessAID, userAID)
 	assertForeignKeyViolation(t, mustExecErr(ctx, tx,
-		`INSERT INTO refresh_tokens (id, business_id, user_id, token_hash, expires_at) VALUES
-		(-10032, $1, $2, 'ownership-test-token-cross-business', now() + interval '1 hour')`, businessBID, userAID))
+		`INSERT INTO refresh_tokens (id, business_id, user_id, family_id, token_hash, expires_at) VALUES
+		(-10032, $1, $2, -10031, 'ownership-test-token-cross-business', now() + interval '1 hour')`, businessBID, userAID))
 
 	mustExec(t, ctx, tx, `INSERT INTO services (id, business_id, name, unit, unit_price_amount) VALUES
 		(-10041, $1, 'Wash', 'KILOGRAM', 7000),
@@ -112,8 +113,8 @@ func assertSchemaVersion(t *testing.T, ctx context.Context, tx pgx.Tx) {
 	if err := tx.QueryRow(ctx, `SELECT version, dirty FROM schema_migrations`).Scan(&version, &dirty); err != nil {
 		t.Fatalf("read schema migration state: %v", err)
 	}
-	if version != 7 || dirty {
-		t.Fatalf("expected clean ownership-hardening migration at version 7, got version=%d dirty=%t", version, dirty)
+	if version != 8 || dirty {
+		t.Fatalf("expected clean session-family migration at version 8, got version=%d dirty=%t", version, dirty)
 	}
 }
 
