@@ -20,10 +20,10 @@ import (
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/satriaardiperdana-2020/launlog-api/internal/handlers"
-	authmiddleware "github.com/satriaardiperdana-2020/launlog-api/internal/middleware"
+	"github.com/satriaardiperdana-2020/launlog-api/internal/config"
 	"github.com/satriaardiperdana-2020/launlog-api/internal/repository"
 	"github.com/satriaardiperdana-2020/launlog-api/internal/security"
+	"github.com/satriaardiperdana-2020/launlog-api/internal/server"
 )
 
 type authFixture struct {
@@ -50,7 +50,7 @@ func newAuthFixture(t *testing.T) *authFixture {
 		pool.Close()
 		t.Fatal(err)
 	}
-	f := &authFixture{pool: pool, adminPool: pool, database: database, echo: echo.New()}
+	f := &authFixture{pool: pool, adminPool: pool, database: database}
 	if adminURL := os.Getenv("TEST_ADMIN_DATABASE_URL"); adminURL != "" {
 		adminPool, err := pgxpool.New(ctx, adminURL)
 		if err != nil {
@@ -60,7 +60,6 @@ func newAuthFixture(t *testing.T) *authFixture {
 		}
 		f.adminPool = adminPool
 	}
-	f.echo.IPExtractor = echo.ExtractIPDirect()
 	t.Cleanup(func() {
 		// Delete only records created by this test, in foreign-key order.
 		// Management audit rows are intentionally immutable in production; the
@@ -115,77 +114,7 @@ func newAuthFixture(t *testing.T) *authFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := handlers.NewAuthHandler(database, tokens, time.Hour)
-	limiter := authmiddleware.NewAuthLimiter(4096, 10, time.Minute)
-	bodyLimit := authmiddleware.AuthBodyLimit(4096)
-	f.echo.POST("/auth/login", handler.Login, bodyLimit, limiter.Middleware)
-	f.echo.POST("/auth/refresh", handler.Refresh, bodyLimit, limiter.Middleware)
-	f.echo.POST("/auth/logout", handler.Logout, bodyLimit, authmiddleware.AuthenticateForLogout(database, tokens))
-	f.echo.GET("/auth/me", handler.Me, authmiddleware.Authenticate(database, tokens))
-	management := handlers.NewManagementHandler(database)
-	owner := f.echo.Group("", authmiddleware.Authenticate(database, tokens), authmiddleware.RequireAdmin())
-	owner.GET("/outlets", management.ListOutlets)
-	owner.POST("/outlets", management.CreateOutlet)
-	owner.GET("/outlets/:outletId", management.GetOutlet)
-	owner.PUT("/outlets/:outletId", management.UpdateOutlet)
-	owner.GET("/staff", management.ListStaff)
-	owner.POST("/staff", management.CreateStaff)
-	owner.GET("/staff/:userId", management.GetStaff)
-	owner.PUT("/staff/:userId", management.UpdateStaff)
-	owner.PUT("/staff/:userId/outlets", management.ReplaceStaffOutlets)
-	owner.GET("/permissions", management.ListPermissions)
-	owner.PUT("/staff/:userId/permissions", management.ReplaceStaffPermissions)
-	customers := f.echo.Group("/customers", authmiddleware.Authenticate(database, tokens))
-	customerHandler := handlers.NewCustomerHandler(database)
-	customers.GET("", customerHandler.List, authmiddleware.RequirePermission("CUSTOMERS_READ"))
-	customers.POST("", customerHandler.Create, authmiddleware.RequirePermission("CUSTOMERS_WRITE"))
-	customers.GET("/:customerId", customerHandler.Get, authmiddleware.RequirePermission("CUSTOMERS_READ"))
-	customers.PUT("/:customerId", customerHandler.Update, authmiddleware.RequirePermission("CUSTOMERS_WRITE"))
-	customers.DELETE("/:customerId", customerHandler.Deactivate, authmiddleware.RequirePermission("CUSTOMERS_WRITE"))
-	customers.GET("/:customerId/orders", customerHandler.OrderHistory, authmiddleware.RequirePermission("CUSTOMERS_READ"), authmiddleware.RequirePermission("ORDERS_READ"))
-	services := f.echo.Group("/services", authmiddleware.Authenticate(database, tokens))
-	serviceHandler := handlers.NewServiceHandler(database)
-	services.GET("", serviceHandler.List, authmiddleware.RequirePermission("SERVICES_READ"))
-	services.POST("", serviceHandler.Create, authmiddleware.RequirePermission("SERVICES_WRITE"))
-	services.GET("/:serviceId", serviceHandler.Get, authmiddleware.RequirePermission("SERVICES_READ"))
-	services.PUT("/:serviceId", serviceHandler.Update, authmiddleware.RequirePermission("SERVICES_WRITE"))
-	services.DELETE("/:serviceId", serviceHandler.Delete, authmiddleware.RequirePermission("SERVICES_WRITE"))
-	expenseHandler := handlers.NewExpenseHandler(database)
-	expenseCategories := f.echo.Group("/expense-categories", authmiddleware.Authenticate(database, tokens))
-	expenseCategories.GET("", expenseHandler.ListCategories, authmiddleware.RequirePermission("EXPENSES_READ"))
-	expenseCategories.POST("", expenseHandler.CreateCategory, authmiddleware.RequirePermission("EXPENSES_WRITE"))
-	expenseCategories.GET("/:categoryId", expenseHandler.GetCategory, authmiddleware.RequirePermission("EXPENSES_READ"))
-	expenseCategories.PUT("/:categoryId", expenseHandler.UpdateCategory, authmiddleware.RequirePermission("EXPENSES_WRITE"))
-	expenses := f.echo.Group("/expenses", authmiddleware.Authenticate(database, tokens))
-	expenses.GET("", expenseHandler.List, authmiddleware.RequirePermission("EXPENSES_READ"))
-	expenses.POST("", expenseHandler.Create, authmiddleware.RequirePermission("EXPENSES_WRITE"))
-	expenses.GET("/:expenseId", expenseHandler.Get, authmiddleware.RequirePermission("EXPENSES_READ"))
-	expenses.PUT("/:expenseId", expenseHandler.Update, authmiddleware.RequirePermission("EXPENSES_WRITE"))
-	dashboardHandler := handlers.NewDashboardHandler(database)
-	dashboards := f.echo.Group("/outlets", authmiddleware.Authenticate(database, tokens))
-	dashboards.GET("/:outletId/dashboard", dashboardHandler.GetOutlet, authmiddleware.RequirePermission("REPORTS_READ"))
-	receiptsHandler := handlers.NewReceiptsHandler(database)
-	dashboards.GET("/:outletId/receipts/qr/:qrId", receiptsHandler.GetReceiptByQR, authmiddleware.RequirePermission("ORDERS_READ"))
-	dashboards.GET("/:outletId/receipt-templates", receiptsHandler.ListTemplates, authmiddleware.RequirePermission("RECEIPTS_MANAGE"))
-	dashboards.POST("/:outletId/receipt-templates", receiptsHandler.CreateTemplate, authmiddleware.RequirePermission("RECEIPTS_MANAGE"))
-	dashboards.GET("/:outletId/receipt-templates/:templateId", receiptsHandler.GetTemplate, authmiddleware.RequirePermission("RECEIPTS_MANAGE"))
-	dashboards.PUT("/:outletId/receipt-templates/:templateId", receiptsHandler.UpdateTemplate, authmiddleware.RequirePermission("RECEIPTS_MANAGE"))
-	dashboards.DELETE("/:outletId/receipt-templates/:templateId", receiptsHandler.DeleteTemplate, authmiddleware.RequirePermission("RECEIPTS_MANAGE"))
-	reportsHandler := handlers.NewReportsHandler(database)
-	reports := f.echo.Group("/outlets", authmiddleware.Authenticate(database, tokens))
-	for _, reportType := range []string{"income", "expenses", "profit-loss", "orders", "cancellations", "customers"} {
-		reports.GET("/:outletId/reports/"+reportType, reportsHandler.Get(reportType), authmiddleware.RequirePermission("REPORTS_READ"))
-	}
-	orders := f.echo.Group("/orders", authmiddleware.Authenticate(database, tokens))
-	orderHandler := handlers.NewOrderHandler(database)
-	orders.GET("/:orderId/receipt", receiptsHandler.GetOrderReceipt, authmiddleware.RequirePermission("ORDERS_READ"))
-	orders.GET("/:orderId/status-history", orderHandler.StatusHistory, authmiddleware.RequirePermission("ORDERS_READ"))
-	orders.PATCH("/:orderId/status", orderHandler.TransitionStatus, authmiddleware.RequirePermission("ORDERS_UPDATE"))
-	orders.POST("/:orderId/cancel", orderHandler.Cancel, authmiddleware.RequirePermission("ORDERS_UPDATE"))
-	paymentHandler := handlers.NewPaymentHandler(database)
-	orders.GET("/:orderId/payments", paymentHandler.List, authmiddleware.RequirePermission("PAYMENTS_READ"))
-	orders.POST("/:orderId/payments", paymentHandler.Record, authmiddleware.RequirePermission("PAYMENTS_RECORD"))
-	orders.POST("/:orderId/payments/:paymentId/void", paymentHandler.Void, authmiddleware.RequirePermission("PAYMENTS_RECORD"))
+	f.echo = server.New(config.Config{ReadinessTimeout: 2 * time.Second, JWTRefreshTokenTTL: time.Hour}, database, tokens)
 	return f
 }
 

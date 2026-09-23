@@ -20,6 +20,8 @@ import (
 
 var (
 	ErrInvalidOrder             = errors.New("invalid order request")
+	ErrInvalidOrderQuantity     = errors.New("quantity must be a positive decimal string with at most 9 integer and 3 fractional digits; PIECE quantities must be whole numbers")
+	ErrOrderDueAtBeforeReceive  = errors.New("dueAt must not be earlier than the order receive time; send a future date-time or omit dueAt")
 	ErrOrderNotFound            = errors.New("order not found")
 	ErrOrderOutletForbidden     = errors.New("outlet is not assigned to this user")
 	ErrOrderCustomerNotFound    = errors.New("active customer not found")
@@ -244,7 +246,7 @@ func (s *OrderCatalog) Create(ctx context.Context, actor Actor, input CreateOrde
 		}
 		milli, err := parseMilliQuantity(requested.Quantity)
 		if err != nil || (itemService.Unit == "PIECE" && milli%1000 != 0) {
-			return OrderCreationResult{}, ErrInvalidOrder
+			return OrderCreationResult{}, ErrInvalidOrderQuantity
 		}
 		lineTotal := new(big.Int).Mul(big.NewInt(milli), big.NewInt(itemService.UnitPriceAmount))
 		lineTotal.Add(lineTotal, big.NewInt(500)) // PostgreSQL round(numeric) rounds positive half values away from zero.
@@ -265,7 +267,7 @@ func (s *OrderCatalog) Create(ctx context.Context, actor Actor, input CreateOrde
 		return OrderCreationResult{}, err
 	}
 	if input.DueAt != nil && input.DueAt.Before(orderTime.ReceivedAt.Time) {
-		return OrderCreationResult{}, ErrInvalidOrder
+		return OrderCreationResult{}, ErrOrderDueAtBeforeReceive
 	}
 	allocated, err := q.AllocateInvoiceNumber(ctx, postgresql.AllocateInvoiceNumberParams{
 		BusinessID: actor.BusinessID, OutletID: input.OutletID, CounterDate: orderTime.CounterDate,
@@ -583,40 +585,40 @@ func orderSummaryFrom(id, businessID, outletID, customerID int64, invoice, statu
 
 func parseMilliQuantity(value string) (int64, error) {
 	if value == "" || strings.HasPrefix(value, "+") || strings.HasPrefix(value, "-") || strings.Count(value, ".") > 1 {
-		return 0, ErrInvalidOrder
+		return 0, ErrInvalidOrderQuantity
 	}
 	parts := strings.SplitN(value, ".", 2)
 	if len(parts[0]) == 0 || len(parts[0]) > 9 {
-		return 0, ErrInvalidOrder
+		return 0, ErrInvalidOrderQuantity
 	}
 	whole, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		return 0, ErrInvalidOrder
+		return 0, ErrInvalidOrderQuantity
 	}
 	for _, r := range parts[0] {
 		if r < '0' || r > '9' {
-			return 0, ErrInvalidOrder
+			return 0, ErrInvalidOrderQuantity
 		}
 	}
 	fraction := int64(0)
 	if len(parts) == 2 {
 		if len(parts[1]) == 0 || len(parts[1]) > 3 {
-			return 0, ErrInvalidOrder
+			return 0, ErrInvalidOrderQuantity
 		}
 		for _, r := range parts[1] {
 			if r < '0' || r > '9' {
-				return 0, ErrInvalidOrder
+				return 0, ErrInvalidOrderQuantity
 			}
 		}
 		padded := parts[1] + strings.Repeat("0", 3-len(parts[1]))
 		fraction, err = strconv.ParseInt(padded, 10, 64)
 		if err != nil {
-			return 0, ErrInvalidOrder
+			return 0, ErrInvalidOrderQuantity
 		}
 	}
 	milli := whole*1000 + fraction
 	if milli <= 0 || milli > 999999999999 {
-		return 0, ErrInvalidOrder
+		return 0, ErrInvalidOrderQuantity
 	}
 	return milli, nil
 }
