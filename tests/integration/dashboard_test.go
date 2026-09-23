@@ -40,7 +40,7 @@ func TestOutletDashboardLocalConfirmedPaymentsAndExpenses(t *testing.T) {
 		return orderID
 	}
 	primaryOrderID := createOrder(f.outletID)
-	insertPayment := func(orderID int64, amount int64, status string, confirmedAt *time.Time, voided bool) int64 {
+	insertPayment := func(outletID, orderID int64, amount int64, status string, confirmedAt *time.Time, voided bool) int64 {
 		t.Helper()
 		var id int64
 		var voidedAt any
@@ -50,7 +50,7 @@ func TestOutletDashboardLocalConfirmedPaymentsAndExpenses(t *testing.T) {
 			voidedAt, voidedBy, voidReason = dayStart.Add(time.Hour), f.userID, "test correction"
 		}
 		if err := f.pool.QueryRow(ctx, `INSERT INTO payments(business_id,outlet_id,order_id,amount,method,status,confirmed_at,voided_at,voided_by,void_reason,created_by)
-			VALUES($1,$2,$3,$4,'CASH',$5,$6,$7,$8,$9,$10) RETURNING id`, f.businessID, f.outletID, orderID, amount, status, confirmedAt, voidedAt, voidedBy, voidReason, f.userID).Scan(&id); err != nil {
+			VALUES($1,$2,$3,$4,'CASH',$5,$6,$7,$8,$9,$10) RETURNING id`, f.businessID, outletID, orderID, amount, status, confirmedAt, voidedAt, voidedBy, voidReason, f.userID).Scan(&id); err != nil {
 			t.Fatal(err)
 		}
 		return id
@@ -58,12 +58,12 @@ func TestOutletDashboardLocalConfirmedPaymentsAndExpenses(t *testing.T) {
 	startPaymentAt := dayStart
 	midPaymentAt := dayStart.Add(5 * time.Hour)
 	endPaymentAt := dayEnd
-	refundedFixturePaymentID := insertPayment(primaryOrderID, 2500, "CONFIRMED", &startPaymentAt, false)
-	insertPayment(primaryOrderID, 1500, "CONFIRMED", &midPaymentAt, false)
-	insertPayment(primaryOrderID, 1111, "CONFIRMED", ptrTime(dayStart.Add(-time.Microsecond)), false)
-	insertPayment(primaryOrderID, 2222, "CONFIRMED", &endPaymentAt, false)
-	insertPayment(primaryOrderID, 3333, "PENDING", nil, false)
-	insertPayment(primaryOrderID, 4444, "VOIDED", &startPaymentAt, true)
+	refundedFixturePaymentID := insertPayment(f.outletID, primaryOrderID, 2500, "CONFIRMED", &startPaymentAt, false)
+	insertPayment(f.outletID, primaryOrderID, 1500, "CONFIRMED", &midPaymentAt, false)
+	insertPayment(f.outletID, primaryOrderID, 1111, "CONFIRMED", ptrTime(dayStart.Add(-time.Microsecond)), false)
+	insertPayment(f.outletID, primaryOrderID, 2222, "CONFIRMED", &endPaymentAt, false)
+	insertPayment(f.outletID, primaryOrderID, 3333, "PENDING", nil, false)
+	insertPayment(f.outletID, primaryOrderID, 4444, "VOIDED", &startPaymentAt, true)
 	// The dashboard reports gross confirmed receipts. The reserved refund table
 	// is not an approved refund workflow and is intentionally not netted here.
 	if _, err := f.pool.Exec(ctx, `INSERT INTO payment_refunds(business_id,outlet_id,order_id,payment_id,amount,reason,refunded_by,refunded_at) VALUES($1,$2,$3,$4,500,'legacy dashboard fixture',$5,$6)`, f.businessID, f.outletID, primaryOrderID, refundedFixturePaymentID, f.userID, startPaymentAt.Add(time.Hour)); err != nil {
@@ -88,7 +88,7 @@ func TestOutletDashboardLocalConfirmedPaymentsAndExpenses(t *testing.T) {
 		t.Fatal(err)
 	}
 	secondOrderID := createOrder(secondOutletID)
-	insertPayment(secondOrderID, 9000, "CONFIRMED", &midPaymentAt, false)
+	insertPayment(secondOutletID, secondOrderID, 9000, "CONFIRMED", &midPaymentAt, false)
 	if _, err := f.pool.Exec(ctx, `INSERT INTO expenses(business_id,outlet_id,category_id,amount,description,expense_at,created_by) VALUES($1,$2,$3,5000,'other outlet',$4,$5)`, f.businessID, secondOutletID, categoryID, midPaymentAt, f.userID); err != nil {
 		t.Fatal(err)
 	}
