@@ -440,11 +440,11 @@ func expenseAuditValues(v expenseResponse) map[string]any {
 	return map[string]any{"id": v.ID, "outlet_id": v.OutletID, "category_id": v.CategoryID, "amount": v.Amount, "expense_at": v.ExpenseAt, "version": v.Version, "description": "[REDACTED]", "receipt_reference": "[REDACTED]"}
 }
 func writeExpenseAudit(ctx context.Context, q *postgresql.Queries, p Principal, c echo.Context, action string, id, outletID int64, before, after any) error {
-	oldJSON, err := json.Marshal(before)
+	oldJSON, err := marshalExpenseAuditValue(before)
 	if err != nil {
 		return err
 	}
-	newJSON, err := json.Marshal(after)
+	newJSON, err := marshalExpenseAuditValue(after)
 	if err != nil {
 		return err
 	}
@@ -459,11 +459,11 @@ func writeExpenseAudit(ctx context.Context, q *postgresql.Queries, p Principal, 
 	return q.InsertExpenseAuditLog(ctx, postgresql.InsertExpenseAuditLogParams{BusinessID: p.BusinessID, OutletID: pgtype.Int8{Int64: outletID, Valid: true}, ActorUserID: pgtype.Int8{Int64: p.UserID, Valid: true}, Action: action, EntityID: pgtype.Int8{Int64: id, Valid: true}, OldValues: oldJSON, NewValues: newJSON, IpAddress: ip, UserAgent: pgtype.Text{String: ua, Valid: ua != ""}})
 }
 func writeExpenseCategoryAudit(ctx context.Context, q *postgresql.Queries, p Principal, c echo.Context, action string, id int64, before, after any) error {
-	oldJSON, err := json.Marshal(before)
+	oldJSON, err := marshalExpenseAuditValue(before)
 	if err != nil {
 		return err
 	}
-	newJSON, err := json.Marshal(after)
+	newJSON, err := marshalExpenseAuditValue(after)
 	if err != nil {
 		return err
 	}
@@ -476,6 +476,13 @@ func writeExpenseCategoryAudit(ctx context.Context, q *postgresql.Queries, p Pri
 		ua = ua[:512]
 	}
 	return q.InsertExpenseCategoryAuditLog(ctx, postgresql.InsertExpenseCategoryAuditLogParams{BusinessID: p.BusinessID, ActorUserID: pgtype.Int8{Int64: p.UserID, Valid: true}, Action: action, EntityID: pgtype.Int8{Int64: id, Valid: true}, OldValues: oldJSON, NewValues: newJSON, IpAddress: ip, UserAgent: pgtype.Text{String: ua, Valid: ua != ""}})
+}
+
+func marshalExpenseAuditValue(value any) ([]byte, error) {
+	if value == nil {
+		return nil, nil
+	}
+	return json.Marshal(value)
 }
 func expenseWriteError(c echo.Context, err error) error {
 	var pgErr *pgconn.PgError

@@ -68,4 +68,11 @@ func TestExpenseAuditAllowlistRedactsNarrativeAndReceipt(t *testing.T) {
 	}
 }
 
+func TestExpenseAuditNilMeansSQLNullNotJSONNull(t *testing.T) {
+	value, err := marshalExpenseAuditValue(nil)
+	if err != nil || value != nil {
+		t.Fatalf("nil audit side must be stored as SQL NULL, got %q err=%v", value, err)
+	}
+}
+
 func stringPointer(v string) *string { return &v }
