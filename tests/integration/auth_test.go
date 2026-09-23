@@ -61,6 +61,7 @@ func newAuthFixture(t *testing.T) *authFixture {
 		_, _ = pool.Exec(ctx, "DELETE FROM payments WHERE business_id=$1", f.businessID)
 		_, _ = pool.Exec(ctx, "DELETE FROM order_status_history WHERE business_id=$1", f.businessID)
 		_, _ = pool.Exec(ctx, "DELETE FROM order_items WHERE business_id=$1", f.businessID)
+		_, _ = pool.Exec(ctx, "DELETE FROM perfumes WHERE business_id=$1", f.businessID)
 		_, _ = pool.Exec(ctx, "DELETE FROM orders WHERE business_id=$1", f.businessID)
 		_, _ = pool.Exec(ctx, "DELETE FROM services WHERE business_id=$1", f.businessID)
 		_, _ = pool.Exec(ctx, "DELETE FROM invoice_counters WHERE business_id=$1", f.businessID)

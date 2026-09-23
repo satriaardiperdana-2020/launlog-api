@@ -11,17 +11,22 @@ import (
 type Querier interface {
 	AddStaffOutlet(ctx context.Context, arg AddStaffOutletParams) error
 	AddStaffPermission(ctx context.Context, arg AddStaffPermissionParams) error
+	AllocateInvoiceNumber(ctx context.Context, arg AllocateInvoiceNumberParams) (AllocateInvoiceNumberRow, error)
 	CheckDatabaseHealth(ctx context.Context) (int32, error)
 	CountActiveAssignedStaffWithoutOtherOutlet(ctx context.Context, arg CountActiveAssignedStaffWithoutOtherOutletParams) (int64, error)
 	CountActiveOutlets(ctx context.Context, arg CountActiveOutletsParams) (int64, error)
 	CountCustomerOrderHistory(ctx context.Context, arg CountCustomerOrderHistoryParams) (int64, error)
 	CountCustomers(ctx context.Context, arg CountCustomersParams) (int64, error)
+	CountOrders(ctx context.Context, arg CountOrdersParams) (int64, error)
 	CountOtherActiveAdmins(ctx context.Context, arg CountOtherActiveAdminsParams) (int64, error)
 	CountOutlets(ctx context.Context, businessID int64) (int64, error)
 	CountPerfumes(ctx context.Context, arg CountPerfumesParams) (int64, error)
 	CountServices(ctx context.Context, arg CountServicesParams) (int64, error)
 	CountStaff(ctx context.Context, businessID int64) (int64, error)
 	CreateCustomer(ctx context.Context, arg CreateCustomerParams) (CreateCustomerRow, error)
+	CreateInitialOrderStatus(ctx context.Context, arg CreateInitialOrderStatusParams) error
+	CreateOrder(ctx context.Context, arg CreateOrderParams) (CreateOrderRow, error)
+	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) error
 	CreateOutlet(ctx context.Context, arg CreateOutletParams) (Outlet, error)
 	CreatePerfume(ctx context.Context, arg CreatePerfumeParams) (CreatePerfumeRow, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (CreateRefreshTokenRow, error)
@@ -32,12 +37,20 @@ type Querier interface {
 	DeleteStaffOutlets(ctx context.Context, arg DeleteStaffOutletsParams) error
 	DeleteStaffPermissions(ctx context.Context, arg DeleteStaffPermissionsParams) error
 	FindRefreshTokenFamily(ctx context.Context, tokenHash string) (FindRefreshTokenFamilyRow, error)
+	GetActiveOrderCustomer(ctx context.Context, arg GetActiveOrderCustomerParams) (GetActiveOrderCustomerRow, error)
+	GetActiveOrderOutlet(ctx context.Context, arg GetActiveOrderOutletParams) (GetActiveOrderOutletRow, error)
+	GetActiveOrderPerfume(ctx context.Context, arg GetActiveOrderPerfumeParams) (GetActiveOrderPerfumeRow, error)
+	GetActiveOrderService(ctx context.Context, arg GetActiveOrderServiceParams) (GetActiveOrderServiceRow, error)
 	GetActiveRefreshSession(ctx context.Context, arg GetActiveRefreshSessionParams) (GetActiveRefreshSessionRow, error)
+	GetActiveStaffOrderOutlet(ctx context.Context, arg GetActiveStaffOrderOutletParams) (int64, error)
 	GetActiveUser(ctx context.Context, arg GetActiveUserParams) (GetActiveUserRow, error)
 	GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCustomerRow, error)
 	GetCustomerForHistory(ctx context.Context, arg GetCustomerForHistoryParams) (int64, error)
 	GetCustomerForUpdate(ctx context.Context, arg GetCustomerForUpdateParams) (GetCustomerForUpdateRow, error)
 	GetLogoutSession(ctx context.Context, arg GetLogoutSessionParams) (GetLogoutSessionRow, error)
+	GetOrder(ctx context.Context, arg GetOrderParams) (GetOrderRow, error)
+	GetOrderByIdempotencyKey(ctx context.Context, arg GetOrderByIdempotencyKeyParams) (GetOrderByIdempotencyKeyRow, error)
+	GetOrderTime(ctx context.Context) (GetOrderTimeRow, error)
 	GetOutlet(ctx context.Context, arg GetOutletParams) (Outlet, error)
 	GetOutletForUpdate(ctx context.Context, arg GetOutletForUpdateParams) (GetOutletForUpdateRow, error)
 	GetPerfume(ctx context.Context, arg GetPerfumeParams) (GetPerfumeRow, error)
@@ -50,8 +63,11 @@ type Querier interface {
 	GetStaffForUpdate(ctx context.Context, arg GetStaffForUpdateParams) (GetStaffForUpdateRow, error)
 	GetUserForLogin(ctx context.Context, lower string) (GetUserForLoginRow, error)
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) error
+	InsertOrderAuditLog(ctx context.Context, arg InsertOrderAuditLogParams) error
 	ListCustomerOrderHistory(ctx context.Context, arg ListCustomerOrderHistoryParams) ([]ListCustomerOrderHistoryRow, error)
 	ListCustomers(ctx context.Context, arg ListCustomersParams) ([]ListCustomersRow, error)
+	ListOrderItems(ctx context.Context, arg ListOrderItemsParams) ([]ListOrderItemsRow, error)
+	ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListOrdersRow, error)
 	ListOutlets(ctx context.Context, arg ListOutletsParams) ([]Outlet, error)
 	ListPerfumes(ctx context.Context, arg ListPerfumesParams) ([]ListPerfumesRow, error)
 	ListPermissions(ctx context.Context) ([]ListPermissionsRow, error)
@@ -63,6 +79,7 @@ type Querier interface {
 	ListUserPermissionCodes(ctx context.Context, arg ListUserPermissionCodesParams) ([]string, error)
 	LockActiveBusiness(ctx context.Context, id int64) (int64, error)
 	LockActiveOutlets(ctx context.Context, arg LockActiveOutletsParams) ([]int64, error)
+	LockOrderIdempotency(ctx context.Context, lockKey string) error
 	LockSessionFamily(ctx context.Context, arg LockSessionFamilyParams) (LockSessionFamilyRow, error)
 	RevokeRefreshToken(ctx context.Context, arg RevokeRefreshTokenParams) (int64, error)
 	RevokeSessionFamily(ctx context.Context, arg RevokeSessionFamilyParams) error

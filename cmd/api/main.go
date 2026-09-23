@@ -70,6 +70,7 @@ func run(logger *slog.Logger) error {
 	customerHandler := handlers.NewCustomerHandler(database)
 	serviceHandler := handlers.NewServiceHandler(database)
 	perfumeHandler := handlers.NewPerfumeHandler(database)
+	orderHandler := handlers.NewOrderHandler(database)
 	authLimiter := launmiddleware.NewAuthLimiter(4096, 10, time.Minute)
 	authBody := launmiddleware.AuthBodyLimit(4096)
 	e.GET("/livez", healthHandler.Live)
@@ -114,6 +115,11 @@ func run(logger *slog.Logger) error {
 	perfumes.GET("/:perfumeId", perfumeHandler.Get, launmiddleware.RequirePermission("PERFUMES_READ"))
 	perfumes.PUT("/:perfumeId", perfumeHandler.Update, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("PERFUMES_WRITE"))
 	perfumes.DELETE("/:perfumeId", perfumeHandler.Delete, launmiddleware.RequirePermission("PERFUMES_WRITE"))
+
+	orders := e.Group("/orders", launmiddleware.Authenticate(database, jwtTokens))
+	orders.GET("", orderHandler.List, launmiddleware.RequirePermission("ORDERS_READ"))
+	orders.POST("", orderHandler.Create, middleware.BodyLimit("64K"), launmiddleware.RequirePermission("ORDERS_CREATE"))
+	orders.GET("/:orderId", orderHandler.Get, launmiddleware.RequirePermission("ORDERS_READ"))
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress(),

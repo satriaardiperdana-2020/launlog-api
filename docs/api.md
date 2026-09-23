@@ -43,6 +43,14 @@ The existing `unit` field is the service measurement type: `KILOGRAM`, `PIECE`, 
 
 Perfume selection is optional for orders. No selection means `order_items.perfume_id` and `perfume_name_snapshot` are both NULL; no placeholder perfume row is needed. ISSUE-008 must enforce the agreed maximum of one selected perfume across an order, and snapshot the selected name on order items in the order transaction. Later catalog edits/deactivation/deletion must not change those snapshots.
 
+## Orders and invoices (ISSUE-008)
+
+`POST /orders` requires an `Idempotency-Key` header and creates the order, items, invoice, initial `RECEIVED` history event, and audit event in one transaction. Keys are scoped to business and outlet; same key and decoded payload returns the existing order with `Idempotency-Replayed: true`, while same key with another payload returns `409 IDEMPOTENCY_CONFLICT`. Invoice numbers use `<outlet-code>-<YYYYMMDD>-<sequence padded to at least six digits>` based on the database session's Asia/Jakarta date and an atomic `invoice_counters` upsert, never a row count. Outlet/customer/service/perfume scope derives from the authenticated business and the selected outlet must be active and currently assigned to staff.
+
+The request has one or more service items. It cannot set prices: each active service's current name, unit, and whole-rupiah unit price are copied into an immutable item snapshot. Quantity is a decimal string with at most nine integer and three fractional digits (`NUMERIC(12,3)`); `PIECE` quantity must be integral and every quantity must be positive. Each line amount is calculated independently using PostgreSQL numeric rounding (half-rupiah rounds away from zero); the order total is the sum of the rounded line amounts. A due date is optional and must not precede the server-set receive time. A single optional perfume applies to all lines; without a selection both perfume fields are NULL. New orders start `UNPAID`; payment recording is handled separately by ISSUE-010.
+
+`GET /orders` is paginated and filters by optional outlet and status; staff only sees currently assigned active outlets. `GET /orders/{orderId}` uses the same outlet and business isolation. The existing `GET /customers/{customerId}/orders` now returns order history backed by records created through this API, closing the history dependency from ISSUE-005.
+
 ## Contract rules
 
 - Add all endpoint changes to OpenAPI before generating Echo types with `make generate`.

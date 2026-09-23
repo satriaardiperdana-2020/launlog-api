@@ -29,8 +29,92 @@ tags:
     description: Business-shared service catalog; unit is the measurement type
   - name: Perfumes
     description: Business-scoped optional perfume catalog for order items
+  - name: Orders
+    description: Transactional order creation, invoices, and immutable item snapshots
 
 paths:
+  /orders:
+    get:
+      operationId: listOrders
+      summary: List orders available to the authenticated user
+      tags: [Orders]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: outletId
+          in: query
+          schema: { $ref: "#/components/schemas/EntityId" }
+          description: Optional outlet filter; staff can query only currently assigned active outlets.
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/OrderStatus" }
+      responses:
+        "200":
+          description: Order page.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrderList" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      operationId: createOrder
+      summary: Create an order and allocate an invoice atomically
+      description: Prices are read from active services. Quantity uses NUMERIC(12,3); each line total is exact quantity times snapshot unit price rounded to a whole rupiah using PostgreSQL numeric round (half away from zero), and the order total is the sum of rounded line totals. One optional perfume applies to the whole order. An omitted perfume has NULL ID and name snapshots. Payment status begins UNPAID.
+      tags: [Orders]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Client key scoped to the authenticated business and outlet. Reusing it with the same decoded payload returns the existing order; a different payload returns 409.
+          schema: { type: string, minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9._:-]+$" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateOrderInput" }
+      responses:
+        "201":
+          description: Order created (or existing order returned for an idempotent replay).
+          headers:
+            Idempotency-Replayed:
+              schema: { type: string, enum: ["true"] }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /orders/{orderId}:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/EntityId" }
+    get:
+      operationId: getOrder
+      summary: Get an order and its immutable item snapshots
+      tags: [Orders]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Order details.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
   /perfumes:
     get:
       operationId: listPerfumes
@@ -1218,6 +1302,105 @@ components:
       required: [items, pagination]
       properties:
         items: { type: array, items: { $ref: "#/components/schemas/Perfume" } }
+        pagination: { $ref: "#/components/schemas/PaginationMeta" }
+
+    OrderStatus:
+      type: string
+      enum: [RECEIVED, PROCESSING, READY_FOR_PICKUP, COMPLETED, CANCELLED]
+    OrderPaymentStatus:
+      type: string
+      enum: [UNPAID, PARTIALLY_PAID, PAID, REFUNDED]
+    CreateOrderInput:
+      type: object
+      additionalProperties: false
+      required: [outletId, customerId, items]
+      properties:
+        outletId: { $ref: "#/components/schemas/EntityId" }
+        customerId: { $ref: "#/components/schemas/EntityId" }
+        perfumeId:
+          allOf: [{ $ref: "#/components/schemas/EntityId" }]
+          nullable: true
+          description: One optional perfume for the whole order; omission or null means no perfume.
+        dueAt:
+          allOf: [{ $ref: "#/components/schemas/JakartaDateTime" }]
+          nullable: true
+        notes: { type: string, nullable: true }
+        items:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/CreateOrderItemInput" }
+    CreateOrderItemInput:
+      type: object
+      additionalProperties: false
+      required: [serviceId, quantity]
+      properties:
+        serviceId: { $ref: "#/components/schemas/EntityId" }
+        quantity: { $ref: "#/components/schemas/DecimalQuantity" }
+        notes: { type: string, nullable: true }
+    Order:
+      type: object
+      required: [id, business_id, outlet_id, customer_id, invoice_number, status, payment_status, total_amount, notes, received_at, due_at, created_by, created_at, updated_at, items]
+      properties:
+        id: { $ref: "#/components/schemas/EntityId" }
+        business_id: { $ref: "#/components/schemas/EntityId" }
+        outlet_id: { $ref: "#/components/schemas/EntityId" }
+        customer_id: { $ref: "#/components/schemas/EntityId" }
+        invoice_number: { type: string }
+        status: { $ref: "#/components/schemas/OrderStatus" }
+        payment_status: { $ref: "#/components/schemas/OrderPaymentStatus" }
+        total_amount: { $ref: "#/components/schemas/RupiahAmount" }
+        notes: { type: string, nullable: true }
+        received_at: { $ref: "#/components/schemas/JakartaDateTime" }
+        due_at:
+          allOf: [{ $ref: "#/components/schemas/JakartaDateTime" }]
+          nullable: true
+        created_by: { $ref: "#/components/schemas/EntityId" }
+        created_at: { $ref: "#/components/schemas/JakartaDateTime" }
+        updated_at: { $ref: "#/components/schemas/JakartaDateTime" }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/OrderItem" }
+    OrderItem:
+      type: object
+      required: [id, service_id, perfume_id, service_name_snapshot, service_unit_snapshot, unit_price_amount_snapshot, perfume_name_snapshot, quantity, line_total_amount, notes]
+      properties:
+        id: { $ref: "#/components/schemas/EntityId" }
+        service_id: { $ref: "#/components/schemas/EntityId" }
+        perfume_id:
+          allOf: [{ $ref: "#/components/schemas/EntityId" }]
+          nullable: true
+        service_name_snapshot: { type: string }
+        service_unit_snapshot: { $ref: "#/components/schemas/ServiceUnit" }
+        unit_price_amount_snapshot: { $ref: "#/components/schemas/RupiahAmount" }
+        perfume_name_snapshot: { type: string, nullable: true }
+        quantity: { $ref: "#/components/schemas/DecimalQuantity" }
+        line_total_amount: { $ref: "#/components/schemas/RupiahAmount" }
+        notes: { type: string, nullable: true }
+    OrderSummary:
+      type: object
+      required: [id, business_id, outlet_id, customer_id, invoice_number, status, payment_status, total_amount, notes, received_at, due_at, created_by, created_at, updated_at]
+      properties:
+        id: { $ref: "#/components/schemas/EntityId" }
+        business_id: { $ref: "#/components/schemas/EntityId" }
+        outlet_id: { $ref: "#/components/schemas/EntityId" }
+        customer_id: { $ref: "#/components/schemas/EntityId" }
+        invoice_number: { type: string }
+        status: { $ref: "#/components/schemas/OrderStatus" }
+        payment_status: { $ref: "#/components/schemas/OrderPaymentStatus" }
+        total_amount: { $ref: "#/components/schemas/RupiahAmount" }
+        notes: { type: string, nullable: true }
+        received_at: { $ref: "#/components/schemas/JakartaDateTime" }
+        due_at:
+          allOf: [{ $ref: "#/components/schemas/JakartaDateTime" }]
+          nullable: true
+        created_by: { $ref: "#/components/schemas/EntityId" }
+        created_at: { $ref: "#/components/schemas/JakartaDateTime" }
+        updated_at: { $ref: "#/components/schemas/JakartaDateTime" }
+    OrderList:
+      type: object
+      required: [items, pagination]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/OrderSummary" } }
         pagination: { $ref: "#/components/schemas/PaginationMeta" }
 
     Customer:

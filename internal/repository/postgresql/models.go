@@ -105,6 +105,10 @@ type Order struct {
 	CreatedBy          int64              `json:"created_by"`
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	// Client-supplied request idempotency key, unique within a business and outlet.
+	IdempotencyKey pgtype.Text `json:"idempotency_key"`
+	// SHA-256 hash of the canonical decoded order creation payload used to reject key reuse with a different payload.
+	RequestHash []byte `json:"request_hash"`
 }
 
 type OrderItem struct {
