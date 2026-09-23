@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -27,6 +28,7 @@ import (
 
 type authFixture struct {
 	pool                         *pgxpool.Pool
+	adminPool                    *pgxpool.Pool
 	database                     *repository.Postgres
 	echo                         *echo.Echo
 	businessID, outletID, userID int64
@@ -48,36 +50,49 @@ func newAuthFixture(t *testing.T) *authFixture {
 		pool.Close()
 		t.Fatal(err)
 	}
-	f := &authFixture{pool: pool, database: database, echo: echo.New()}
+	f := &authFixture{pool: pool, adminPool: pool, database: database, echo: echo.New()}
+	if adminURL := os.Getenv("TEST_ADMIN_DATABASE_URL"); adminURL != "" {
+		adminPool, err := pgxpool.New(ctx, adminURL)
+		if err != nil {
+			database.Close()
+			pool.Close()
+			t.Fatal(err)
+		}
+		f.adminPool = adminPool
+	}
 	f.echo.IPExtractor = echo.ExtractIPDirect()
 	t.Cleanup(func() {
 		// Delete only records created by this test, in foreign-key order.
 		// Management audit rows are intentionally immutable in production; the
 		// integration database is isolated and owned by the test role.
-		_, _ = pool.Exec(ctx, "ALTER TABLE audit_logs DISABLE TRIGGER audit_logs_immutable")
-		_, _ = pool.Exec(ctx, "DELETE FROM audit_logs WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "ALTER TABLE audit_logs ENABLE TRIGGER audit_logs_immutable")
-		_, _ = pool.Exec(ctx, "DELETE FROM receipt_templates WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM payment_refunds WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM payments WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM order_status_history WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM order_items WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM perfumes WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM orders WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM services WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM invoice_counters WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM refresh_tokens WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM session_families WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM user_permissions WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM user_outlets WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM customers WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM expenses WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM expense_categories WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM users WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM outlets WHERE business_id=$1", f.businessID)
-		_, _ = pool.Exec(ctx, "DELETE FROM businesses WHERE id=$1", f.businessID)
+		cleanupPool := f.adminPool
+		_, _ = cleanupPool.Exec(ctx, "ALTER TABLE audit_logs DISABLE TRIGGER audit_logs_immutable")
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM audit_logs WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "ALTER TABLE audit_logs ENABLE TRIGGER audit_logs_immutable")
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM receipt_templates WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM payment_refunds WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM payments WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM order_status_history WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM order_items WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM perfumes WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM orders WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM services WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM invoice_counters WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM refresh_tokens WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM session_families WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM user_permissions WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM user_outlets WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM customers WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM expenses WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM expense_categories WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM users WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM outlets WHERE business_id=$1", f.businessID)
+		_, _ = cleanupPool.Exec(ctx, "DELETE FROM businesses WHERE id=$1", f.businessID)
 		database.Close()
 		pool.Close()
+		if f.adminPool != pool {
+			f.adminPool.Close()
+		}
 	})
 	if err := pool.QueryRow(ctx, "INSERT INTO businesses (name) VALUES ($1) RETURNING id", fmt.Sprintf("Auth Integration %d", time.Now().UnixNano())).Scan(&f.businessID); err != nil {
 		t.Fatal(err)
@@ -320,6 +335,70 @@ func TestAuthRefreshLogoutRace(t *testing.T) {
 		if code, _ := f.request("/auth/me", nil, child.Tokens.AccessToken); code != 401 {
 			t.Fatalf("new access survived logout: %d", code)
 		}
+	}
+}
+
+func TestAuthSessionLifecycleAuditOmitsTokens(t *testing.T) {
+	f := newAuthFixture(t)
+	ctx := context.Background()
+	first := f.login(t)
+	var created int
+	if err := f.pool.QueryRow(ctx, `SELECT count(*) FROM audit_logs WHERE business_id=$1 AND actor_user_id=$2 AND action='AUTH_SESSION_CREATED'`, f.businessID, f.userID).Scan(&created); err != nil || created != 1 {
+		t.Fatalf("successful login should be audited: count=%d err=%v", created, err)
+	}
+
+	code, body := f.managementRequest(http.MethodPost, "/auth/refresh", map[string]string{"refreshToken": first.Tokens.RefreshToken}, "")
+	if code != http.StatusOK {
+		t.Fatalf("refresh status=%d: %s", code, body)
+	}
+	var refreshed sessionPayload
+	if err := json.Unmarshal(body, &refreshed); err != nil {
+		t.Fatal(err)
+	}
+	code, body = f.managementRequest(http.MethodPost, "/auth/logout", map[string]string{"refreshToken": refreshed.Tokens.RefreshToken}, refreshed.Tokens.AccessToken)
+	if code != http.StatusNoContent {
+		t.Fatalf("logout status=%d: %s", code, body)
+	}
+
+	second := f.login(t)
+	code, _ = f.managementRequest(http.MethodPost, "/auth/refresh", map[string]string{"refreshToken": second.Tokens.RefreshToken}, "")
+	if code != http.StatusOK {
+		t.Fatalf("second login refresh status=%d", code)
+	}
+	code, _ = f.managementRequest(http.MethodPost, "/auth/refresh", map[string]string{"refreshToken": second.Tokens.RefreshToken}, "")
+	if code != http.StatusUnauthorized {
+		t.Fatalf("refresh replay status=%d, want 401", code)
+	}
+
+	var events int
+	if err := f.pool.QueryRow(ctx, `SELECT count(*) FROM audit_logs WHERE business_id=$1 AND actor_user_id=$2 AND action IN ('AUTH_SESSION_CREATED','AUTH_SESSION_REFRESHED','AUTH_SESSION_REVOKED','AUTH_REFRESH_REPLAY_DETECTED')`, f.businessID, f.userID).Scan(&events); err != nil || events != 6 {
+		t.Fatalf("expected login/refresh/logout/replay events, count=%d err=%v", events, err)
+	}
+	var auditText string
+	if err := f.pool.QueryRow(ctx, `SELECT string_agg(coalesce(old_values::text,'') || coalesce(new_values::text,''),' ') FROM audit_logs WHERE business_id=$1 AND entity_type='session_family'`, f.businessID).Scan(&auditText); err != nil {
+		t.Fatal(err)
+	}
+	for _, secret := range []string{first.Tokens.RefreshToken, refreshed.Tokens.RefreshToken, second.Tokens.RefreshToken, security.HashRefreshToken(first.Tokens.RefreshToken)} {
+		if strings.Contains(auditText, secret) {
+			t.Fatal("session audit contains an opaque refresh credential or token hash")
+		}
+	}
+}
+
+func TestConfiguredRuntimeRoleHasLeastPrivilege(t *testing.T) {
+	if os.Getenv("TEST_EXPECT_LEAST_PRIVILEGE") != "true" {
+		t.Skip("TEST_EXPECT_LEAST_PRIVILEGE is enabled only for restricted-role CI")
+	}
+	f := newAuthFixture(t)
+	if err := f.database.VerifyLeastPrivilege(context.Background()); err != nil {
+		t.Fatalf("runtime role failed privilege verification: %v", err)
+	}
+	var canDeleteAudit bool
+	if err := f.pool.QueryRow(context.Background(), `SELECT has_table_privilege(current_user,'public.audit_logs','DELETE')`).Scan(&canDeleteAudit); err != nil {
+		t.Fatal(err)
+	}
+	if canDeleteAudit {
+		t.Fatal("runtime role can delete immutable audit rows")
 	}
 }
 

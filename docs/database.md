@@ -150,6 +150,14 @@ An immutable business audit stream. It records an optional outlet and actor, act
 
 Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run in reverse order because later domains reference earlier ownership and order tables.
 
+## Runtime database role
+
+Production must use distinct login roles: `launlog_migrator` owns schema changes and `launlog_runtime` serves API traffic. The runtime login must not be a superuser, database/role administrator, schema owner, or have `CREATE` on `public`; it receives normal table DML and sequence usage, but no `UPDATE`/`DELETE` on `audit_logs`. The application verifies these boundaries at production startup. Set `DATABASE_URL` to the runtime login and `MIGRATION_DATABASE_URL` to the migration login. Keep credentials outside Git and use PostgreSQL TLS with `sslmode=verify-full`.
+
+Provision login roles through the DBA/secret-management process (for example `CREATE ROLE launlog_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE` and the equivalent runtime role; set passwords interactively with `\password`). Then apply `psql -v database_name=launlog -f db/roles/least_privilege.sql` as a database administrator. Run that grant script after migration changes that add tables. CI exercises the same split: only the migrator owns DDL; integration HTTP traffic uses runtime credentials; a separate test-admin connection performs schema-only migration fixtures and test cleanup.
+
+The checked-in Compose credentials and shared role are development-only and intentionally simple. Never reuse them in a deployed environment.
+
 ## Operational migration policy
 
 Migrations are executed with the pinned golang-migrate CLI through `make migrate-up`, `make migrate-down`, and `make migrate-version`. `make migrate-verify` performs an up/down/up cycle and is run against an isolated PostgreSQL 16 service in CI. It must never be pointed at production as a smoke test.

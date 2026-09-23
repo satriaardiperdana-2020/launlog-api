@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -43,6 +44,7 @@ type Config struct {
 	JWTSigningSecret       string
 	JWTAccessTokenTTL      time.Duration
 	JWTRefreshTokenTTL     time.Duration
+	CORSAllowedOrigins     []string
 }
 
 // Load reads optional dotenv files and validates environment configuration.
@@ -60,6 +62,10 @@ func loadFromEnvironment() (Config, error) {
 		Timezone:         valueOrDefault("APP_TIMEZONE", defaultTimezone),
 		DatabaseURL:      os.Getenv("DATABASE_URL"),
 		JWTSigningSecret: os.Getenv("JWT_SIGNING_SECRET"),
+	}
+	var originErr error
+	if cfg.CORSAllowedOrigins, originErr = corsOrigins(os.Getenv("CORS_ALLOWED_ORIGINS")); originErr != nil {
+		return Config{}, originErr
 	}
 
 	var err error
@@ -185,6 +191,12 @@ func (c Config) validate() error {
 	if c.DatabaseURL == "" {
 		return errors.New("DATABASE_URL is required")
 	}
+	if strings.EqualFold(c.Environment, "production") {
+		databaseURL, err := url.Parse(c.DatabaseURL)
+		if err != nil || databaseURL.Query().Get("sslmode") != "verify-full" {
+			return errors.New("production DATABASE_URL must require sslmode=verify-full")
+		}
+	}
 	if len(c.JWTSigningSecret) < 32 || c.JWTSigningSecret == "replace-with-a-random-secret-of-at-least-32-bytes" {
 		return errors.New("JWT_SIGNING_SECRET must be a non-placeholder secret of at least 32 bytes")
 	}
@@ -217,6 +229,28 @@ func (c Config) validate() error {
 	}
 
 	return nil
+}
+
+func corsOrigins(raw string) ([]string, error) {
+	if strings.TrimSpace(raw) == "" {
+		return nil, nil
+	}
+	seen := make(map[string]bool)
+	origins := make([]string, 0)
+	for _, item := range strings.Split(raw, ",") {
+		origin := strings.TrimSpace(item)
+		parsed, err := url.Parse(origin)
+		if origin == "" || origin == "*" || err != nil ||
+			(parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" ||
+			parsed.User != nil || parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+			return nil, errors.New("CORS_ALLOWED_ORIGINS must be a comma-separated list of exact http(s) origins; wildcards and paths are not allowed")
+		}
+		if !seen[origin] {
+			seen[origin] = true
+			origins = append(origins, origin)
+		}
+	}
+	return origins, nil
 }
 
 func valueOrDefault(name, fallback string) string {

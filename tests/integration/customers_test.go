@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 )
@@ -143,6 +144,18 @@ func TestCustomerLifecycleHistoryAndTenantPermissions(t *testing.T) {
 	var auditCount int64
 	if err := f.pool.QueryRow(ctx, `SELECT count(*) FROM audit_logs WHERE business_id=$1 AND actor_user_id=$2 AND entity_type='customer' AND entity_id=$3 AND action IN ('CUSTOMER_CREATED','CUSTOMER_UPDATED','CUSTOMER_DEACTIVATED')`, f.businessID, f.userID, customer.ID).Scan(&auditCount); err != nil || auditCount != 3 {
 		t.Fatalf("customer create/update/deactivation should be audited transactionally: count=%d err=%v", auditCount, err)
+	}
+	var auditText string
+	if err := f.pool.QueryRow(ctx, `SELECT string_agg(coalesce(old_values::text,'') || coalesce(new_values::text,''),' ') FROM audit_logs WHERE business_id=$1 AND entity_type='customer' AND entity_id=$2`, f.businessID, customer.ID).Scan(&auditText); err != nil {
+		t.Fatal(err)
+	}
+	for _, privateValue := range []string{"Emma Laundry", "+628123000111", "Jakarta", "Updated address"} {
+		if strings.Contains(auditText, privateValue) {
+			t.Fatalf("customer audit leaked personal data %q: %s", privateValue, auditText)
+		}
+	}
+	if !strings.Contains(auditText, "REDACTED") {
+		t.Fatalf("customer audit should explicitly mark redacted personal data: %s", auditText)
 	}
 
 	if _, err := f.pool.Exec(ctx, "DELETE FROM user_permissions WHERE business_id=$1 AND user_id=$2 AND permission_code='ORDERS_READ'", f.businessID, f.userID); err != nil {

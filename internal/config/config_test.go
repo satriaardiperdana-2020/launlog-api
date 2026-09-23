@@ -58,6 +58,7 @@ func TestLoadOverrides(t *testing.T) {
 	t.Setenv("DATABASE_CONNECT_TIMEOUT", "6s")
 	t.Setenv("DATABASE_MAX_CONNS", "20")
 	t.Setenv("DATABASE_MIN_CONNS", "2")
+	t.Setenv("CORS_ALLOWED_ORIGINS", "https://laundry.example, http://localhost:5173")
 
 	cfg, err := loadFromEnvironment()
 	if err != nil {
@@ -75,6 +76,34 @@ func TestLoadOverrides(t *testing.T) {
 	}
 	if cfg.DatabaseMaxConnections != 20 || cfg.DatabaseMinConnections != 2 {
 		t.Errorf("unexpected database limits: %+v", cfg)
+	}
+	if strings.Join(cfg.CORSAllowedOrigins, ",") != "https://laundry.example,http://localhost:5173" {
+		t.Fatalf("CORS origins = %#v", cfg.CORSAllowedOrigins)
+	}
+}
+
+func TestCORSOriginsRejectWildcardAndPaths(t *testing.T) {
+	for _, value := range []string{"*", "https://laundry.example/path", "https://user:pass@example.com", "file://local"} {
+		if _, err := corsOrigins(value); err == nil {
+			t.Errorf("corsOrigins(%q) accepted", value)
+		}
+	}
+	if origins, err := corsOrigins(""); err != nil || len(origins) != 0 {
+		t.Fatalf("empty allowlist should keep CORS disabled: %v, %v", origins, err)
+	}
+}
+
+func TestProductionRequiresVerifiedDatabaseTLS(t *testing.T) {
+	clearConfigEnvironment(t)
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("DATABASE_URL", "postgres://user:password@db.example/launlog?sslmode=require")
+	t.Setenv("JWT_SIGNING_SECRET", "01234567890123456789012345678901")
+	if _, err := loadFromEnvironment(); err == nil || !strings.Contains(err.Error(), "sslmode=verify-full") {
+		t.Fatalf("production accepted unverified TLS: %v", err)
+	}
+	t.Setenv("DATABASE_URL", "postgres://user:password@db.example/launlog?sslmode=verify-full")
+	if _, err := loadFromEnvironment(); err != nil {
+		t.Fatalf("production rejected verified TLS: %v", err)
 	}
 }
 
@@ -194,6 +223,7 @@ func clearConfigEnvironment(t *testing.T) {
 		"JWT_SIGNING_SECRET",
 		"JWT_ACCESS_TOKEN_TTL",
 		"JWT_REFRESH_TOKEN_TTL",
+		"CORS_ALLOWED_ORIGINS",
 	} {
 		t.Setenv(name, "")
 	}
@@ -235,5 +265,6 @@ func configEnvironmentNames() []string {
 		"JWT_SIGNING_SECRET",
 		"JWT_ACCESS_TOKEN_TTL",
 		"JWT_REFRESH_TOKEN_TTL",
+		"CORS_ALLOWED_ORIGINS",
 	}
 }

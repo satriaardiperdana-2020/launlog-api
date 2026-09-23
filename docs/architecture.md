@@ -21,6 +21,12 @@ Client -> Echo middleware -> OpenAPI handler -> service layer -> repository/sqlc
 
 The frontend must never be trusted to enforce permissions or calculate authoritative financial totals.
 
+## HTTP boundary hardening
+
+The API adds JSON-appropriate security headers on every response. HSTS is owned by the TLS-terminating edge and must be configured there. CORS is disabled by default; when the separate frontend requires cross-origin calls, `CORS_ALLOWED_ORIGINS` must contain exact HTTPS production origins. Wildcards, credentials, and unlisted origins are not enabled. Authentication and identity responses use `Cache-Control: no-store`.
+
+Production startup requires PostgreSQL TLS with `sslmode=verify-full` and rejects a runtime account that can administer roles/databases, create schema objects, or mutate/delete immutable audit rows. Migrations use a separate owner account.
+
 ## Foundation lifecycle
 
 Configuration is loaded once at startup. The process parses the PostgreSQL URL, applies pool limits and the Asia/Jakarta session timezone, then pings PostgreSQL within the configured connection timeout. Only then does Echo begin accepting requests.

@@ -69,6 +69,27 @@ func (p *Postgres) Ping(ctx context.Context) error {
 	return p.pool.Ping(ctx)
 }
 
+// VerifyLeastPrivilege rejects runtime accounts that can administer the
+// database or create/alter schema objects through the public schema.
+func (p *Postgres) VerifyLeastPrivilege(ctx context.Context) error {
+	var superuser, canCreateRole, canCreateDatabase, canCreateSchema bool
+	var canUpdateAudit, canDeleteAudit, memberOfMigrator, databaseOwner bool
+	err := p.pool.QueryRow(ctx, `SELECT r.rolsuper, r.rolcreaterole, r.rolcreatedb,
+		has_schema_privilege(current_user, 'public', 'CREATE'),
+		has_table_privilege(current_user, 'public.audit_logs', 'UPDATE'),
+		has_table_privilege(current_user, 'public.audit_logs', 'DELETE'),
+		pg_has_role(current_user, 'launlog_migrator', 'MEMBER'),
+		pg_has_role(current_user, 'pg_database_owner', 'MEMBER')
+		FROM pg_roles r WHERE r.rolname=current_user`).Scan(&superuser, &canCreateRole, &canCreateDatabase, &canCreateSchema, &canUpdateAudit, &canDeleteAudit, &memberOfMigrator, &databaseOwner)
+	if err != nil {
+		return errors.New("verify PostgreSQL runtime privileges")
+	}
+	if superuser || canCreateRole || canCreateDatabase || canCreateSchema || canUpdateAudit || canDeleteAudit || memberOfMigrator || databaseOwner {
+		return errors.New("PostgreSQL runtime role has administrative, schema-creation, or audit-mutation privileges")
+	}
+	return nil
+}
+
 // Close releases all PostgreSQL connections.
 func (p *Postgres) Close() {
 	p.pool.Close()

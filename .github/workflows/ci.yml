@@ -39,8 +39,12 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://launlog:launlog_ci_only@localhost:5432/launlog_ci?sslmode=disable
-      TEST_DATABASE_URL: postgresql://launlog:launlog_ci_only@localhost:5432/launlog_ci?sslmode=disable
+      POSTGRES_ADMIN_URL: postgresql://launlog:launlog_ci_only@localhost:5432/launlog_ci?sslmode=disable
+      DATABASE_URL: postgresql://launlog_runtime:runtime_ci_only@localhost:5432/launlog_ci?sslmode=disable
+      MIGRATION_DATABASE_URL: postgresql://launlog_migrator:migrator_ci_only@localhost:5432/launlog_ci?sslmode=disable
+      TEST_DATABASE_URL: postgresql://launlog_runtime:runtime_ci_only@localhost:5432/launlog_ci?sslmode=disable
+      TEST_ADMIN_DATABASE_URL: postgresql://launlog:launlog_ci_only@localhost:5432/launlog_ci?sslmode=disable
+      TEST_EXPECT_LEAST_PRIVILEGE: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -48,5 +52,20 @@ jobs:
           go-version: "1.27.1"
           check-latest: true
           cache: true
+      - name: Provision non-superuser migration and runtime roles
+        run: |
+          psql "$POSTGRES_ADMIN_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE launlog_migrator LOGIN PASSWORD 'migrator_ci_only' NOSUPERUSER NOCREATEDB NOCREATEROLE;
+          CREATE ROLE launlog_runtime LOGIN PASSWORD 'runtime_ci_only' NOSUPERUSER NOCREATEDB NOCREATEROLE;
+          GRANT CONNECT ON DATABASE launlog_ci TO launlog_migrator, launlog_runtime;
+          GRANT USAGE, CREATE ON SCHEMA public TO launlog_migrator;
+          GRANT USAGE ON SCHEMA public TO launlog_runtime;
+          ALTER DEFAULT PRIVILEGES FOR ROLE launlog_migrator IN SCHEMA public
+            GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO launlog_runtime;
+          ALTER DEFAULT PRIVILEGES FOR ROLE launlog_migrator IN SCHEMA public
+            GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO launlog_runtime;
+          SQL
       - run: make migrate-verify
+      - name: Apply runtime grants and protect immutable audit rows
+        run: psql "$POSTGRES_ADMIN_URL" -v ON_ERROR_STOP=1 -v database_name=launlog_ci -f db/roles/least_privilege.sql
       - run: make test-integration
