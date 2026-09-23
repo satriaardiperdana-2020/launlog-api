@@ -356,6 +356,42 @@ func (e ProfitLossReportTimezone) Valid() bool {
 	}
 }
 
+// Defines values for ReceiptTemplatePaperWidthMm.
+const (
+	ReceiptTemplatePaperWidthMmN58 ReceiptTemplatePaperWidthMm = 58
+	ReceiptTemplatePaperWidthMmN80 ReceiptTemplatePaperWidthMm = 80
+)
+
+// Valid indicates whether the value is a known member of the ReceiptTemplatePaperWidthMm enum.
+func (e ReceiptTemplatePaperWidthMm) Valid() bool {
+	switch e {
+	case ReceiptTemplatePaperWidthMmN58:
+		return true
+	case ReceiptTemplatePaperWidthMmN80:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReceiptTemplateInputPaperWidthMm.
+const (
+	ReceiptTemplateInputPaperWidthMmN58 ReceiptTemplateInputPaperWidthMm = 58
+	ReceiptTemplateInputPaperWidthMmN80 ReceiptTemplateInputPaperWidthMm = 80
+)
+
+// Valid indicates whether the value is a known member of the ReceiptTemplateInputPaperWidthMm enum.
+func (e ReceiptTemplateInputPaperWidthMm) Valid() bool {
+	switch e {
+	case ReceiptTemplateInputPaperWidthMmN58:
+		return true
+	case ReceiptTemplateInputPaperWidthMmN80:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ReportDateRangeTimezone.
 const (
 	AsiaJakarta ReportDateRangeTimezone = "Asia/Jakarta"
@@ -1315,6 +1351,51 @@ type ProfitLossReport struct {
 // ProfitLossReportTimezone defines model for ProfitLossReport.Timezone.
 type ProfitLossReportTimezone string
 
+// ReceiptPayload Historical order/customer/item snapshots plus current status, payment balance, outlet profile, and template settings.
+type ReceiptPayload map[string]interface{}
+
+// ReceiptTemplate defines model for ReceiptTemplate.
+type ReceiptTemplate struct {
+	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	CreatedAt  JakartaDateTime `json:"createdAt"`
+	FooterText *string         `json:"footerText,omitempty"`
+	HeaderText *string         `json:"headerText,omitempty"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id        EntityId `json:"id"`
+	IsDefault bool     `json:"isDefault"`
+	Name      string   `json:"name"`
+
+	// OutletId Database identifier backed by a PostgreSQL BIGINT.
+	OutletId     EntityId                    `json:"outletId"`
+	PaperWidthMm ReceiptTemplatePaperWidthMm `json:"paperWidthMm"`
+
+	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	UpdatedAt               JakartaDateTime `json:"updatedAt"`
+	WhatsappMessageTemplate *string         `json:"whatsappMessageTemplate,omitempty"`
+}
+
+// ReceiptTemplatePaperWidthMm defines model for ReceiptTemplate.PaperWidthMm.
+type ReceiptTemplatePaperWidthMm int
+
+// ReceiptTemplateInput defines model for ReceiptTemplateInput.
+type ReceiptTemplateInput struct {
+	FooterText   *string                          `json:"footerText,omitempty"`
+	HeaderText   *string                          `json:"headerText,omitempty"`
+	IsDefault    *bool                            `json:"isDefault,omitempty"`
+	Name         string                           `json:"name"`
+	PaperWidthMm ReceiptTemplateInputPaperWidthMm `json:"paperWidthMm"`
+
+	// WhatsappMessageTemplate Allowed placeholders: {{customer_name}}, {{invoice_number}}, {{order_total}}, {{paid_amount}}, {{outstanding_amount}}, {{due_date}}, {{order_status}}. Character limits apply at the API boundary; values are validated and substituted as plain text.
+	WhatsappMessageTemplate *string `json:"whatsappMessageTemplate,omitempty"`
+}
+
+// ReceiptTemplateInputPaperWidthMm defines model for ReceiptTemplateInput.PaperWidthMm.
+type ReceiptTemplateInputPaperWidthMm int
+
+// ReceiptTemplateUpdate defines model for ReceiptTemplateUpdate.
+type ReceiptTemplateUpdate = ReceiptTemplateInput
+
 // RecordPaymentInput defines model for RecordPaymentInput.
 type RecordPaymentInput struct {
 	// Amount Positive exact whole-rupiah amount.
@@ -1766,6 +1847,12 @@ type CreateOutletJSONRequestBody = OutletCreate
 // UpdateOutletJSONRequestBody defines body for UpdateOutlet for application/json ContentType.
 type UpdateOutletJSONRequestBody = OutletUpdate
 
+// CreateReceiptTemplateJSONRequestBody defines body for CreateReceiptTemplate for application/json ContentType.
+type CreateReceiptTemplateJSONRequestBody = ReceiptTemplateInput
+
+// UpdateReceiptTemplateJSONRequestBody defines body for UpdateReceiptTemplate for application/json ContentType.
+type UpdateReceiptTemplateJSONRequestBody = ReceiptTemplateUpdate
+
 // CreatePerfumeJSONRequestBody defines body for CreatePerfume for application/json ContentType.
 type CreatePerfumeJSONRequestBody = CreatePerfumeInput
 
@@ -1873,6 +1960,9 @@ type ServerInterface interface {
 	// Void an erroneous confirmed receipt entry
 	// (POST /orders/{orderId}/payments/{paymentId}/void)
 	VoidOrderPayment(ctx echo.Context, orderId EntityId, paymentId EntityId) error
+	// Build an authenticated receipt from historical order snapshots
+	// (GET /orders/{orderId}/receipt)
+	GetOrderReceipt(ctx echo.Context, orderId EntityId) error
 	// Advance an order through its allowed lifecycle
 	// (PATCH /orders/{orderId}/status)
 	TransitionOrderStatus(ctx echo.Context, orderId EntityId) error
@@ -1894,6 +1984,24 @@ type ServerInterface interface {
 	// Get an outlet profile and today's cashflow totals
 	// (GET /outlets/{outletId}/dashboard)
 	GetOutletDashboard(ctx echo.Context, outletId EntityId) error
+	// List active receipt templates for an authorized outlet
+	// (GET /outlets/{outletId}/receipt-templates)
+	ListReceiptTemplates(ctx echo.Context, outletId OutletId) error
+	// Create an outlet receipt template
+	// (POST /outlets/{outletId}/receipt-templates)
+	CreateReceiptTemplate(ctx echo.Context, outletId OutletId) error
+	// Soft-delete an active receipt template
+	// (DELETE /outlets/{outletId}/receipt-templates/{templateId})
+	DeleteReceiptTemplate(ctx echo.Context, outletId OutletId, templateId EntityId) error
+	// Get an active receipt template
+	// (GET /outlets/{outletId}/receipt-templates/{templateId})
+	GetReceiptTemplate(ctx echo.Context, outletId OutletId, templateId EntityId) error
+	// Replace an active receipt template
+	// (PUT /outlets/{outletId}/receipt-templates/{templateId})
+	UpdateReceiptTemplate(ctx echo.Context, outletId OutletId, templateId EntityId) error
+	// Resolve an opaque QR locator to an authorized receipt
+	// (GET /outlets/{outletId}/receipts/qr/{qrId})
+	GetReceiptByQR(ctx echo.Context, outletId OutletId, qrId openapi_types.UUID) error
 	// Get retained cancellations by cancellation date
 	// (GET /outlets/{outletId}/reports/cancellations)
 	GetOutletCancellationReport(ctx echo.Context, outletId OutletId, params GetOutletCancellationReportParams) error
@@ -2579,6 +2687,24 @@ func (w *ServerInterfaceWrapper) VoidOrderPayment(ctx echo.Context) error {
 	return err
 }
 
+// GetOrderReceipt converts echo context to params.
+func (w *ServerInterfaceWrapper) GetOrderReceipt(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "orderId" -------------
+	var orderId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orderId", ctx.Param("orderId"), &orderId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter orderId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetOrderReceipt(ctx, orderId)
+	return err
+}
+
 // TransitionOrderStatus converts echo context to params.
 func (w *ServerInterfaceWrapper) TransitionOrderStatus(ctx echo.Context) error {
 	var err error
@@ -2704,6 +2830,146 @@ func (w *ServerInterfaceWrapper) GetOutletDashboard(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetOutletDashboard(ctx, outletId)
+	return err
+}
+
+// ListReceiptTemplates converts echo context to params.
+func (w *ServerInterfaceWrapper) ListReceiptTemplates(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId OutletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListReceiptTemplates(ctx, outletId)
+	return err
+}
+
+// CreateReceiptTemplate converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateReceiptTemplate(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId OutletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateReceiptTemplate(ctx, outletId)
+	return err
+}
+
+// DeleteReceiptTemplate converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteReceiptTemplate(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId OutletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	// ------------- Path parameter "templateId" -------------
+	var templateId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "templateId", ctx.Param("templateId"), &templateId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter templateId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteReceiptTemplate(ctx, outletId, templateId)
+	return err
+}
+
+// GetReceiptTemplate converts echo context to params.
+func (w *ServerInterfaceWrapper) GetReceiptTemplate(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId OutletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	// ------------- Path parameter "templateId" -------------
+	var templateId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "templateId", ctx.Param("templateId"), &templateId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter templateId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetReceiptTemplate(ctx, outletId, templateId)
+	return err
+}
+
+// UpdateReceiptTemplate converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateReceiptTemplate(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId OutletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	// ------------- Path parameter "templateId" -------------
+	var templateId EntityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "templateId", ctx.Param("templateId"), &templateId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter templateId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateReceiptTemplate(ctx, outletId, templateId)
+	return err
+}
+
+// GetReceiptByQR converts echo context to params.
+func (w *ServerInterfaceWrapper) GetReceiptByQR(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "outletId" -------------
+	var outletId OutletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	// ------------- Path parameter "qrId" -------------
+	var qrId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "qrId", ctx.Param("qrId"), &qrId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter qrId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetReceiptByQR(ctx, outletId, qrId)
 	return err
 }
 
@@ -3334,6 +3600,7 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/orders/:orderId/payments", wrapper.ListOrderPayments, options.OperationMiddlewares["listOrderPayments"]...)
 	router.POST(options.BaseURL+"/orders/:orderId/payments", wrapper.RecordOrderPayment, options.OperationMiddlewares["recordOrderPayment"]...)
 	router.POST(options.BaseURL+"/orders/:orderId/payments/:paymentId/void", wrapper.VoidOrderPayment, options.OperationMiddlewares["voidOrderPayment"]...)
+	router.GET(options.BaseURL+"/orders/:orderId/receipt", wrapper.GetOrderReceipt, options.OperationMiddlewares["getOrderReceipt"]...)
 	router.PATCH(options.BaseURL+"/orders/:orderId/status", wrapper.TransitionOrderStatus, options.OperationMiddlewares["transitionOrderStatus"]...)
 	router.GET(options.BaseURL+"/orders/:orderId/status-history", wrapper.GetOrderStatusHistory, options.OperationMiddlewares["getOrderStatusHistory"]...)
 	router.GET(options.BaseURL+"/outlets", wrapper.ListOutlets, options.OperationMiddlewares["listOutlets"]...)
@@ -3341,6 +3608,12 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/outlets/:outletId", wrapper.GetOutlet, options.OperationMiddlewares["getOutlet"]...)
 	router.PUT(options.BaseURL+"/outlets/:outletId", wrapper.UpdateOutlet, options.OperationMiddlewares["updateOutlet"]...)
 	router.GET(options.BaseURL+"/outlets/:outletId/dashboard", wrapper.GetOutletDashboard, options.OperationMiddlewares["getOutletDashboard"]...)
+	router.GET(options.BaseURL+"/outlets/:outletId/receipt-templates", wrapper.ListReceiptTemplates, options.OperationMiddlewares["listReceiptTemplates"]...)
+	router.POST(options.BaseURL+"/outlets/:outletId/receipt-templates", wrapper.CreateReceiptTemplate, options.OperationMiddlewares["createReceiptTemplate"]...)
+	router.DELETE(options.BaseURL+"/outlets/:outletId/receipt-templates/:templateId", wrapper.DeleteReceiptTemplate, options.OperationMiddlewares["deleteReceiptTemplate"]...)
+	router.GET(options.BaseURL+"/outlets/:outletId/receipt-templates/:templateId", wrapper.GetReceiptTemplate, options.OperationMiddlewares["getReceiptTemplate"]...)
+	router.PUT(options.BaseURL+"/outlets/:outletId/receipt-templates/:templateId", wrapper.UpdateReceiptTemplate, options.OperationMiddlewares["updateReceiptTemplate"]...)
+	router.GET(options.BaseURL+"/outlets/:outletId/receipts/qr/:qrId", wrapper.GetReceiptByQR, options.OperationMiddlewares["getReceiptByQR"]...)
 	router.GET(options.BaseURL+"/outlets/:outletId/reports/cancellations", wrapper.GetOutletCancellationReport, options.OperationMiddlewares["getOutletCancellationReport"]...)
 	router.GET(options.BaseURL+"/outlets/:outletId/reports/customers", wrapper.GetOutletCustomerReport, options.OperationMiddlewares["getOutletCustomerReport"]...)
 	router.GET(options.BaseURL+"/outlets/:outletId/reports/expenses", wrapper.GetOutletExpenseReport, options.OperationMiddlewares["getOutletExpenseReport"]...)
@@ -5908,6 +6181,89 @@ func (response VoidOrderPayment500JSONResponse) VisitVoidOrderPaymentResponse(w 
 	return err
 }
 
+type GetOrderReceiptRequestObject struct {
+	OrderId EntityId `json:"orderId"`
+}
+
+type GetOrderReceiptResponseObject interface {
+	VisitGetOrderReceiptResponse(w http.ResponseWriter) error
+}
+
+type GetOrderReceipt200JSONResponse ReceiptPayload
+
+func (response GetOrderReceipt200JSONResponse) VisitGetOrderReceiptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrderReceipt401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetOrderReceipt401JSONResponse) VisitGetOrderReceiptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrderReceipt403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetOrderReceipt403JSONResponse) VisitGetOrderReceiptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrderReceipt404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetOrderReceipt404JSONResponse) VisitGetOrderReceiptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrderReceipt500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetOrderReceipt500JSONResponse) VisitGetOrderReceiptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type TransitionOrderStatusRequestObject struct {
 	OrderId EntityId `json:"orderId"`
 	Body    *TransitionOrderStatusJSONRequestBody
@@ -6550,6 +6906,488 @@ type GetOutletDashboard500JSONResponse struct {
 }
 
 func (response GetOutletDashboard500JSONResponse) VisitGetOutletDashboardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReceiptTemplatesRequestObject struct {
+	OutletId OutletId `json:"outletId"`
+}
+
+type ListReceiptTemplatesResponseObject interface {
+	VisitListReceiptTemplatesResponse(w http.ResponseWriter) error
+}
+
+type ListReceiptTemplates200JSONResponse struct {
+	Items []ReceiptTemplate `json:"items"`
+}
+
+func (response ListReceiptTemplates200JSONResponse) VisitListReceiptTemplatesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReceiptTemplates401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListReceiptTemplates401JSONResponse) VisitListReceiptTemplatesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReceiptTemplates403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListReceiptTemplates403JSONResponse) VisitListReceiptTemplatesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReceiptTemplates404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListReceiptTemplates404JSONResponse) VisitListReceiptTemplatesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReceiptTemplateRequestObject struct {
+	OutletId OutletId `json:"outletId"`
+	Body     *CreateReceiptTemplateJSONRequestBody
+}
+
+type CreateReceiptTemplateResponseObject interface {
+	VisitCreateReceiptTemplateResponse(w http.ResponseWriter) error
+}
+
+type CreateReceiptTemplate201JSONResponse ReceiptTemplate
+
+func (response CreateReceiptTemplate201JSONResponse) VisitCreateReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReceiptTemplate400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateReceiptTemplate400JSONResponse) VisitCreateReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReceiptTemplate401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateReceiptTemplate401JSONResponse) VisitCreateReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReceiptTemplate403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateReceiptTemplate403JSONResponse) VisitCreateReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReceiptTemplate404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateReceiptTemplate404JSONResponse) VisitCreateReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReceiptTemplate409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateReceiptTemplate409JSONResponse) VisitCreateReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteReceiptTemplateRequestObject struct {
+	OutletId   OutletId `json:"outletId"`
+	TemplateId EntityId `json:"templateId"`
+}
+
+type DeleteReceiptTemplateResponseObject interface {
+	VisitDeleteReceiptTemplateResponse(w http.ResponseWriter) error
+}
+
+type DeleteReceiptTemplate200JSONResponse ReceiptTemplate
+
+func (response DeleteReceiptTemplate200JSONResponse) VisitDeleteReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteReceiptTemplate401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response DeleteReceiptTemplate401JSONResponse) VisitDeleteReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteReceiptTemplate403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteReceiptTemplate403JSONResponse) VisitDeleteReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteReceiptTemplate404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteReceiptTemplate404JSONResponse) VisitDeleteReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReceiptTemplateRequestObject struct {
+	OutletId   OutletId `json:"outletId"`
+	TemplateId EntityId `json:"templateId"`
+}
+
+type GetReceiptTemplateResponseObject interface {
+	VisitGetReceiptTemplateResponse(w http.ResponseWriter) error
+}
+
+type GetReceiptTemplate200JSONResponse ReceiptTemplate
+
+func (response GetReceiptTemplate200JSONResponse) VisitGetReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReceiptTemplate401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetReceiptTemplate401JSONResponse) VisitGetReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReceiptTemplate403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetReceiptTemplate403JSONResponse) VisitGetReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReceiptTemplate404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetReceiptTemplate404JSONResponse) VisitGetReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateReceiptTemplateRequestObject struct {
+	OutletId   OutletId `json:"outletId"`
+	TemplateId EntityId `json:"templateId"`
+	Body       *UpdateReceiptTemplateJSONRequestBody
+}
+
+type UpdateReceiptTemplateResponseObject interface {
+	VisitUpdateReceiptTemplateResponse(w http.ResponseWriter) error
+}
+
+type UpdateReceiptTemplate200JSONResponse ReceiptTemplate
+
+func (response UpdateReceiptTemplate200JSONResponse) VisitUpdateReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateReceiptTemplate400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateReceiptTemplate400JSONResponse) VisitUpdateReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateReceiptTemplate401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateReceiptTemplate401JSONResponse) VisitUpdateReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateReceiptTemplate403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateReceiptTemplate403JSONResponse) VisitUpdateReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateReceiptTemplate404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateReceiptTemplate404JSONResponse) VisitUpdateReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateReceiptTemplate409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateReceiptTemplate409JSONResponse) VisitUpdateReceiptTemplateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReceiptByQRRequestObject struct {
+	OutletId OutletId           `json:"outletId"`
+	QrId     openapi_types.UUID `json:"qrId"`
+}
+
+type GetReceiptByQRResponseObject interface {
+	VisitGetReceiptByQRResponse(w http.ResponseWriter) error
+}
+
+type GetReceiptByQR200JSONResponse ReceiptPayload
+
+func (response GetReceiptByQR200JSONResponse) VisitGetReceiptByQRResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReceiptByQR401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetReceiptByQR401JSONResponse) VisitGetReceiptByQRResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReceiptByQR403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetReceiptByQR403JSONResponse) VisitGetReceiptByQRResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReceiptByQR404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetReceiptByQR404JSONResponse) VisitGetReceiptByQRResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReceiptByQR500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetReceiptByQR500JSONResponse) VisitGetReceiptByQRResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -8880,6 +9718,9 @@ type StrictServerInterface interface {
 	// Void an erroneous confirmed receipt entry
 	// (POST /orders/{orderId}/payments/{paymentId}/void)
 	VoidOrderPayment(ctx context.Context, request VoidOrderPaymentRequestObject) (VoidOrderPaymentResponseObject, error)
+	// Build an authenticated receipt from historical order snapshots
+	// (GET /orders/{orderId}/receipt)
+	GetOrderReceipt(ctx context.Context, request GetOrderReceiptRequestObject) (GetOrderReceiptResponseObject, error)
 	// Advance an order through its allowed lifecycle
 	// (PATCH /orders/{orderId}/status)
 	TransitionOrderStatus(ctx context.Context, request TransitionOrderStatusRequestObject) (TransitionOrderStatusResponseObject, error)
@@ -8901,6 +9742,24 @@ type StrictServerInterface interface {
 	// Get an outlet profile and today's cashflow totals
 	// (GET /outlets/{outletId}/dashboard)
 	GetOutletDashboard(ctx context.Context, request GetOutletDashboardRequestObject) (GetOutletDashboardResponseObject, error)
+	// List active receipt templates for an authorized outlet
+	// (GET /outlets/{outletId}/receipt-templates)
+	ListReceiptTemplates(ctx context.Context, request ListReceiptTemplatesRequestObject) (ListReceiptTemplatesResponseObject, error)
+	// Create an outlet receipt template
+	// (POST /outlets/{outletId}/receipt-templates)
+	CreateReceiptTemplate(ctx context.Context, request CreateReceiptTemplateRequestObject) (CreateReceiptTemplateResponseObject, error)
+	// Soft-delete an active receipt template
+	// (DELETE /outlets/{outletId}/receipt-templates/{templateId})
+	DeleteReceiptTemplate(ctx context.Context, request DeleteReceiptTemplateRequestObject) (DeleteReceiptTemplateResponseObject, error)
+	// Get an active receipt template
+	// (GET /outlets/{outletId}/receipt-templates/{templateId})
+	GetReceiptTemplate(ctx context.Context, request GetReceiptTemplateRequestObject) (GetReceiptTemplateResponseObject, error)
+	// Replace an active receipt template
+	// (PUT /outlets/{outletId}/receipt-templates/{templateId})
+	UpdateReceiptTemplate(ctx context.Context, request UpdateReceiptTemplateRequestObject) (UpdateReceiptTemplateResponseObject, error)
+	// Resolve an opaque QR locator to an authorized receipt
+	// (GET /outlets/{outletId}/receipts/qr/{qrId})
+	GetReceiptByQR(ctx context.Context, request GetReceiptByQRRequestObject) (GetReceiptByQRResponseObject, error)
 	// Get retained cancellations by cancellation date
 	// (GET /outlets/{outletId}/reports/cancellations)
 	GetOutletCancellationReport(ctx context.Context, request GetOutletCancellationReportRequestObject) (GetOutletCancellationReportResponseObject, error)
@@ -9727,6 +10586,31 @@ func (sh *strictHandler) VoidOrderPayment(ctx echo.Context, orderId EntityId, pa
 	return nil
 }
 
+// GetOrderReceipt operation middleware
+func (sh *strictHandler) GetOrderReceipt(ctx echo.Context, orderId EntityId) error {
+	var request GetOrderReceiptRequestObject
+
+	request.OrderId = orderId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOrderReceipt(ctx.Request().Context(), request.(GetOrderReceiptRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOrderReceipt")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetOrderReceiptResponseObject); ok {
+		return validResponse.VisitGetOrderReceiptResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // TransitionOrderStatus operation middleware
 func (sh *strictHandler) TransitionOrderStatus(ctx echo.Context, orderId EntityId) error {
 	var request TransitionOrderStatusRequestObject
@@ -9912,6 +10796,172 @@ func (sh *strictHandler) GetOutletDashboard(ctx echo.Context, outletId EntityId)
 		return err
 	} else if validResponse, ok := response.(GetOutletDashboardResponseObject); ok {
 		return validResponse.VisitGetOutletDashboardResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListReceiptTemplates operation middleware
+func (sh *strictHandler) ListReceiptTemplates(ctx echo.Context, outletId OutletId) error {
+	var request ListReceiptTemplatesRequestObject
+
+	request.OutletId = outletId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListReceiptTemplates(ctx.Request().Context(), request.(ListReceiptTemplatesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListReceiptTemplates")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListReceiptTemplatesResponseObject); ok {
+		return validResponse.VisitListReceiptTemplatesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateReceiptTemplate operation middleware
+func (sh *strictHandler) CreateReceiptTemplate(ctx echo.Context, outletId OutletId) error {
+	var request CreateReceiptTemplateRequestObject
+
+	request.OutletId = outletId
+
+	var body CreateReceiptTemplateJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateReceiptTemplate(ctx.Request().Context(), request.(CreateReceiptTemplateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateReceiptTemplate")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateReceiptTemplateResponseObject); ok {
+		return validResponse.VisitCreateReceiptTemplateResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteReceiptTemplate operation middleware
+func (sh *strictHandler) DeleteReceiptTemplate(ctx echo.Context, outletId OutletId, templateId EntityId) error {
+	var request DeleteReceiptTemplateRequestObject
+
+	request.OutletId = outletId
+	request.TemplateId = templateId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteReceiptTemplate(ctx.Request().Context(), request.(DeleteReceiptTemplateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteReceiptTemplate")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteReceiptTemplateResponseObject); ok {
+		return validResponse.VisitDeleteReceiptTemplateResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetReceiptTemplate operation middleware
+func (sh *strictHandler) GetReceiptTemplate(ctx echo.Context, outletId OutletId, templateId EntityId) error {
+	var request GetReceiptTemplateRequestObject
+
+	request.OutletId = outletId
+	request.TemplateId = templateId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetReceiptTemplate(ctx.Request().Context(), request.(GetReceiptTemplateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetReceiptTemplate")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetReceiptTemplateResponseObject); ok {
+		return validResponse.VisitGetReceiptTemplateResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateReceiptTemplate operation middleware
+func (sh *strictHandler) UpdateReceiptTemplate(ctx echo.Context, outletId OutletId, templateId EntityId) error {
+	var request UpdateReceiptTemplateRequestObject
+
+	request.OutletId = outletId
+	request.TemplateId = templateId
+
+	var body UpdateReceiptTemplateJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateReceiptTemplate(ctx.Request().Context(), request.(UpdateReceiptTemplateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateReceiptTemplate")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateReceiptTemplateResponseObject); ok {
+		return validResponse.VisitUpdateReceiptTemplateResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetReceiptByQR operation middleware
+func (sh *strictHandler) GetReceiptByQR(ctx echo.Context, outletId OutletId, qrId openapi_types.UUID) error {
+	var request GetReceiptByQRRequestObject
+
+	request.OutletId = outletId
+	request.QrId = qrId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetReceiptByQR(ctx.Request().Context(), request.(GetReceiptByQRRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetReceiptByQR")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetReceiptByQRResponseObject); ok {
+		return validResponse.VisitGetReceiptByQRResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

@@ -75,6 +75,12 @@ Amounts are positive whole-rupiah integers. Expense list `fromDate` and `toDate`
 
 Expense creation returns a quoted `ETag` version; detail also returns the current version. Full expense update requires the exact ETag using `If-Match`. Stale versions return 409, missing or malformed preconditions return 428. Each update locks the expense row, checks and increments its version, and appends the audit record in one transaction. Audit before/after JSON retains IDs, amount, category, date, and version, but redacts description and receipt reference.
 
+## Receipts and settings (ISSUE-014)
+
+`GET /orders/{orderId}/receipt` and `GET /outlets/{outletId}/receipts/qr/{qrId}` require `ORDERS_READ`, a valid access token, active business/outlet, and current tenant/assignment scope. QR identifiers are opaque locators and provide no authority; inaccessible and unknown records return the same 404. Receipt customer name/phone and each service/perfume/quantity/price/line-total value come from order-time snapshots. Outlet profile and selected default template are current settings; status and confirmed payment balance are live values. Rupiah amounts are exact integers.
+
+`GET/POST /outlets/{outletId}/receipt-templates` and `GET/PUT/DELETE /outlets/{outletId}/receipt-templates/{templateId}` require `RECEIPTS_MANAGE`; ADMIN bypasses this action grant only. Templates are outlet-owned, mutations are serialized per outlet, soft-deleted, and audited in the same transaction. At most one active template can be default; the first template becomes default automatically when no default exists. WhatsApp templates permit only `{{customer_name}}`, `{{invoice_number}}`, `{{order_total}}`, `{{paid_amount}}`, `{{outstanding_amount}}`, `{{due_date}}`, and `{{order_status}}`. Returned `whatsappShare` contains the historical customer phone and rendered plain-text message for the client to share; the backend does not send messages. `paperWidthMm` (58 or 80) is the only printer preference stored server-side. Device discovery, scanning, pairing, connection state, and physical printing remain client responsibilities.
+
 ## Contract rules
 
 - Add all endpoint changes to OpenAPI before generating Echo types with `make generate`.
