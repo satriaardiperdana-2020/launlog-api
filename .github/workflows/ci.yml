@@ -73,7 +73,7 @@ jobs:
           ALTER DEFAULT PRIVILEGES FOR ROLE launlog_migrator IN SCHEMA public
             GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO launlog_runtime;
           SQL
-          psql "$POSTGRES_ADMIN_URL" -d launlog_upgrade -v ON_ERROR_STOP=1 -c 'GRANT USAGE, CREATE ON SCHEMA public TO launlog_migrator'
+          psql "$UPGRADE_ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c 'GRANT USAGE, CREATE ON SCHEMA public TO launlog_migrator'
       - run: make migrate-verify
       - name: Apply runtime grants and protect immutable audit rows
         run: psql "$POSTGRES_ADMIN_URL" -v ON_ERROR_STOP=1 -v database_name=launlog_ci -f db/roles/least_privilege.sql
