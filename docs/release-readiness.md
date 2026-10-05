@@ -40,12 +40,12 @@ make release-check
 - `TEST_ADMIN_DATABASE_URL`: test-only administrator credential for fixture cleanup and schema assertions; never used by API requests.
 - `TEST_EXPECT_LEAST_PRIVILEGE=true`: requires runtime-role privilege verification rather than skipping it.
 - `E2E_DATABASE_URL`: runtime-role connection used by the actual server process smoke test.
-- `UPGRADE_MIGRATION_DATABASE_URL`: migrator credential on a new, empty upgrade rehearsal database.
+- `UPGRADE_MIGRATION_DATABASE_URL`: `launlog_owner` credential on a new, empty upgrade rehearsal database.
 - `UPGRADE_ADMIN_DATABASE_URL`: test administrator on that same upgrade database.
 - `BACKUP_SOURCE_DATABASE_URL`: test administrator on a disposable, fully migrated source database.
 - `RESTORE_DATABASE_URL`: test administrator on a separate disposable restore target.
 
-The scripts reject an already initialized migration-upgrade database and do not target a configured production endpoint. Keep credentials in ephemeral CI variables or a secret manager; never place them in `.env.example`, command-line history, or Git. CI uses three distinct database identities (runtime, migrator, administrator) with throwaway credentials and PostgreSQL service databases. `TEST_ADMIN_DATABASE_URL`, upgrade admin, and restore credentials exist only to make isolated test setup possible.
+The scripts reject an already initialized migration-upgrade database and do not target a configured production endpoint. Keep credentials in ephemeral CI variables or a secret manager; never place them in `.env.example`, command-line history, or Git. CI uses three distinct database identities (`launlog_runtime`, `launlog_owner`, administrator) with throwaway credentials and PostgreSQL service databases. `TEST_ADMIN_DATABASE_URL`, upgrade admin, and restore credentials exist only to make isolated test setup possible.
 
 ## Deployment procedure
 
@@ -70,7 +70,7 @@ The scripts reject an already initialized migration-upgrade database and do not 
 
 Prefer application rollback to the previous immutable artifact only when that artifact is compatible with the current additive schema. Do not run down migrations in production as an automatic deployment rollback; several downs are intentionally destructive or can fail after valid newer data is written. Keep changes expand/contract: add compatible schema first, deploy compatible code, then remove obsolete schema in a later explicitly approved migration.
 
-If a release causes data corruption or requires schema rollback, stop writes, preserve logs and the current database snapshot, page the database operator, and restore the encrypted pre-deploy backup/PITR into a separate database first. Validate migration version, critical table counts, tenant relationships, and application smoke checks against the restored target before a deliberate cutover. Record the recovery point and data-loss window; never overwrite the only source backup during rehearsal. Reapply runtime/migrator grants and verify the least-privilege startup check after restore.
+If a release causes data corruption or requires schema rollback, stop writes, preserve logs and the current database snapshot, page the database operator, and restore the encrypted pre-deploy backup/PITR into a separate database first. Validate migration version, critical table counts, tenant relationships, and application smoke checks against the restored target before a deliberate cutover. Record the recovery point and data-loss window; never overwrite the only source backup during rehearsal. Reapply runtime/owner grants and verify the least-privilege startup check after restore.
 
 CI's `scripts/test-backup-restore.sh` is a rehearsal of custom-format `pg_dump` plus `pg_restore` into a separate empty disposable database. It validates schema version and required tables; it is not a substitute for scheduled provider-level PITR restoration, encryption/key recovery, or an approved production RTO/RPO exercise.
 

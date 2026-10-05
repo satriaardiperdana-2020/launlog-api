@@ -152,9 +152,9 @@ Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run 
 
 ## Runtime database role
 
-Production must use distinct login roles: `launlog_migrator` owns schema changes and `launlog_runtime` serves API traffic. The runtime login must not be a superuser, database/role administrator, schema owner, or have `CREATE` on `public`; it receives normal table DML and sequence usage, but no `UPDATE`/`DELETE` on `audit_logs`. The application verifies these boundaries at production startup. Set `DATABASE_URL` to the runtime login and `MIGRATION_DATABASE_URL` to the migration login. Keep credentials outside Git and use PostgreSQL TLS with `sslmode=verify-full`.
+Production must use distinct login roles: `launlog_owner` owns schema changes and `launlog_runtime` serves API traffic. The runtime login must not be a superuser, database/role administrator, schema owner, or have `CREATE` on `public`; it receives normal table DML and sequence usage, but no `UPDATE`/`DELETE` on `audit_logs`. The application verifies these boundaries at production startup. Set `DATABASE_URL` to the runtime login and `MIGRATION_DATABASE_URL` to the migration login. Keep credentials outside Git and use PostgreSQL TLS with `sslmode=verify-full`.
 
-Provision login roles through the DBA/secret-management process (for example `CREATE ROLE launlog_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE` and the equivalent runtime role; set passwords interactively with `\password`). Then apply `psql -v database_name=launlog -f db/roles/least_privilege.sql` as a database administrator. Run that grant script after migration changes that add tables. CI exercises the same split: only the migrator owns DDL; integration HTTP traffic uses runtime credentials; a separate test-admin connection performs schema-only migration fixtures and test cleanup.
+Provision login roles through the DBA/secret-management process (for example `CREATE ROLE launlog_owner LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE` and the equivalent runtime role; set passwords interactively with `\password`). Then apply `psql -v database_name=launlog -f db/roles/least_privilege.sql` as a database administrator. Run that grant script after migration changes that add tables. CI exercises the same split: only the owner owns DDL; integration HTTP traffic uses runtime credentials; a separate test-admin connection performs schema-only migration fixtures and test cleanup.
 
 The checked-in Compose credentials and shared role are development-only and intentionally simple. Never reuse them in a deployed environment.
 
@@ -171,3 +171,14 @@ The repository's actual migration history contains master-data, order, payment, 
 ## Deliberately excluded
 
 The schema contains no customer deposits, quota packages, subscription plans, subscription billing, or related balance tables.
+
+
+### Existing deployments and `.env.production`
+
+Set `APP_ENV=production` in the service environment before startup so the API loads `.env.production`. Explicitly exported variables override that file. The API's `DATABASE_URL` must authenticate as `launlog_runtime`; `MIGRATION_DATABASE_URL` must authenticate as `launlog_owner`. Do not reuse the owner password for the runtime login. Keep the actual credentials in the untracked deployment file or secret manager and retain `sslmode=verify-full` and the required trusted CA/hostname configuration.
+
+The Makefile does not load dotenv files. The deployment runner must explicitly supply `MIGRATION_DATABASE_URL` from the production secret configuration when invoking `make migrate-up`; its `DATABASE_URL` fallback is only appropriate for local development. Do not use `make migrate-verify` or the release rehearsal databases against production.
+
+This code change does not rename deployed PostgreSQL roles or transfer existing object ownership. Before rollout, a DBA must verify that `launlog_owner` exists, owns the existing migration-managed objects (including `schema_migrations`), and has the required schema privileges. If the deployment still uses the old `launlog_migrator` role and the new name is unused, a DBA can plan a role rename; if both roles exist, reconcile ownership and default privileges explicitly. Verify/reset the renamed role credentials through the secret-management process before deployment. Do not edit or replay already applied schema migrations to perform this transition.
+
+After ownership is reconciled, apply `db/roles/least_privilege.sql` as the database administrator against the intended database. Verify that `launlog_runtime` has no direct or inherited membership in `launlog_owner`, no database ownership, administrative attributes or public-schema CREATE privilege, and no audit UPDATE/DELETE privilege. The grant script grants application access; it does not remove pre-existing administrative privileges or role memberships. Verify TLS and production startup before routing traffic.

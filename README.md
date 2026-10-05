@@ -40,7 +40,7 @@ Configuration loads `.env.<APP_ENV>` first (default `.env.development`) and then
 | `READINESS_TIMEOUT` | `2s` | Bound for `/readyz` database ping |
 | `APP_TIMEZONE` | `Asia/Jakarta` | The only accepted business/session timezone |
 | `DATABASE_URL` | none | Required; never log or commit it |
-| `MIGRATION_DATABASE_URL` | `DATABASE_URL` | Schema-owner/migration role; use a different credential from runtime in production |
+| `MIGRATION_DATABASE_URL` | `DATABASE_URL` | Use `launlog_owner` for migrations and `launlog_runtime` for API traffic in production |
 | `CORS_ALLOWED_ORIGINS` | empty | Exact comma-separated `http(s)://host[:port]` allowlist; empty disables CORS, wildcards are rejected |
 | `DATABASE_*_CONNS`, `DATABASE_CONNECT_TIMEOUT` | 10/0/5s | pgx pool and startup ping limits |
 | `JWT_SIGNING_SECRET` | none | Required; at least 32 bytes |
