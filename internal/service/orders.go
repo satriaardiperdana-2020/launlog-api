@@ -569,10 +569,19 @@ func loadOrder(ctx context.Context, q *postgresql.Queries, id, businessID, outle
 		order.Items = append(order.Items, OrderItem{ID: item.ID, ServiceID: item.ServiceID,
 			PerfumeID: intPointer(item.PerfumeID), ServiceNameSnapshot: item.ServiceNameSnapshot,
 			ServiceUnitSnapshot: item.ServiceUnitSnapshot, UnitPriceAmountSnapshot: item.UnitPriceAmountSnapshot,
-			PerfumeNameSnapshot: textPointer(item.PerfumeNameSnapshot), Quantity: item.Quantity,
+			PerfumeNameSnapshot: textPointer(item.PerfumeNameSnapshot), Quantity: FormatQuantity(item.Quantity),
 			LineTotalAmount: item.LineTotalAmount, Notes: textPointer(item.Notes)})
 	}
 	return order, nil
+}
+
+// FormatQuantity removes insignificant trailing zeroes from PostgreSQL NUMERIC text.
+func FormatQuantity(value string) string {
+	if !strings.Contains(value, ".") {
+		return value
+	}
+	value = strings.TrimRight(value, "0")
+	return strings.TrimRight(value, ".")
 }
 
 func orderSummaryFrom(id, businessID, outletID, customerID int64, invoice, status, paymentStatus string,

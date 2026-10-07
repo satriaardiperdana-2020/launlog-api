@@ -16,6 +16,7 @@ import (
 
 	"github.com/satriaardiperdana-2020/launlog-api/internal/repository"
 	"github.com/satriaardiperdana-2020/launlog-api/internal/repository/postgresql"
+	"github.com/satriaardiperdana-2020/launlog-api/internal/service"
 )
 
 type ReceiptsHandler struct{ database *repository.Postgres }
@@ -134,7 +135,7 @@ func (h *ReceiptsHandler) receipt(c echo.Context, p Principal, orderID pgtype.In
 	}
 	lineItems := make([]item, 0, len(items))
 	for _, v := range items {
-		lineItems = append(lineItems, item{ID: v.ID, ServiceName: v.ServiceNameSnapshot, Unit: v.ServiceUnitSnapshot, UnitPrice: v.UnitPriceAmountSnapshot, Quantity: v.Quantity, LineTotal: v.LineTotalAmount, PerfumeName: textPtr(v.PerfumeNameSnapshot), Notes: textPtr(v.Notes)})
+		lineItems = append(lineItems, item{ID: v.ID, ServiceName: v.ServiceNameSnapshot, Unit: v.ServiceUnitSnapshot, UnitPrice: v.UnitPriceAmountSnapshot, Quantity: service.FormatQuantity(v.Quantity), LineTotal: v.LineTotalAmount, PerfumeName: textPtr(v.PerfumeNameSnapshot), Notes: textPtr(v.Notes)})
 	}
 	outstanding := order.TotalAmount - paid
 	if outstanding < 0 {
