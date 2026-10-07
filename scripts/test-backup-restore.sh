@@ -13,7 +13,7 @@ DO $$
 DECLARE v bigint; d boolean;
 BEGIN
   SELECT version, dirty INTO v,d FROM schema_migrations;
-  IF v <> 16 OR d THEN RAISE EXCEPTION 'source schema is not clean at version 16'; END IF;
+  IF v <> 17 OR d THEN RAISE EXCEPTION 'source schema is not clean at version 17'; END IF;
 END $$;
 SQL
 
@@ -33,7 +33,7 @@ DECLARE
   required_tables integer;
 BEGIN
   SELECT version, dirty INTO current_version, migration_dirty FROM schema_migrations;
-  IF current_version <> 16 OR migration_dirty THEN
+  IF current_version <> 17 OR migration_dirty THEN
     RAISE EXCEPTION 'restored database schema version/dirty state mismatch';
   END IF;
   SELECT count(*) INTO required_tables FROM information_schema.tables

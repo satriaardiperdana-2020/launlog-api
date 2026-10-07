@@ -17,13 +17,13 @@ func TestReceiptAuthorizationSnapshotsAndTemplateManagement(t *testing.T) {
 	if err := f.pool.QueryRow(ctx, `INSERT INTO customers (business_id,name,phone) VALUES ($1,'Receipt-time customer','+628111111111') RETURNING id`, f.businessID).Scan(&customerID); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.pool.QueryRow(ctx, `INSERT INTO services (business_id,name,unit,unit_price_amount) VALUES ($1,'Shirt','PIECE',12500) RETURNING id`, f.businessID).Scan(&serviceID); err != nil {
+	if err := f.pool.QueryRow(ctx, `INSERT INTO services (business_id,name,unit,unit_price_amount) VALUES ($1,'Shirt','pcs',12500) RETURNING id`, f.businessID).Scan(&serviceID); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.pool.QueryRow(ctx, `INSERT INTO orders (business_id,outlet_id,customer_id,invoice_number,total_amount,created_by) VALUES ($1,$2,$3,'AUTH-RECEIPT-1',12500,$4) RETURNING id`, f.businessID, f.outletID, customerID, f.userID).Scan(&orderID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.pool.Exec(ctx, `INSERT INTO order_items (business_id,outlet_id,order_id,service_id,service_name_snapshot,service_unit_snapshot,unit_price_amount_snapshot,quantity,line_total_amount) VALUES ($1,$2,$3,$4,'Shirt at order time','PIECE',12500,1,12500)`, f.businessID, f.outletID, orderID, serviceID); err != nil {
+	if _, err := f.pool.Exec(ctx, `INSERT INTO order_items (business_id,outlet_id,order_id,service_id,service_name_snapshot,service_unit_snapshot,unit_price_amount_snapshot,quantity,line_total_amount) VALUES ($1,$2,$3,$4,'Shirt at order time','pcs',12500,1,12500)`, f.businessID, f.outletID, orderID, serviceID); err != nil {
 		t.Fatal(err)
 	}
 	var qrID, snapshotName string

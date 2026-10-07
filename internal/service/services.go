@@ -72,7 +72,7 @@ func NewServiceCatalog(database *repository.Postgres) *ServiceCatalog {
 
 func ValidUnit(unit string) bool {
 	switch unit {
-	case "KILOGRAM", "PIECE", "METER", "SQUARE_METER":
+	case "kg", "pcs", "m", "m2":
 		return true
 	default:
 		return false

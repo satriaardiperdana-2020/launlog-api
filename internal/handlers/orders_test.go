@@ -27,7 +27,7 @@ func TestOrderErrorExplainsDueDateAndQuantity(t *testing.T) {
 			name:    "invalid quantity",
 			err:     service.ErrInvalidOrderQuantity,
 			code:    "INVALID_QUANTITY",
-			message: "PIECE quantities must be whole numbers",
+			message: "pcs quantities must be whole numbers",
 		},
 	}
 	for _, test := range tests {

@@ -78,7 +78,7 @@ func (h *ServiceHandler) List(c echo.Context) error {
 	filter := service.ServiceFilter{Search: c.QueryParam("q"), PageOffset: offset, PageLimit: size}
 	if values, exists := c.QueryParams()["unit"]; exists {
 		if len(values) != 1 || !service.ValidUnit(values[0]) {
-			return badRequest(c, "INVALID_UNIT", "unit must be KILOGRAM, PIECE, METER, or SQUARE_METER")
+			return badRequest(c, "INVALID_UNIT", "unit must be kg, pcs, m, or m2")
 		}
 		filter.Unit = &values[0]
 	}

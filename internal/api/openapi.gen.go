@@ -409,22 +409,22 @@ func (e ReportDateRangeTimezone) Valid() bool {
 
 // Defines values for ServiceUnit.
 const (
-	KILOGRAM    ServiceUnit = "KILOGRAM"
-	METER       ServiceUnit = "METER"
-	PIECE       ServiceUnit = "PIECE"
-	SQUAREMETER ServiceUnit = "SQUARE_METER"
+	Kg  ServiceUnit = "kg"
+	M   ServiceUnit = "m"
+	M2  ServiceUnit = "m2"
+	Pcs ServiceUnit = "pcs"
 )
 
 // Valid indicates whether the value is a known member of the ServiceUnit enum.
 func (e ServiceUnit) Valid() bool {
 	switch e {
-	case KILOGRAM:
+	case Kg:
 		return true
-	case METER:
+	case M:
 		return true
-	case PIECE:
+	case M2:
 		return true
-	case SQUAREMETER:
+	case Pcs:
 		return true
 	default:
 		return false
@@ -542,7 +542,7 @@ type CreateServiceInput struct {
 	EstimatedDurationMinutes *int32  `json:"estimatedDurationMinutes,omitempty"`
 	Name                     string  `json:"name"`
 
-	// Unit Existing database unit codes; no separate service_type field.
+	// Unit Service measurement unit: kg (kilogram), pcs (piece), m (meter), or m2 (square meter / meter persegi).
 	Unit ServiceUnit `json:"unit"`
 
 	// UnitPriceAmount Exact whole rupiah.
@@ -953,7 +953,7 @@ type OrderItem struct {
 	ServiceId           EntityId `json:"service_id"`
 	ServiceNameSnapshot string   `json:"service_name_snapshot"`
 
-	// ServiceUnitSnapshot Existing database unit codes; no separate service_type field.
+	// ServiceUnitSnapshot Service measurement unit: kg (kilogram), pcs (piece), m (meter), or m2 (square meter / meter persegi).
 	ServiceUnitSnapshot ServiceUnit `json:"service_unit_snapshot"`
 
 	// UnitPriceAmountSnapshot Exact whole-rupiah amount. Fractional rupiah values are not accepted.
@@ -1453,7 +1453,7 @@ type Service struct {
 	IsActive bool     `json:"is_active"`
 	Name     string   `json:"name"`
 
-	// Unit Existing database unit codes; no separate service_type field.
+	// Unit Service measurement unit: kg (kilogram), pcs (piece), m (meter), or m2 (square meter / meter persegi).
 	Unit ServiceUnit `json:"unit"`
 
 	// UnitPriceAmount Exact whole rupiah.
@@ -1469,7 +1469,7 @@ type ServiceList struct {
 	Pagination PaginationMeta `json:"pagination"`
 }
 
-// ServiceUnit Existing database unit codes; no separate service_type field.
+// ServiceUnit Service measurement unit: kg (kilogram), pcs (piece), m (meter), or m2 (square meter / meter persegi).
 type ServiceUnit string
 
 // Staff defines model for Staff.
@@ -1551,7 +1551,7 @@ type UpdateServiceInput struct {
 	IsActive                 bool    `json:"isActive"`
 	Name                     string  `json:"name"`
 
-	// Unit Existing database unit codes; no separate service_type field.
+	// Unit Service measurement unit: kg (kilogram), pcs (piece), m (meter), or m2 (square meter / meter persegi).
 	Unit ServiceUnit `json:"unit"`
 
 	// UnitPriceAmount Exact whole rupiah.

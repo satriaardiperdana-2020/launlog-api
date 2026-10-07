@@ -22,6 +22,11 @@ INSERT INTO customers (id, business_id, name, phone, address)
 VALUES (-916004, -916001, 'Legacy Customer Snapshot', '+628111111111', 'Legacy address');
 INSERT INTO orders (id, business_id, outlet_id, customer_id, invoice_number, total_amount, created_by)
 VALUES (-916005, -916001, -916002, -916004, 'UPG-LEGACY-000001', 12500, -916003);
+INSERT INTO services (id, business_id, name, unit, unit_price_amount)
+SELECT -917000 - n, -916001, 'Legacy service ' || n, unit, 1000
+FROM unnest(ARRAY['KILOGRAM','PIECE','METER','SQUARE_METER']) WITH ORDINALITY AS u(unit,n);
+INSERT INTO order_items (business_id,outlet_id,order_id,service_id,service_name_snapshot,service_unit_snapshot,unit_price_amount_snapshot,quantity,line_total_amount)
+SELECT business_id,-916002,-916005,id,name,unit,1000,2,2000 FROM services WHERE business_id=-916001;
 INSERT INTO refresh_tokens (id, business_id, user_id, token_hash, expires_at)
 VALUES (-916006, -916001, -916003, 'upgrade-rehearsal-legacy-refresh-hash', now() + interval '1 day');
 SQL
@@ -47,9 +52,22 @@ BEGIN
   IF token_family_id IS NULL THEN
     RAISE EXCEPTION 'legacy refresh session/hash was not preserved and attached to a family';
   END IF;
+  IF (SELECT array_agg(unit ORDER BY id DESC) FROM services WHERE business_id=-916001)
+      IS DISTINCT FROM ARRAY['kg','pcs','m','m2']
+     OR (SELECT array_agg(service_unit_snapshot ORDER BY service_id DESC) FROM order_items WHERE order_id=-916005)
+      IS DISTINCT FROM ARRAY['kg','pcs','m','m2'] THEN
+    RAISE EXCEPTION 'legacy service and order-item unit codes were not converted';
+  END IF;
+  BEGIN
+    UPDATE order_items SET quantity=1.5, line_total_amount=1500
+    WHERE order_id=-916005 AND service_unit_snapshot='pcs';
+    RAISE EXCEPTION 'fractional pcs quantity was accepted';
+  EXCEPTION WHEN check_violation THEN
+    NULL;
+  END;
   SELECT version, dirty INTO current_version, migration_dirty FROM schema_migrations;
-  IF current_version <> 16 OR migration_dirty THEN
-    RAISE EXCEPTION 'upgrade did not finish cleanly at migration 16 (version %, dirty %)', current_version, migration_dirty;
+  IF current_version <> 17 OR migration_dirty THEN
+    RAISE EXCEPTION 'upgrade did not finish cleanly at migration 17 (version %, dirty %)', current_version, migration_dirty;
   END IF;
 END $$;
 SQL
