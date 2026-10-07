@@ -52,7 +52,7 @@ The scripts reject an already initialized migration-upgrade database and do not 
 1. Build from the reviewed commit and publish an immutable image/binary digest. Keep the previous artifact available.
 2. Provision PostgreSQL 16, TLS with hostname verification, and the separate roles described in [database operations](database.md#runtime-database-role). Inject `DATABASE_URL`, `MIGRATION_DATABASE_URL`, and JWT signing secret using the deployment secret manager. Do not reuse local Compose credentials.
 3. Take a provider-managed, encrypted, point-in-time backup before schema changes and confirm its retention and restore access. Do not use `make migrate-verify` against staging or production.
-4. Run `make migrate-up` once as the migration role from the release job. Verify the migration version is 16 and `dirty=false`; review migration output for errors.
+4. Run `make migrate-up` once as the migration role from the release job. Verify the migration version is 17 and `dirty=false`; review migration output for errors.
 5. Deploy the immutable application artifact with the runtime role. Production startup must pass verified TLS and least-privilege checks before listening.
 6. Verify `GET /livez`, `GET /readyz`, and `GET /health` through the intended load balancer. Check application startup/shutdown logs, database pool saturation/connection errors, authentication failure rates, and that secrets/tokens/PII are not logged.
 7. Run an authenticated smoke test from a restricted operator client: login, `/auth/me`, a tenant-scoped read, then logout. Confirm a revoked access token fails. Avoid creating business data just for a probe.

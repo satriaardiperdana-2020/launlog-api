@@ -18,7 +18,7 @@ Invoice numbers are unique per outlet/date policy, all items and totals are serv
 
 ## Test cases
 
-Concurrent invoice allocation, decimal and PIECE quantity validation, snapshot immutability, total calculation, rollback, and cross-business attempts.
+Concurrent invoice allocation, decimal and pcs quantity validation, snapshot immutability, total calculation, rollback, and cross-business attempts.
 
 ## Branch name
 

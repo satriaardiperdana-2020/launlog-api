@@ -1905,8 +1905,8 @@ components:
 
     ServiceUnit:
       type: string
-      enum: [KILOGRAM, PIECE, METER, SQUARE_METER]
-      description: Existing database unit codes; no separate service_type field.
+      enum: [kg, pcs, m, m2]
+      description: "Service measurement unit: kg (kilogram), pcs (piece), m (meter), or m2 (square meter / meter persegi)."
     Service:
       type: object
       required: [id, business_id, name, description, unit, unit_price_amount, estimated_duration_minutes, is_active, created_at, updated_at]

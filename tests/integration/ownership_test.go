@@ -80,8 +80,8 @@ func TestOwnershipMigrationAndTenantIsolation(t *testing.T) {
 		(-10032, $1, $2, -10031, 'ownership-test-token-cross-business', now() + interval '1 hour')`, businessBID, userAID))
 
 	mustExec(t, ctx, tx, `INSERT INTO services (id, business_id, name, unit, unit_price_amount) VALUES
-		(-10041, $1, 'Wash', 'KILOGRAM', 7000),
-		(-10042, $2, 'Wash', 'KILOGRAM', 7000)`, businessAID, businessBID)
+		(-10041, $1, 'Wash', 'kg', 7000),
+		(-10042, $2, 'Wash', 'kg', 7000)`, businessAID, businessBID)
 	assertCheckViolation(t, mustExecErr(ctx, tx,
 		`INSERT INTO services (id, business_id, name, unit, unit_price_amount) VALUES (-10043, $1, 'Invalid', 'LITRE', 7000)`, businessAID))
 
@@ -123,8 +123,8 @@ func assertSchemaVersion(t *testing.T, ctx context.Context, tx pgx.Tx) {
 	if err := tx.QueryRow(ctx, `SELECT version, dirty FROM schema_migrations`).Scan(&version, &dirty); err != nil {
 		t.Fatalf("read schema migration state: %v", err)
 	}
-	if version != 16 || dirty {
-		t.Fatalf("expected clean receipt-snapshot migration at version 16, got version=%d dirty=%t", version, dirty)
+	if version != 17 || dirty {
+		t.Fatalf("expected clean service-unit migration at version 17, got version=%d dirty=%t", version, dirty)
 	}
 }
 

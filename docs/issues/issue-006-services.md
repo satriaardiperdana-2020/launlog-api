@@ -6,7 +6,7 @@ Manage business-scoped laundry services with exact rupiah prices and supported m
 
 ## Scope
 
-In scope: business-shared CRUD, search, unit and active-state filters, activation/deactivation, soft deletion, descriptions, exact pricing, duration, and existing KILOGRAM/PIECE/METER/SQUARE_METER validation. Out of scope: order line creation and outlet-specific prices.
+In scope: business-shared CRUD, search, unit and active-state filters, activation/deactivation, soft deletion, descriptions, exact pricing, duration, and existing kg/pcs/m/m2 validation. Out of scope: order line creation and outlet-specific prices.
 
 ## API/database changes
 

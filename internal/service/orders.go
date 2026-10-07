@@ -20,7 +20,7 @@ import (
 
 var (
 	ErrInvalidOrder             = errors.New("invalid order request")
-	ErrInvalidOrderQuantity     = errors.New("quantity must be a positive decimal string with at most 9 integer and 3 fractional digits; PIECE quantities must be whole numbers")
+	ErrInvalidOrderQuantity     = errors.New("quantity must be a positive decimal string with at most 9 integer and 3 fractional digits; pcs quantities must be whole numbers")
 	ErrOrderDueAtBeforeReceive  = errors.New("dueAt must not be earlier than the order receive time; send a future date-time or omit dueAt")
 	ErrOrderNotFound            = errors.New("order not found")
 	ErrOrderOutletForbidden     = errors.New("outlet is not assigned to this user")
@@ -245,7 +245,7 @@ func (s *OrderCatalog) Create(ctx context.Context, actor Actor, input CreateOrde
 			return OrderCreationResult{}, err
 		}
 		milli, err := parseMilliQuantity(requested.Quantity)
-		if err != nil || (itemService.Unit == "PIECE" && milli%1000 != 0) {
+		if err != nil || (itemService.Unit == "pcs" && milli%1000 != 0) {
 			return OrderCreationResult{}, ErrInvalidOrderQuantity
 		}
 		lineTotal := new(big.Int).Mul(big.NewInt(milli), big.NewInt(itemService.UnitPriceAmount))

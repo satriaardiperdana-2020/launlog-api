@@ -258,7 +258,7 @@ type Service struct {
 	// Tenant owner. There is intentionally no outlet_id because services are shared across the business.
 	BusinessID int64  `json:"business_id"`
 	Name       string `json:"name"`
-	// Measurement type constrained to KILOGRAM, PIECE, METER, or SQUARE_METER.
+	// Measurement type constrained to kg, pcs, m, or m2.
 	Unit                     string             `json:"unit"`
 	UnitPriceAmount          int64              `json:"unit_price_amount"`
 	EstimatedDurationMinutes int32              `json:"estimated_duration_minutes"`
