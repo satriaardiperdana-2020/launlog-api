@@ -48,3 +48,23 @@ An additive migration after ISSUE-017, platform and tenant provisioning/support 
 ## Definition of done
 
 The approved platform business and support contract, tenant-safe provisioning, bounded access grants, immutable audit, OpenAPI, and integration regressions pass review and release gates.
+
+## Implemented contract
+
+- Onboarding requires firstOutlet and firstAdmin. Password is write-only and uses
+  the approved bcrypt policy; IDs and ADMIN role are server-assigned. Secure
+  manual delivery remains an operator responsibility; invitation/reset delivery
+  is outside this implementation.
+- An authenticated owner creates `/support-requests` with confirmationPassword,
+  reason, accessScope READ_ONLY/READ_WRITE, and expiry within one hour. Platform
+  start accepts only supportRequestId and cannot expand consent.
+- Support endpoints expose diagnostic counts, outlet and perfume metadata.
+  READ_WRITE adds only version-checked perfume description edits. Customer data,
+  financial mutations, and account/permission changes remain unavailable.
+- `/support-audit` and `/audit-logs` provide tenant-filtered history; platform
+  audit views are separately authenticated. Support actions carry a distinct
+  platform actor and correlate both audit streams without impersonation.
+- Revocation is synchronous with shared/exclusive authorization locks: after the
+  end/revoke operation commits, later operations fail. An earlier authorized
+  operation finishes first, subject to a ten-second transaction timeout and a
+  final database-clock expiry check.

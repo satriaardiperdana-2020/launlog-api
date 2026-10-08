@@ -7,8 +7,8 @@ GRANT USAGE ON SCHEMA public TO launlog_runtime;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO launlog_runtime;
 GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO launlog_runtime;
-REVOKE UPDATE, DELETE ON TABLE public.audit_logs FROM launlog_runtime;
-REVOKE UPDATE, DELETE ON TABLE public.platform_audit_logs FROM launlog_runtime;
+REVOKE UPDATE, DELETE, TRUNCATE ON TABLE public.audit_logs FROM launlog_runtime;
+REVOKE UPDATE, DELETE, TRUNCATE ON TABLE public.platform_audit_logs FROM launlog_runtime;
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.platform_admins FROM launlog_runtime;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE launlog_owner IN SCHEMA public

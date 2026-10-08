@@ -190,3 +190,29 @@ The Makefile does not load dotenv files. The deployment runner must explicitly s
 This code change does not rename deployed PostgreSQL roles or transfer existing object ownership. Before rollout, a DBA must verify that `launlog_owner` exists, owns the existing migration-managed objects (including `schema_migrations`), and has the required schema privileges. If the deployment still uses the old `launlog_migrator` role and the new name is unused, a DBA can plan a role rename; if both roles exist, reconcile ownership and default privileges explicitly. Verify/reset the renamed role credentials through the secret-management process before deployment. Do not edit or replay already applied schema migrations to perform this transition.
 
 After ownership is reconciled, apply `db/roles/least_privilege.sql` as the database administrator against the intended database. Verify that `launlog_runtime` has no direct or inherited membership in `launlog_owner`, no database ownership, administrative attributes or public-schema CREATE privilege, and no audit UPDATE/DELETE privilege. The grant script grants application access; it does not remove pre-existing administrative privileges or role memberships. Verify TLS and production startup before routing traffic.
+
+### Tenant management and owner-requested support (migration 19)
+
+`platform_support_requests` records an authenticated tenant ADMIN's reason,
+READ_ONLY or READ_WRITE approval, password confirmation, and expiry (maximum one
+hour). Only the confirmation result is retained, never the password. A request
+can start one `platform_support_sessions` row, bound to one business and platform
+session family. Expiry, request revocation, owner status, business status, session
+end, and platform logout are checked for every operation within its transaction.
+
+Support currently exposes diagnostic counts, outlet metadata, and perfume
+metadata. READ_WRITE additionally permits perfume description changes with an
+If-Match version. It cannot mutate prices, users, permissions, orders, payments,
+expenses, or customer data. Reasons must not contain credentials or customer PII.
+
+Platform activity is attributed through separate platform actor columns in both
+audit streams. Correlation foreign keys retain the business and support session;
+there is no tenant impersonation. Writes and both audits commit together. Reads
+are buffered until both audit inserts commit. Audit UPDATE, DELETE, and TRUNCATE
+are rejected. Perfume versions increment for ordinary tenant edits too.
+
+Support operations hold shared authorization locks until commit; revocation waits
+for operations already authorized under those locks. Once end/revoke returns,
+subsequent operations fail. Expiry is checked again using database wall-clock time
+before committing an operation. Already transmitted network responses cannot be
+recalled.

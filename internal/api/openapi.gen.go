@@ -300,6 +300,24 @@ func (e OutletDashboardTimezone) Valid() bool {
 	}
 }
 
+// Defines values for OwnerSupportRequestAccessScope.
+const (
+	OwnerSupportRequestAccessScopeREADONLY  OwnerSupportRequestAccessScope = "READ_ONLY"
+	OwnerSupportRequestAccessScopeREADWRITE OwnerSupportRequestAccessScope = "READ_WRITE"
+)
+
+// Valid indicates whether the value is a known member of the OwnerSupportRequestAccessScope enum.
+func (e OwnerSupportRequestAccessScope) Valid() bool {
+	switch e {
+	case OwnerSupportRequestAccessScopeREADONLY:
+		return true
+	case OwnerSupportRequestAccessScopeREADWRITE:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PaymentStatus.
 const (
 	CONFIRMED PaymentStatus = "CONFIRMED"
@@ -357,6 +375,39 @@ func (e PlatformAdminRole) Valid() bool {
 	}
 }
 
+// Defines values for PlatformAuditEntryOutcome.
+const (
+	DENIED  PlatformAuditEntryOutcome = "DENIED"
+	SUCCESS PlatformAuditEntryOutcome = "SUCCESS"
+)
+
+// Valid indicates whether the value is a known member of the PlatformAuditEntryOutcome enum.
+func (e PlatformAuditEntryOutcome) Valid() bool {
+	switch e {
+	case DENIED:
+		return true
+	case SUCCESS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PlatformBusinessTimezone.
+const (
+	PlatformBusinessTimezoneAsiaJakarta PlatformBusinessTimezone = "Asia/Jakarta"
+)
+
+// Valid indicates whether the value is a known member of the PlatformBusinessTimezone enum.
+func (e PlatformBusinessTimezone) Valid() bool {
+	switch e {
+	case PlatformBusinessTimezoneAsiaJakarta:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ProfitLossReportTimezone.
 const (
 	ProfitLossReportTimezoneAsiaJakarta ProfitLossReportTimezone = "Asia/Jakarta"
@@ -366,6 +417,21 @@ const (
 func (e ProfitLossReportTimezone) Valid() bool {
 	switch e {
 	case ProfitLossReportTimezoneAsiaJakarta:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ProvisionBusinessResponseFirstAdminRole.
+const (
+	ProvisionBusinessResponseFirstAdminRoleADMIN ProvisionBusinessResponseFirstAdminRole = "ADMIN"
+)
+
+// Valid indicates whether the value is a known member of the ProvisionBusinessResponseFirstAdminRole enum.
+func (e ProvisionBusinessResponseFirstAdminRole) Valid() bool {
+	switch e {
+	case ProvisionBusinessResponseFirstAdminRoleADMIN:
 		return true
 	default:
 		return false
@@ -410,13 +476,13 @@ func (e ReceiptTemplateInputPaperWidthMm) Valid() bool {
 
 // Defines values for ReportDateRangeTimezone.
 const (
-	AsiaJakarta ReportDateRangeTimezone = "Asia/Jakarta"
+	ReportDateRangeTimezoneAsiaJakarta ReportDateRangeTimezone = "Asia/Jakarta"
 )
 
 // Valid indicates whether the value is a known member of the ReportDateRangeTimezone enum.
 func (e ReportDateRangeTimezone) Valid() bool {
 	switch e {
-	case AsiaJakarta:
+	case ReportDateRangeTimezoneAsiaJakarta:
 		return true
 	default:
 		return false
@@ -447,6 +513,42 @@ func (e ServiceUnit) Valid() bool {
 	}
 }
 
+// Defines values for SupportRequestAccessScope.
+const (
+	SupportRequestAccessScopeREADONLY  SupportRequestAccessScope = "READ_ONLY"
+	SupportRequestAccessScopeREADWRITE SupportRequestAccessScope = "READ_WRITE"
+)
+
+// Valid indicates whether the value is a known member of the SupportRequestAccessScope enum.
+func (e SupportRequestAccessScope) Valid() bool {
+	switch e {
+	case SupportRequestAccessScopeREADONLY:
+		return true
+	case SupportRequestAccessScopeREADWRITE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SupportSessionAccessScope.
+const (
+	READONLY  SupportSessionAccessScope = "READ_ONLY"
+	READWRITE SupportSessionAccessScope = "READ_WRITE"
+)
+
+// Valid indicates whether the value is a known member of the SupportSessionAccessScope enum.
+func (e SupportSessionAccessScope) Valid() bool {
+	switch e {
+	case READONLY:
+		return true
+	case READWRITE:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TokenPairTokenType.
 const (
 	Bearer TokenPairTokenType = "Bearer"
@@ -464,16 +566,16 @@ func (e TokenPairTokenType) Valid() bool {
 
 // Defines values for UserRole.
 const (
-	ADMIN        UserRole = "ADMIN"
-	LAUNDRYSTAFF UserRole = "LAUNDRY_STAFF"
+	UserRoleADMIN        UserRole = "ADMIN"
+	UserRoleLAUNDRYSTAFF UserRole = "LAUNDRY_STAFF"
 )
 
 // Valid indicates whether the value is a known member of the UserRole enum.
 func (e UserRole) Valid() bool {
 	switch e {
-	case ADMIN:
+	case UserRoleADMIN:
 		return true
-	case LAUNDRYSTAFF:
+	case UserRoleLAUNDRYSTAFF:
 		return true
 	default:
 		return false
@@ -484,6 +586,24 @@ func (e UserRole) Valid() bool {
 type AuthSessionResponse struct {
 	Tokens TokenPair   `json:"tokens"`
 	User   CurrentUser `json:"user"`
+}
+
+// BusinessAuditPage defines model for BusinessAuditPage.
+type BusinessAuditPage struct {
+	Items []struct {
+		Action               string    `json:"action"`
+		ActorPlatformAdminId *int64    `json:"actor_platform_admin_id,omitempty"`
+		ActorUserId          *int64    `json:"actor_user_id,omitempty"`
+		BusinessId           int64     `json:"business_id"`
+		EntityId             *int64    `json:"entity_id,omitempty"`
+		EntityType           string    `json:"entity_type"`
+		Id                   int64     `json:"id"`
+		OccurredAt           time.Time `json:"occurred_at"`
+		OutletId             *int64    `json:"outlet_id,omitempty"`
+		PlatformAuditId      *int64    `json:"platform_audit_id,omitempty"`
+		SupportSessionId     *int64    `json:"support_session_id,omitempty"`
+	} `json:"items"`
+	Pagination PaginationMeta `json:"pagination"`
 }
 
 // CancelOrderInput defines model for CancelOrderInput.
@@ -1215,6 +1335,19 @@ type OutletUpdate struct {
 	Phone    *string `json:"phone,omitempty"`
 }
 
+// OwnerSupportRequest defines model for OwnerSupportRequest.
+type OwnerSupportRequest struct {
+	AccessScope          OwnerSupportRequestAccessScope `json:"accessScope"`
+	ConfirmationPassword *string                        `json:"confirmationPassword,omitempty"`
+
+	// ExpiresAt Future time no more than one hour away.
+	ExpiresAt time.Time `json:"expiresAt"`
+	Reason    string    `json:"reason"`
+}
+
+// OwnerSupportRequestAccessScope defines model for OwnerSupportRequest.AccessScope.
+type OwnerSupportRequestAccessScope string
+
 // PaginationMeta defines model for PaginationMeta.
 type PaginationMeta struct {
 	Page       int32 `json:"page"`
@@ -1330,6 +1463,12 @@ type PermissionList struct {
 	Items []Permission `json:"items"`
 }
 
+// PlatformActivationRequest defines model for PlatformActivationRequest.
+type PlatformActivationRequest struct {
+	IsActive bool   `json:"isActive"`
+	Reason   string `json:"reason"`
+}
+
 // PlatformAdmin defines model for PlatformAdmin.
 type PlatformAdmin struct {
 	Email openapi_types.Email `json:"email"`
@@ -1342,10 +1481,76 @@ type PlatformAdmin struct {
 // PlatformAdminRole defines model for PlatformAdmin.Role.
 type PlatformAdminRole string
 
+// PlatformAuditEntry defines model for PlatformAuditEntry.
+type PlatformAuditEntry struct {
+	Action               string                    `json:"action"`
+	ActorPlatformAdminId *int64                    `json:"actor_platform_admin_id,omitempty"`
+	BusinessId           *int64                    `json:"business_id,omitempty"`
+	Id                   int64                     `json:"id"`
+	Metadata             map[string]interface{}    `json:"metadata"`
+	OccurredAt           time.Time                 `json:"occurred_at"`
+	Outcome              PlatformAuditEntryOutcome `json:"outcome"`
+	Reason               *string                   `json:"reason,omitempty"`
+	RequestId            *string                   `json:"request_id,omitempty"`
+	SupportSessionId     *int64                    `json:"support_session_id,omitempty"`
+	TargetId             *int64                    `json:"target_id,omitempty"`
+	TargetType           string                    `json:"target_type"`
+}
+
+// PlatformAuditEntryOutcome defines model for PlatformAuditEntry.Outcome.
+type PlatformAuditEntryOutcome string
+
+// PlatformAuditPage defines model for PlatformAuditPage.
+type PlatformAuditPage struct {
+	Items      []PlatformAuditEntry `json:"items"`
+	Pagination PaginationMeta       `json:"pagination"`
+}
+
 // PlatformAuthSessionResponse defines model for PlatformAuthSessionResponse.
 type PlatformAuthSessionResponse struct {
 	Admin  PlatformAdmin `json:"admin"`
 	Tokens TokenPair     `json:"tokens"`
+}
+
+// PlatformBusiness defines model for PlatformBusiness.
+type PlatformBusiness struct {
+	Address   *string                  `json:"address,omitempty"`
+	CreatedAt time.Time                `json:"created_at"`
+	Id        int64                    `json:"id"`
+	IsActive  bool                     `json:"is_active"`
+	Name      string                   `json:"name"`
+	Phone     *string                  `json:"phone,omitempty"`
+	Timezone  PlatformBusinessTimezone `json:"timezone"`
+	UpdatedAt time.Time                `json:"updated_at"`
+}
+
+// PlatformBusinessTimezone defines model for PlatformBusiness.Timezone.
+type PlatformBusinessTimezone string
+
+// PlatformBusinessDetail defines model for PlatformBusinessDetail.
+type PlatformBusinessDetail struct {
+	ActiveAdminCount int64            `json:"activeAdminCount"`
+	Business         PlatformBusiness `json:"business"`
+	OutletCount      int64            `json:"outletCount"`
+}
+
+// PlatformBusinessPage defines model for PlatformBusinessPage.
+type PlatformBusinessPage struct {
+	Items      []PlatformBusiness `json:"items"`
+	Pagination PaginationMeta     `json:"pagination"`
+}
+
+// PlatformOutlet defines model for PlatformOutlet.
+type PlatformOutlet struct {
+	Address    *string    `json:"address,omitempty"`
+	BusinessId int64      `json:"business_id"`
+	Code       string     `json:"code"`
+	CreatedAt  *time.Time `json:"created_at,omitempty"`
+	Id         int64      `json:"id"`
+	IsActive   bool       `json:"is_active"`
+	Name       string     `json:"name"`
+	Phone      *string    `json:"phone,omitempty"`
+	UpdatedAt  *time.Time `json:"updated_at,omitempty"`
 }
 
 // ProfitLossReport defines model for ProfitLossReport.
@@ -1384,6 +1589,43 @@ type ProfitLossReport struct {
 
 // ProfitLossReportTimezone defines model for ProfitLossReport.Timezone.
 type ProfitLossReportTimezone string
+
+// ProvisionBusinessRequest defines model for ProvisionBusinessRequest.
+type ProvisionBusinessRequest struct {
+	Business struct {
+		Address *string `json:"address,omitempty"`
+		Name    string  `json:"name"`
+		Phone   *string `json:"phone,omitempty"`
+	} `json:"business"`
+	FirstAdmin struct {
+		Email    openapi_types.Email `json:"email"`
+		FullName string              `json:"fullName"`
+		Password *string             `json:"password,omitempty"`
+	} `json:"firstAdmin"`
+	FirstOutlet struct {
+		Address *string `json:"address,omitempty"`
+		Code    string  `json:"code"`
+		Name    string  `json:"name"`
+		Phone   *string `json:"phone,omitempty"`
+	} `json:"firstOutlet"`
+}
+
+// ProvisionBusinessResponse defines model for ProvisionBusinessResponse.
+type ProvisionBusinessResponse struct {
+	Business   PlatformBusiness `json:"business"`
+	FirstAdmin struct {
+		BusinessId int64                                   `json:"business_id"`
+		Email      openapi_types.Email                     `json:"email"`
+		FullName   string                                  `json:"full_name"`
+		Id         int64                                   `json:"id"`
+		IsActive   bool                                    `json:"is_active"`
+		Role       ProvisionBusinessResponseFirstAdminRole `json:"role"`
+	} `json:"firstAdmin"`
+	FirstOutlet PlatformOutlet `json:"firstOutlet"`
+}
+
+// ProvisionBusinessResponseFirstAdminRole defines model for ProvisionBusinessResponse.FirstAdmin.Role.
+type ProvisionBusinessResponseFirstAdminRole string
 
 // ReceiptPayload Historical order/customer/item snapshots plus current status, payment balance, outlet profile, and template settings.
 type ReceiptPayload map[string]interface{}
@@ -1559,6 +1801,96 @@ type StaffUpdate struct {
 	IsActive bool   `json:"isActive"`
 }
 
+// StartSupportRequest defines model for StartSupportRequest.
+type StartSupportRequest struct {
+	SupportRequestId int64 `json:"supportRequestId"`
+}
+
+// SupportDescriptionRequest defines model for SupportDescriptionRequest.
+type SupportDescriptionRequest struct {
+	Description string `json:"description"`
+}
+
+// SupportDiagnostics defines model for SupportDiagnostics.
+type SupportDiagnostics struct {
+	Outlets  int64 `json:"outlets"`
+	Perfumes int64 `json:"perfumes"`
+	Users    int64 `json:"users"`
+}
+
+// SupportOutletPage defines model for SupportOutletPage.
+type SupportOutletPage struct {
+	Items      []PlatformOutlet `json:"items"`
+	Pagination PaginationMeta   `json:"pagination"`
+}
+
+// SupportPerfume defines model for SupportPerfume.
+type SupportPerfume struct {
+	BusinessId  int64   `json:"business_id"`
+	Description *string `json:"description,omitempty"`
+	Id          int64   `json:"id"`
+	IsActive    bool    `json:"is_active"`
+	Name        string  `json:"name"`
+	Version     int64   `json:"version"`
+}
+
+// SupportPerfumePage defines model for SupportPerfumePage.
+type SupportPerfumePage struct {
+	Items      []SupportPerfume `json:"items"`
+	Pagination PaginationMeta   `json:"pagination"`
+}
+
+// SupportReasonRequest defines model for SupportReasonRequest.
+type SupportReasonRequest struct {
+	Reason string `json:"reason"`
+}
+
+// SupportRequest defines model for SupportRequest.
+type SupportRequest struct {
+	AccessScope       SupportRequestAccessScope `json:"access_scope"`
+	BusinessId        int64                     `json:"business_id"`
+	CreatedAt         time.Time                 `json:"created_at"`
+	ExpiresAt         time.Time                 `json:"expires_at"`
+	Id                int64                     `json:"id"`
+	Reason            string                    `json:"reason"`
+	RequestedByUserId int64                     `json:"requested_by_user_id"`
+	RevocationReason  *string                   `json:"revocation_reason,omitempty"`
+	RevokedAt         *time.Time                `json:"revoked_at,omitempty"`
+}
+
+// SupportRequestAccessScope defines model for SupportRequest.AccessScope.
+type SupportRequestAccessScope string
+
+// SupportRequestPage defines model for SupportRequestPage.
+type SupportRequestPage struct {
+	Items      []SupportRequest `json:"items"`
+	Pagination PaginationMeta   `json:"pagination"`
+}
+
+// SupportSession defines model for SupportSession.
+type SupportSession struct {
+	AccessScope      SupportSessionAccessScope `json:"access_scope"`
+	BusinessId       int64                     `json:"business_id"`
+	EndReason        *string                   `json:"end_reason,omitempty"`
+	EndedAt          *time.Time                `json:"ended_at,omitempty"`
+	ExpiresAt        time.Time                 `json:"expires_at"`
+	Id               int64                     `json:"id"`
+	PlatformAdminId  int64                     `json:"platform_admin_id"`
+	PlatformFamilyId int64                     `json:"platform_family_id"`
+	Reason           string                    `json:"reason"`
+	StartedAt        time.Time                 `json:"started_at"`
+	SupportRequestId int64                     `json:"support_request_id"`
+}
+
+// SupportSessionAccessScope defines model for SupportSession.AccessScope.
+type SupportSessionAccessScope string
+
+// SupportSessionPage defines model for SupportSessionPage.
+type SupportSessionPage struct {
+	Items      []SupportSession `json:"items"`
+	Pagination PaginationMeta   `json:"pagination"`
+}
+
 // TokenPair defines model for TokenPair.
 type TokenPair struct {
 	AccessToken           *string            `json:"accessToken,omitempty"`
@@ -1647,6 +1979,12 @@ type bearerAuthContextKey string
 
 // platformBearerAuthContextKey is the context key for PlatformBearerAuth security scheme
 type platformBearerAuthContextKey string
+
+// ListBusinessAuditParams defines parameters for ListBusinessAudit.
+type ListBusinessAuditParams struct {
+	Page     *int `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
 
 // ListCustomersParams defines parameters for ListCustomers.
 type ListCustomersParams struct {
@@ -1811,6 +2149,56 @@ type ListPerfumesParams struct {
 	IsActive *bool `form:"isActive,omitempty" json:"isActive,omitempty"`
 }
 
+// ListPlatformAuditParams defines parameters for ListPlatformAudit.
+type ListPlatformAuditParams struct {
+	Page     *int `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// ListPlatformBusinessesParams defines parameters for ListPlatformBusinesses.
+type ListPlatformBusinessesParams struct {
+	Page     *int    `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int    `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Q        *string `form:"q,omitempty" json:"q,omitempty"`
+	IsActive *bool   `form:"isActive,omitempty" json:"isActive,omitempty"`
+}
+
+// ListBusinessAuditLogsParams defines parameters for ListBusinessAuditLogs.
+type ListBusinessAuditLogsParams struct {
+	Page     *int `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// ListBusinessSupportRequestsParams defines parameters for ListBusinessSupportRequests.
+type ListBusinessSupportRequestsParams struct {
+	Page     *int `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// ListBusinessSupportSessionsParams defines parameters for ListBusinessSupportSessions.
+type ListBusinessSupportSessionsParams struct {
+	Page     *int `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// ReadSupportOutletsParams defines parameters for ReadSupportOutlets.
+type ReadSupportOutletsParams struct {
+	Page     *int `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// ReadSupportPerfumesParams defines parameters for ReadSupportPerfumes.
+type ReadSupportPerfumesParams struct {
+	Page     *int `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// UpdateSupportPerfumeDescriptionParams defines parameters for UpdateSupportPerfumeDescription.
+type UpdateSupportPerfumeDescriptionParams struct {
+	// IfMatch Quoted numeric version from the perfume response.
+	IfMatch string `json:"If-Match"`
+}
+
 // ListServicesParams defines parameters for ListServices.
 type ListServicesParams struct {
 	// Page One-based page number.
@@ -1834,6 +2222,24 @@ type ListStaffParams struct {
 
 	// PageSize Number of records per page, capped at 100.
 	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// ListOwnerSupportAuditParams defines parameters for ListOwnerSupportAudit.
+type ListOwnerSupportAuditParams struct {
+	Page     *int `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// ListOwnerSupportRequestsParams defines parameters for ListOwnerSupportRequests.
+type ListOwnerSupportRequestsParams struct {
+	Page     *int `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// ListOwnerSupportSessionsParams defines parameters for ListOwnerSupportSessions.
+type ListOwnerSupportSessionsParams struct {
+	Page     *int `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 }
 
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
@@ -1905,6 +2311,21 @@ type PlatformLogoutJSONRequestBody = LogoutRequest
 // PlatformRefreshJSONRequestBody defines body for PlatformRefresh for application/json ContentType.
 type PlatformRefreshJSONRequestBody = RefreshRequest
 
+// ProvisionPlatformBusinessJSONRequestBody defines body for ProvisionPlatformBusiness for application/json ContentType.
+type ProvisionPlatformBusinessJSONRequestBody = ProvisionBusinessRequest
+
+// SetPlatformBusinessActivationJSONRequestBody defines body for SetPlatformBusinessActivation for application/json ContentType.
+type SetPlatformBusinessActivationJSONRequestBody = PlatformActivationRequest
+
+// StartPlatformSupportJSONRequestBody defines body for StartPlatformSupport for application/json ContentType.
+type StartPlatformSupportJSONRequestBody = StartSupportRequest
+
+// EndPlatformSupportJSONRequestBody defines body for EndPlatformSupport for application/json ContentType.
+type EndPlatformSupportJSONRequestBody = SupportReasonRequest
+
+// UpdateSupportPerfumeDescriptionJSONRequestBody defines body for UpdateSupportPerfumeDescription for application/json ContentType.
+type UpdateSupportPerfumeDescriptionJSONRequestBody = SupportDescriptionRequest
+
 // CreateServiceJSONRequestBody defines body for CreateService for application/json ContentType.
 type CreateServiceJSONRequestBody = CreateServiceInput
 
@@ -1923,8 +2344,20 @@ type ReplaceStaffOutletsJSONRequestBody = OutletAssignmentRequest
 // ReplaceStaffPermissionsJSONRequestBody defines body for ReplaceStaffPermissions for application/json ContentType.
 type ReplaceStaffPermissionsJSONRequestBody = PermissionGrantSetRequest
 
+// RequestOwnerSupportJSONRequestBody defines body for RequestOwnerSupport for application/json ContentType.
+type RequestOwnerSupportJSONRequestBody = OwnerSupportRequest
+
+// RevokeOwnerSupportRequestJSONRequestBody defines body for RevokeOwnerSupportRequest for application/json ContentType.
+type RevokeOwnerSupportRequestJSONRequestBody = SupportReasonRequest
+
+// EndOwnerSupportJSONRequestBody defines body for EndOwnerSupport for application/json ContentType.
+type EndOwnerSupportJSONRequestBody = SupportReasonRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Tenant audit identities and actions with sensitive payloads omitted.
+	// (GET /audit-logs)
+	ListBusinessAudit(ctx echo.Context, params ListBusinessAuditParams) error
 	// Authenticate a user
 	// (POST /auth/login)
 	Login(ctx echo.Context) error
@@ -2084,6 +2517,9 @@ type ServerInterface interface {
 	// List available action grants
 	// (GET /permissions)
 	ListPermissions(ctx echo.Context) error
+	// ListPlatformAudit
+	// (GET /platform/audit-logs)
+	ListPlatformAudit(ctx echo.Context, params ListPlatformAuditParams) error
 	// Authenticate the platform administrator
 	// (POST /platform/auth/login)
 	PlatformLogin(ctx echo.Context) error
@@ -2096,6 +2532,51 @@ type ServerInterface interface {
 	// Rotate a platform refresh token
 	// (POST /platform/auth/refresh)
 	PlatformRefresh(ctx echo.Context) error
+	// ListPlatformBusinesses
+	// (GET /platform/businesses)
+	ListPlatformBusinesses(ctx echo.Context, params ListPlatformBusinessesParams) error
+	// ProvisionPlatformBusiness
+	// (POST /platform/businesses)
+	ProvisionPlatformBusiness(ctx echo.Context) error
+	// GetPlatformBusiness
+	// (GET /platform/businesses/{businessId})
+	GetPlatformBusiness(ctx echo.Context, businessId int64) error
+	// SetPlatformBusinessActivation
+	// (PATCH /platform/businesses/{businessId}/activation)
+	SetPlatformBusinessActivation(ctx echo.Context, businessId int64) error
+	// ListBusinessAuditLogs
+	// (GET /platform/businesses/{businessId}/audit-logs)
+	ListBusinessAuditLogs(ctx echo.Context, businessId int64, params ListBusinessAuditLogsParams) error
+	// ListBusinessSupportRequests
+	// (GET /platform/businesses/{businessId}/support-requests)
+	ListBusinessSupportRequests(ctx echo.Context, businessId int64, params ListBusinessSupportRequestsParams) error
+	// ListBusinessSupportSessions
+	// (GET /platform/businesses/{businessId}/support-sessions)
+	ListBusinessSupportSessions(ctx echo.Context, businessId int64, params ListBusinessSupportSessionsParams) error
+	// StartPlatformSupport
+	// (POST /platform/businesses/{businessId}/support-sessions)
+	StartPlatformSupport(ctx echo.Context, businessId int64) error
+	// ReadSupportDiagnostics
+	// (GET /platform/businesses/{businessId}/support-sessions/{sessionId}/diagnostics)
+	ReadSupportDiagnostics(ctx echo.Context, businessId int64, sessionId int64) error
+	// EndPlatformSupport
+	// (POST /platform/businesses/{businessId}/support-sessions/{sessionId}/end)
+	EndPlatformSupport(ctx echo.Context, businessId int64, sessionId int64) error
+	// ReadSupportOutlets
+	// (GET /platform/businesses/{businessId}/support-sessions/{sessionId}/outlets)
+	ReadSupportOutlets(ctx echo.Context, businessId int64, sessionId int64, params ReadSupportOutletsParams) error
+	// ReadSupportOutletsRecord
+	// (GET /platform/businesses/{businessId}/support-sessions/{sessionId}/outlets/{outletId})
+	ReadSupportOutletsRecord(ctx echo.Context, businessId int64, sessionId int64, outletId int64) error
+	// ReadSupportPerfumes
+	// (GET /platform/businesses/{businessId}/support-sessions/{sessionId}/perfumes)
+	ReadSupportPerfumes(ctx echo.Context, businessId int64, sessionId int64, params ReadSupportPerfumesParams) error
+	// ReadSupportPerfumesRecord
+	// (GET /platform/businesses/{businessId}/support-sessions/{sessionId}/perfumes/{perfumeId})
+	ReadSupportPerfumesRecord(ctx echo.Context, businessId int64, sessionId int64, perfumeId int64) error
+	// READ_WRITE only. Changes description without financial mutations.
+	// (PATCH /platform/businesses/{businessId}/support-sessions/{sessionId}/perfumes/{perfumeId}/description)
+	UpdateSupportPerfumeDescription(ctx echo.Context, businessId int64, sessionId int64, perfumeId int64, params UpdateSupportPerfumeDescriptionParams) error
 	// Check whether the API is ready to serve database-backed requests
 	// (GET /readyz)
 	GetReadiness(ctx echo.Context) error
@@ -2132,11 +2613,59 @@ type ServerInterface interface {
 	// Replace a staff member's explicit action grants
 	// (PUT /staff/{userId}/permissions)
 	ReplaceStaffPermissions(ctx echo.Context, userId EntityId) error
+	// ListOwnerSupportAudit
+	// (GET /support-audit)
+	ListOwnerSupportAudit(ctx echo.Context, params ListOwnerSupportAuditParams) error
+	// ListOwnerSupportRequests
+	// (GET /support-requests)
+	ListOwnerSupportRequests(ctx echo.Context, params ListOwnerSupportRequestsParams) error
+	// RequestOwnerSupport
+	// (POST /support-requests)
+	RequestOwnerSupport(ctx echo.Context) error
+	// GetOwnerSupportRequest
+	// (GET /support-requests/{requestId})
+	GetOwnerSupportRequest(ctx echo.Context, requestId int64) error
+	// RevokeOwnerSupportRequest
+	// (POST /support-requests/{requestId}/revoke)
+	RevokeOwnerSupportRequest(ctx echo.Context, requestId int64) error
+	// ListOwnerSupportSessions
+	// (GET /support-sessions)
+	ListOwnerSupportSessions(ctx echo.Context, params ListOwnerSupportSessionsParams) error
+	// EndOwnerSupport
+	// (POST /support-sessions/{sessionId}/end)
+	EndOwnerSupport(ctx echo.Context, sessionId int64) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// ListBusinessAudit converts echo context to params.
+func (w *ServerInterfaceWrapper) ListBusinessAudit(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListBusinessAuditParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListBusinessAudit(ctx, params)
+	return err
 }
 
 // Login converts echo context to params.
@@ -3352,6 +3881,33 @@ func (w *ServerInterfaceWrapper) ListPermissions(ctx echo.Context) error {
 	return err
 }
 
+// ListPlatformAudit converts echo context to params.
+func (w *ServerInterfaceWrapper) ListPlatformAudit(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListPlatformAuditParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListPlatformAudit(ctx, params)
+	return err
+}
+
 // PlatformLogin converts echo context to params.
 func (w *ServerInterfaceWrapper) PlatformLogin(ctx echo.Context) error {
 	var err error
@@ -3389,6 +3945,474 @@ func (w *ServerInterfaceWrapper) PlatformRefresh(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PlatformRefresh(ctx)
+	return err
+}
+
+// ListPlatformBusinesses converts echo context to params.
+func (w *ServerInterfaceWrapper) ListPlatformBusinesses(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListPlatformBusinessesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", ctx.QueryParams(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "isActive" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "isActive", ctx.QueryParams(), &params.IsActive, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter isActive: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListPlatformBusinesses(ctx, params)
+	return err
+}
+
+// ProvisionPlatformBusiness converts echo context to params.
+func (w *ServerInterfaceWrapper) ProvisionPlatformBusiness(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ProvisionPlatformBusiness(ctx)
+	return err
+}
+
+// GetPlatformBusiness converts echo context to params.
+func (w *ServerInterfaceWrapper) GetPlatformBusiness(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "businessId" -------------
+	var businessId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "businessId", ctx.Param("businessId"), &businessId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter businessId: %s", err))
+	}
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetPlatformBusiness(ctx, businessId)
+	return err
+}
+
+// SetPlatformBusinessActivation converts echo context to params.
+func (w *ServerInterfaceWrapper) SetPlatformBusinessActivation(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "businessId" -------------
+	var businessId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "businessId", ctx.Param("businessId"), &businessId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter businessId: %s", err))
+	}
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SetPlatformBusinessActivation(ctx, businessId)
+	return err
+}
+
+// ListBusinessAuditLogs converts echo context to params.
+func (w *ServerInterfaceWrapper) ListBusinessAuditLogs(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "businessId" -------------
+	var businessId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "businessId", ctx.Param("businessId"), &businessId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter businessId: %s", err))
+	}
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListBusinessAuditLogsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListBusinessAuditLogs(ctx, businessId, params)
+	return err
+}
+
+// ListBusinessSupportRequests converts echo context to params.
+func (w *ServerInterfaceWrapper) ListBusinessSupportRequests(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "businessId" -------------
+	var businessId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "businessId", ctx.Param("businessId"), &businessId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter businessId: %s", err))
+	}
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListBusinessSupportRequestsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListBusinessSupportRequests(ctx, businessId, params)
+	return err
+}
+
+// ListBusinessSupportSessions converts echo context to params.
+func (w *ServerInterfaceWrapper) ListBusinessSupportSessions(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "businessId" -------------
+	var businessId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "businessId", ctx.Param("businessId"), &businessId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter businessId: %s", err))
+	}
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListBusinessSupportSessionsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListBusinessSupportSessions(ctx, businessId, params)
+	return err
+}
+
+// StartPlatformSupport converts echo context to params.
+func (w *ServerInterfaceWrapper) StartPlatformSupport(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "businessId" -------------
+	var businessId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "businessId", ctx.Param("businessId"), &businessId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter businessId: %s", err))
+	}
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.StartPlatformSupport(ctx, businessId)
+	return err
+}
+
+// ReadSupportDiagnostics converts echo context to params.
+func (w *ServerInterfaceWrapper) ReadSupportDiagnostics(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "businessId" -------------
+	var businessId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "businessId", ctx.Param("businessId"), &businessId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter businessId: %s", err))
+	}
+
+	// ------------- Path parameter "sessionId" -------------
+	var sessionId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sessionId", ctx.Param("sessionId"), &sessionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionId: %s", err))
+	}
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ReadSupportDiagnostics(ctx, businessId, sessionId)
+	return err
+}
+
+// EndPlatformSupport converts echo context to params.
+func (w *ServerInterfaceWrapper) EndPlatformSupport(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "businessId" -------------
+	var businessId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "businessId", ctx.Param("businessId"), &businessId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter businessId: %s", err))
+	}
+
+	// ------------- Path parameter "sessionId" -------------
+	var sessionId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sessionId", ctx.Param("sessionId"), &sessionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionId: %s", err))
+	}
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.EndPlatformSupport(ctx, businessId, sessionId)
+	return err
+}
+
+// ReadSupportOutlets converts echo context to params.
+func (w *ServerInterfaceWrapper) ReadSupportOutlets(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "businessId" -------------
+	var businessId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "businessId", ctx.Param("businessId"), &businessId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter businessId: %s", err))
+	}
+
+	// ------------- Path parameter "sessionId" -------------
+	var sessionId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sessionId", ctx.Param("sessionId"), &sessionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionId: %s", err))
+	}
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ReadSupportOutletsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ReadSupportOutlets(ctx, businessId, sessionId, params)
+	return err
+}
+
+// ReadSupportOutletsRecord converts echo context to params.
+func (w *ServerInterfaceWrapper) ReadSupportOutletsRecord(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "businessId" -------------
+	var businessId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "businessId", ctx.Param("businessId"), &businessId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter businessId: %s", err))
+	}
+
+	// ------------- Path parameter "sessionId" -------------
+	var sessionId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sessionId", ctx.Param("sessionId"), &sessionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionId: %s", err))
+	}
+
+	// ------------- Path parameter "outletId" -------------
+	var outletId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "outletId", ctx.Param("outletId"), &outletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outletId: %s", err))
+	}
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ReadSupportOutletsRecord(ctx, businessId, sessionId, outletId)
+	return err
+}
+
+// ReadSupportPerfumes converts echo context to params.
+func (w *ServerInterfaceWrapper) ReadSupportPerfumes(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "businessId" -------------
+	var businessId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "businessId", ctx.Param("businessId"), &businessId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter businessId: %s", err))
+	}
+
+	// ------------- Path parameter "sessionId" -------------
+	var sessionId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sessionId", ctx.Param("sessionId"), &sessionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionId: %s", err))
+	}
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ReadSupportPerfumesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ReadSupportPerfumes(ctx, businessId, sessionId, params)
+	return err
+}
+
+// ReadSupportPerfumesRecord converts echo context to params.
+func (w *ServerInterfaceWrapper) ReadSupportPerfumesRecord(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "businessId" -------------
+	var businessId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "businessId", ctx.Param("businessId"), &businessId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter businessId: %s", err))
+	}
+
+	// ------------- Path parameter "sessionId" -------------
+	var sessionId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sessionId", ctx.Param("sessionId"), &sessionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionId: %s", err))
+	}
+
+	// ------------- Path parameter "perfumeId" -------------
+	var perfumeId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "perfumeId", ctx.Param("perfumeId"), &perfumeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter perfumeId: %s", err))
+	}
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ReadSupportPerfumesRecord(ctx, businessId, sessionId, perfumeId)
+	return err
+}
+
+// UpdateSupportPerfumeDescription converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateSupportPerfumeDescription(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "businessId" -------------
+	var businessId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "businessId", ctx.Param("businessId"), &businessId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter businessId: %s", err))
+	}
+
+	// ------------- Path parameter "sessionId" -------------
+	var sessionId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sessionId", ctx.Param("sessionId"), &sessionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionId: %s", err))
+	}
+
+	// ------------- Path parameter "perfumeId" -------------
+	var perfumeId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "perfumeId", ctx.Param("perfumeId"), &perfumeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter perfumeId: %s", err))
+	}
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params UpdateSupportPerfumeDescriptionParams
+
+	headers := ctx.Request().Header
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch string
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for If-Match, got %d", n))
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter If-Match: %s", err))
+		}
+
+		params.IfMatch = IfMatch
+	} else {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Header parameter If-Match is required, but not found"))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateSupportPerfumeDescription(ctx, businessId, sessionId, perfumeId, params)
 	return err
 }
 
@@ -3624,6 +4648,152 @@ func (w *ServerInterfaceWrapper) ReplaceStaffPermissions(ctx echo.Context) error
 	return err
 }
 
+// ListOwnerSupportAudit converts echo context to params.
+func (w *ServerInterfaceWrapper) ListOwnerSupportAudit(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOwnerSupportAuditParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListOwnerSupportAudit(ctx, params)
+	return err
+}
+
+// ListOwnerSupportRequests converts echo context to params.
+func (w *ServerInterfaceWrapper) ListOwnerSupportRequests(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOwnerSupportRequestsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListOwnerSupportRequests(ctx, params)
+	return err
+}
+
+// RequestOwnerSupport converts echo context to params.
+func (w *ServerInterfaceWrapper) RequestOwnerSupport(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RequestOwnerSupport(ctx)
+	return err
+}
+
+// GetOwnerSupportRequest converts echo context to params.
+func (w *ServerInterfaceWrapper) GetOwnerSupportRequest(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "requestId" -------------
+	var requestId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "requestId", ctx.Param("requestId"), &requestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter requestId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetOwnerSupportRequest(ctx, requestId)
+	return err
+}
+
+// RevokeOwnerSupportRequest converts echo context to params.
+func (w *ServerInterfaceWrapper) RevokeOwnerSupportRequest(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "requestId" -------------
+	var requestId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "requestId", ctx.Param("requestId"), &requestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter requestId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RevokeOwnerSupportRequest(ctx, requestId)
+	return err
+}
+
+// ListOwnerSupportSessions converts echo context to params.
+func (w *ServerInterfaceWrapper) ListOwnerSupportSessions(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOwnerSupportSessionsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", ctx.QueryParams(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListOwnerSupportSessions(ctx, params)
+	return err
+}
+
+// EndOwnerSupport converts echo context to params.
+func (w *ServerInterfaceWrapper) EndOwnerSupport(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "sessionId" -------------
+	var sessionId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sessionId", ctx.Param("sessionId"), &sessionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionId: %s", err))
+	}
+
+	ctx.Set(string(BearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.EndOwnerSupport(ctx, sessionId)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -3671,6 +4841,7 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 		Handler: si,
 	}
 
+	router.GET(options.BaseURL+"/audit-logs", wrapper.ListBusinessAudit, options.OperationMiddlewares["ListBusinessAudit"]...)
 	router.POST(options.BaseURL+"/auth/login", wrapper.Login, options.OperationMiddlewares["login"]...)
 	router.POST(options.BaseURL+"/auth/logout", wrapper.Logout, options.OperationMiddlewares["logout"]...)
 	router.GET(options.BaseURL+"/auth/me", wrapper.GetCurrentUser, options.OperationMiddlewares["getCurrentUser"]...)
@@ -3724,10 +4895,26 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/perfumes/:perfumeId", wrapper.GetPerfume, options.OperationMiddlewares["getPerfume"]...)
 	router.PUT(options.BaseURL+"/perfumes/:perfumeId", wrapper.UpdatePerfume, options.OperationMiddlewares["updatePerfume"]...)
 	router.GET(options.BaseURL+"/permissions", wrapper.ListPermissions, options.OperationMiddlewares["listPermissions"]...)
+	router.GET(options.BaseURL+"/platform/audit-logs", wrapper.ListPlatformAudit, options.OperationMiddlewares["ListPlatformAudit"]...)
 	router.POST(options.BaseURL+"/platform/auth/login", wrapper.PlatformLogin, options.OperationMiddlewares["platformLogin"]...)
 	router.POST(options.BaseURL+"/platform/auth/logout", wrapper.PlatformLogout, options.OperationMiddlewares["platformLogout"]...)
 	router.GET(options.BaseURL+"/platform/auth/me", wrapper.PlatformMe, options.OperationMiddlewares["platformMe"]...)
 	router.POST(options.BaseURL+"/platform/auth/refresh", wrapper.PlatformRefresh, options.OperationMiddlewares["platformRefresh"]...)
+	router.GET(options.BaseURL+"/platform/businesses", wrapper.ListPlatformBusinesses, options.OperationMiddlewares["ListPlatformBusinesses"]...)
+	router.POST(options.BaseURL+"/platform/businesses", wrapper.ProvisionPlatformBusiness, options.OperationMiddlewares["ProvisionPlatformBusiness"]...)
+	router.GET(options.BaseURL+"/platform/businesses/:businessId", wrapper.GetPlatformBusiness, options.OperationMiddlewares["GetPlatformBusiness"]...)
+	router.PATCH(options.BaseURL+"/platform/businesses/:businessId/activation", wrapper.SetPlatformBusinessActivation, options.OperationMiddlewares["SetPlatformBusinessActivation"]...)
+	router.GET(options.BaseURL+"/platform/businesses/:businessId/audit-logs", wrapper.ListBusinessAuditLogs, options.OperationMiddlewares["ListBusinessAuditLogs"]...)
+	router.GET(options.BaseURL+"/platform/businesses/:businessId/support-requests", wrapper.ListBusinessSupportRequests, options.OperationMiddlewares["ListBusinessSupportRequests"]...)
+	router.GET(options.BaseURL+"/platform/businesses/:businessId/support-sessions", wrapper.ListBusinessSupportSessions, options.OperationMiddlewares["ListBusinessSupportSessions"]...)
+	router.POST(options.BaseURL+"/platform/businesses/:businessId/support-sessions", wrapper.StartPlatformSupport, options.OperationMiddlewares["StartPlatformSupport"]...)
+	router.GET(options.BaseURL+"/platform/businesses/:businessId/support-sessions/:sessionId/diagnostics", wrapper.ReadSupportDiagnostics, options.OperationMiddlewares["ReadSupportDiagnostics"]...)
+	router.POST(options.BaseURL+"/platform/businesses/:businessId/support-sessions/:sessionId/end", wrapper.EndPlatformSupport, options.OperationMiddlewares["EndPlatformSupport"]...)
+	router.GET(options.BaseURL+"/platform/businesses/:businessId/support-sessions/:sessionId/outlets", wrapper.ReadSupportOutlets, options.OperationMiddlewares["ReadSupportOutlets"]...)
+	router.GET(options.BaseURL+"/platform/businesses/:businessId/support-sessions/:sessionId/outlets/:outletId", wrapper.ReadSupportOutletsRecord, options.OperationMiddlewares["ReadSupportOutletsRecord"]...)
+	router.GET(options.BaseURL+"/platform/businesses/:businessId/support-sessions/:sessionId/perfumes", wrapper.ReadSupportPerfumes, options.OperationMiddlewares["ReadSupportPerfumes"]...)
+	router.GET(options.BaseURL+"/platform/businesses/:businessId/support-sessions/:sessionId/perfumes/:perfumeId", wrapper.ReadSupportPerfumesRecord, options.OperationMiddlewares["ReadSupportPerfumesRecord"]...)
+	router.PATCH(options.BaseURL+"/platform/businesses/:businessId/support-sessions/:sessionId/perfumes/:perfumeId/description", wrapper.UpdateSupportPerfumeDescription, options.OperationMiddlewares["UpdateSupportPerfumeDescription"]...)
 	router.GET(options.BaseURL+"/readyz", wrapper.GetReadiness, options.OperationMiddlewares["getReadiness"]...)
 	router.GET(options.BaseURL+"/services", wrapper.ListServices, options.OperationMiddlewares["listServices"]...)
 	router.POST(options.BaseURL+"/services", wrapper.CreateService, options.OperationMiddlewares["createService"]...)
@@ -3740,6 +4927,13 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.PUT(options.BaseURL+"/staff/:userId", wrapper.UpdateStaff, options.OperationMiddlewares["updateStaff"]...)
 	router.PUT(options.BaseURL+"/staff/:userId/outlets", wrapper.ReplaceStaffOutlets, options.OperationMiddlewares["replaceStaffOutlets"]...)
 	router.PUT(options.BaseURL+"/staff/:userId/permissions", wrapper.ReplaceStaffPermissions, options.OperationMiddlewares["replaceStaffPermissions"]...)
+	router.GET(options.BaseURL+"/support-audit", wrapper.ListOwnerSupportAudit, options.OperationMiddlewares["ListOwnerSupportAudit"]...)
+	router.GET(options.BaseURL+"/support-requests", wrapper.ListOwnerSupportRequests, options.OperationMiddlewares["ListOwnerSupportRequests"]...)
+	router.POST(options.BaseURL+"/support-requests", wrapper.RequestOwnerSupport, options.OperationMiddlewares["RequestOwnerSupport"]...)
+	router.GET(options.BaseURL+"/support-requests/:requestId", wrapper.GetOwnerSupportRequest, options.OperationMiddlewares["GetOwnerSupportRequest"]...)
+	router.POST(options.BaseURL+"/support-requests/:requestId/revoke", wrapper.RevokeOwnerSupportRequest, options.OperationMiddlewares["RevokeOwnerSupportRequest"]...)
+	router.GET(options.BaseURL+"/support-sessions", wrapper.ListOwnerSupportSessions, options.OperationMiddlewares["ListOwnerSupportSessions"]...)
+	router.POST(options.BaseURL+"/support-sessions/:sessionId/end", wrapper.EndOwnerSupport, options.OperationMiddlewares["EndOwnerSupport"]...)
 
 }
 
@@ -3773,6 +4967,89 @@ type UnauthorizedJSONResponse struct {
 	Body ErrorResponse
 
 	Headers UnauthorizedResponseHeaders
+}
+
+type ListBusinessAuditRequestObject struct {
+	Params ListBusinessAuditParams
+}
+
+type ListBusinessAuditResponseObject interface {
+	VisitListBusinessAuditResponse(w http.ResponseWriter) error
+}
+
+type ListBusinessAudit200JSONResponse BusinessAuditPage
+
+func (response ListBusinessAudit200JSONResponse) VisitListBusinessAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessAudit400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListBusinessAudit400JSONResponse) VisitListBusinessAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessAudit401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListBusinessAudit401JSONResponse) VisitListBusinessAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessAudit403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListBusinessAudit403JSONResponse) VisitListBusinessAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessAudit500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListBusinessAudit500JSONResponse) VisitListBusinessAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type LoginRequestObject struct {
@@ -8637,6 +9914,117 @@ func (response ListPermissions500JSONResponse) VisitListPermissionsResponse(w ht
 	return err
 }
 
+type ListPlatformAuditRequestObject struct {
+	Params ListPlatformAuditParams
+}
+
+type ListPlatformAuditResponseObject interface {
+	VisitListPlatformAuditResponse(w http.ResponseWriter) error
+}
+
+type ListPlatformAudit200JSONResponse PlatformAuditPage
+
+func (response ListPlatformAudit200JSONResponse) VisitListPlatformAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPlatformAudit400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListPlatformAudit400JSONResponse) VisitListPlatformAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPlatformAudit401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListPlatformAudit401JSONResponse) VisitListPlatformAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPlatformAudit403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListPlatformAudit403JSONResponse) VisitListPlatformAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPlatformAudit404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListPlatformAudit404JSONResponse) VisitListPlatformAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPlatformAudit409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ListPlatformAudit409JSONResponse) VisitListPlatformAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPlatformAudit500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListPlatformAudit500JSONResponse) VisitListPlatformAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type PlatformLoginRequestObject struct {
 	Body *PlatformLoginJSONRequestBody
 }
@@ -8957,6 +10345,1691 @@ type PlatformRefresh500JSONResponse struct {
 }
 
 func (response PlatformRefresh500JSONResponse) VisitPlatformRefreshResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPlatformBusinessesRequestObject struct {
+	Params ListPlatformBusinessesParams
+}
+
+type ListPlatformBusinessesResponseObject interface {
+	VisitListPlatformBusinessesResponse(w http.ResponseWriter) error
+}
+
+type ListPlatformBusinesses200JSONResponse PlatformBusinessPage
+
+func (response ListPlatformBusinesses200JSONResponse) VisitListPlatformBusinessesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPlatformBusinesses400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListPlatformBusinesses400JSONResponse) VisitListPlatformBusinessesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPlatformBusinesses401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListPlatformBusinesses401JSONResponse) VisitListPlatformBusinessesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPlatformBusinesses403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListPlatformBusinesses403JSONResponse) VisitListPlatformBusinessesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPlatformBusinesses404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListPlatformBusinesses404JSONResponse) VisitListPlatformBusinessesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPlatformBusinesses409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ListPlatformBusinesses409JSONResponse) VisitListPlatformBusinessesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPlatformBusinesses500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListPlatformBusinesses500JSONResponse) VisitListPlatformBusinessesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ProvisionPlatformBusinessRequestObject struct {
+	Body *ProvisionPlatformBusinessJSONRequestBody
+}
+
+type ProvisionPlatformBusinessResponseObject interface {
+	VisitProvisionPlatformBusinessResponse(w http.ResponseWriter) error
+}
+
+type ProvisionPlatformBusiness201JSONResponse ProvisionBusinessResponse
+
+func (response ProvisionPlatformBusiness201JSONResponse) VisitProvisionPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ProvisionPlatformBusiness400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ProvisionPlatformBusiness400JSONResponse) VisitProvisionPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ProvisionPlatformBusiness401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ProvisionPlatformBusiness401JSONResponse) VisitProvisionPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ProvisionPlatformBusiness403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ProvisionPlatformBusiness403JSONResponse) VisitProvisionPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ProvisionPlatformBusiness404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ProvisionPlatformBusiness404JSONResponse) VisitProvisionPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ProvisionPlatformBusiness409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ProvisionPlatformBusiness409JSONResponse) VisitProvisionPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ProvisionPlatformBusiness500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ProvisionPlatformBusiness500JSONResponse) VisitProvisionPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPlatformBusinessRequestObject struct {
+	BusinessId int64 `json:"businessId"`
+}
+
+type GetPlatformBusinessResponseObject interface {
+	VisitGetPlatformBusinessResponse(w http.ResponseWriter) error
+}
+
+type GetPlatformBusiness200JSONResponse PlatformBusinessDetail
+
+func (response GetPlatformBusiness200JSONResponse) VisitGetPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPlatformBusiness400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetPlatformBusiness400JSONResponse) VisitGetPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPlatformBusiness401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetPlatformBusiness401JSONResponse) VisitGetPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPlatformBusiness403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetPlatformBusiness403JSONResponse) VisitGetPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPlatformBusiness404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetPlatformBusiness404JSONResponse) VisitGetPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPlatformBusiness409JSONResponse struct{ ConflictJSONResponse }
+
+func (response GetPlatformBusiness409JSONResponse) VisitGetPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPlatformBusiness500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetPlatformBusiness500JSONResponse) VisitGetPlatformBusinessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlatformBusinessActivationRequestObject struct {
+	BusinessId int64 `json:"businessId"`
+	Body       *SetPlatformBusinessActivationJSONRequestBody
+}
+
+type SetPlatformBusinessActivationResponseObject interface {
+	VisitSetPlatformBusinessActivationResponse(w http.ResponseWriter) error
+}
+
+type SetPlatformBusinessActivation200JSONResponse PlatformBusiness
+
+func (response SetPlatformBusinessActivation200JSONResponse) VisitSetPlatformBusinessActivationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlatformBusinessActivation400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SetPlatformBusinessActivation400JSONResponse) VisitSetPlatformBusinessActivationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlatformBusinessActivation401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response SetPlatformBusinessActivation401JSONResponse) VisitSetPlatformBusinessActivationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlatformBusinessActivation403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response SetPlatformBusinessActivation403JSONResponse) VisitSetPlatformBusinessActivationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlatformBusinessActivation404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response SetPlatformBusinessActivation404JSONResponse) VisitSetPlatformBusinessActivationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlatformBusinessActivation409JSONResponse struct{ ConflictJSONResponse }
+
+func (response SetPlatformBusinessActivation409JSONResponse) VisitSetPlatformBusinessActivationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlatformBusinessActivation500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response SetPlatformBusinessActivation500JSONResponse) VisitSetPlatformBusinessActivationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessAuditLogsRequestObject struct {
+	BusinessId int64 `json:"businessId"`
+	Params     ListBusinessAuditLogsParams
+}
+
+type ListBusinessAuditLogsResponseObject interface {
+	VisitListBusinessAuditLogsResponse(w http.ResponseWriter) error
+}
+
+type ListBusinessAuditLogs200JSONResponse PlatformAuditPage
+
+func (response ListBusinessAuditLogs200JSONResponse) VisitListBusinessAuditLogsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessAuditLogs400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListBusinessAuditLogs400JSONResponse) VisitListBusinessAuditLogsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessAuditLogs401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListBusinessAuditLogs401JSONResponse) VisitListBusinessAuditLogsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessAuditLogs403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListBusinessAuditLogs403JSONResponse) VisitListBusinessAuditLogsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessAuditLogs404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListBusinessAuditLogs404JSONResponse) VisitListBusinessAuditLogsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessAuditLogs409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ListBusinessAuditLogs409JSONResponse) VisitListBusinessAuditLogsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessAuditLogs500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListBusinessAuditLogs500JSONResponse) VisitListBusinessAuditLogsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportRequestsRequestObject struct {
+	BusinessId int64 `json:"businessId"`
+	Params     ListBusinessSupportRequestsParams
+}
+
+type ListBusinessSupportRequestsResponseObject interface {
+	VisitListBusinessSupportRequestsResponse(w http.ResponseWriter) error
+}
+
+type ListBusinessSupportRequests200JSONResponse SupportRequestPage
+
+func (response ListBusinessSupportRequests200JSONResponse) VisitListBusinessSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportRequests400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListBusinessSupportRequests400JSONResponse) VisitListBusinessSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportRequests401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListBusinessSupportRequests401JSONResponse) VisitListBusinessSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportRequests403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListBusinessSupportRequests403JSONResponse) VisitListBusinessSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportRequests404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListBusinessSupportRequests404JSONResponse) VisitListBusinessSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportRequests409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ListBusinessSupportRequests409JSONResponse) VisitListBusinessSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportRequests500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListBusinessSupportRequests500JSONResponse) VisitListBusinessSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportSessionsRequestObject struct {
+	BusinessId int64 `json:"businessId"`
+	Params     ListBusinessSupportSessionsParams
+}
+
+type ListBusinessSupportSessionsResponseObject interface {
+	VisitListBusinessSupportSessionsResponse(w http.ResponseWriter) error
+}
+
+type ListBusinessSupportSessions200JSONResponse SupportSessionPage
+
+func (response ListBusinessSupportSessions200JSONResponse) VisitListBusinessSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportSessions400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListBusinessSupportSessions400JSONResponse) VisitListBusinessSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportSessions401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListBusinessSupportSessions401JSONResponse) VisitListBusinessSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportSessions403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListBusinessSupportSessions403JSONResponse) VisitListBusinessSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportSessions404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListBusinessSupportSessions404JSONResponse) VisitListBusinessSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportSessions409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ListBusinessSupportSessions409JSONResponse) VisitListBusinessSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBusinessSupportSessions500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListBusinessSupportSessions500JSONResponse) VisitListBusinessSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartPlatformSupportRequestObject struct {
+	BusinessId int64 `json:"businessId"`
+	Body       *StartPlatformSupportJSONRequestBody
+}
+
+type StartPlatformSupportResponseObject interface {
+	VisitStartPlatformSupportResponse(w http.ResponseWriter) error
+}
+
+type StartPlatformSupport201JSONResponse SupportSession
+
+func (response StartPlatformSupport201JSONResponse) VisitStartPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartPlatformSupport400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response StartPlatformSupport400JSONResponse) VisitStartPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartPlatformSupport401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response StartPlatformSupport401JSONResponse) VisitStartPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartPlatformSupport403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response StartPlatformSupport403JSONResponse) VisitStartPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartPlatformSupport404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response StartPlatformSupport404JSONResponse) VisitStartPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartPlatformSupport409JSONResponse struct{ ConflictJSONResponse }
+
+func (response StartPlatformSupport409JSONResponse) VisitStartPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartPlatformSupport500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response StartPlatformSupport500JSONResponse) VisitStartPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportDiagnosticsRequestObject struct {
+	BusinessId int64 `json:"businessId"`
+	SessionId  int64 `json:"sessionId"`
+}
+
+type ReadSupportDiagnosticsResponseObject interface {
+	VisitReadSupportDiagnosticsResponse(w http.ResponseWriter) error
+}
+
+type ReadSupportDiagnostics200JSONResponse SupportDiagnostics
+
+func (response ReadSupportDiagnostics200JSONResponse) VisitReadSupportDiagnosticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportDiagnostics400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ReadSupportDiagnostics400JSONResponse) VisitReadSupportDiagnosticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportDiagnostics401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ReadSupportDiagnostics401JSONResponse) VisitReadSupportDiagnosticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportDiagnostics403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ReadSupportDiagnostics403JSONResponse) VisitReadSupportDiagnosticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportDiagnostics404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadSupportDiagnostics404JSONResponse) VisitReadSupportDiagnosticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportDiagnostics409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ReadSupportDiagnostics409JSONResponse) VisitReadSupportDiagnosticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportDiagnostics500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ReadSupportDiagnostics500JSONResponse) VisitReadSupportDiagnosticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndPlatformSupportRequestObject struct {
+	BusinessId int64 `json:"businessId"`
+	SessionId  int64 `json:"sessionId"`
+	Body       *EndPlatformSupportJSONRequestBody
+}
+
+type EndPlatformSupportResponseObject interface {
+	VisitEndPlatformSupportResponse(w http.ResponseWriter) error
+}
+
+type EndPlatformSupport200JSONResponse SupportSession
+
+func (response EndPlatformSupport200JSONResponse) VisitEndPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndPlatformSupport400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response EndPlatformSupport400JSONResponse) VisitEndPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndPlatformSupport401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response EndPlatformSupport401JSONResponse) VisitEndPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndPlatformSupport403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response EndPlatformSupport403JSONResponse) VisitEndPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndPlatformSupport404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response EndPlatformSupport404JSONResponse) VisitEndPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndPlatformSupport409JSONResponse struct{ ConflictJSONResponse }
+
+func (response EndPlatformSupport409JSONResponse) VisitEndPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndPlatformSupport500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response EndPlatformSupport500JSONResponse) VisitEndPlatformSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutletsRequestObject struct {
+	BusinessId int64 `json:"businessId"`
+	SessionId  int64 `json:"sessionId"`
+	Params     ReadSupportOutletsParams
+}
+
+type ReadSupportOutletsResponseObject interface {
+	VisitReadSupportOutletsResponse(w http.ResponseWriter) error
+}
+
+type ReadSupportOutlets200JSONResponse SupportOutletPage
+
+func (response ReadSupportOutlets200JSONResponse) VisitReadSupportOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutlets400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ReadSupportOutlets400JSONResponse) VisitReadSupportOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutlets401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ReadSupportOutlets401JSONResponse) VisitReadSupportOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutlets403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ReadSupportOutlets403JSONResponse) VisitReadSupportOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutlets404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadSupportOutlets404JSONResponse) VisitReadSupportOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutlets409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ReadSupportOutlets409JSONResponse) VisitReadSupportOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutlets500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ReadSupportOutlets500JSONResponse) VisitReadSupportOutletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutletsRecordRequestObject struct {
+	BusinessId int64 `json:"businessId"`
+	SessionId  int64 `json:"sessionId"`
+	OutletId   int64 `json:"outletId"`
+}
+
+type ReadSupportOutletsRecordResponseObject interface {
+	VisitReadSupportOutletsRecordResponse(w http.ResponseWriter) error
+}
+
+type ReadSupportOutletsRecord200JSONResponse PlatformOutlet
+
+func (response ReadSupportOutletsRecord200JSONResponse) VisitReadSupportOutletsRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutletsRecord400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ReadSupportOutletsRecord400JSONResponse) VisitReadSupportOutletsRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutletsRecord401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ReadSupportOutletsRecord401JSONResponse) VisitReadSupportOutletsRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutletsRecord403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ReadSupportOutletsRecord403JSONResponse) VisitReadSupportOutletsRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutletsRecord404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadSupportOutletsRecord404JSONResponse) VisitReadSupportOutletsRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutletsRecord409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ReadSupportOutletsRecord409JSONResponse) VisitReadSupportOutletsRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportOutletsRecord500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ReadSupportOutletsRecord500JSONResponse) VisitReadSupportOutletsRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumesRequestObject struct {
+	BusinessId int64 `json:"businessId"`
+	SessionId  int64 `json:"sessionId"`
+	Params     ReadSupportPerfumesParams
+}
+
+type ReadSupportPerfumesResponseObject interface {
+	VisitReadSupportPerfumesResponse(w http.ResponseWriter) error
+}
+
+type ReadSupportPerfumes200JSONResponse SupportPerfumePage
+
+func (response ReadSupportPerfumes200JSONResponse) VisitReadSupportPerfumesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumes400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ReadSupportPerfumes400JSONResponse) VisitReadSupportPerfumesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumes401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ReadSupportPerfumes401JSONResponse) VisitReadSupportPerfumesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumes403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ReadSupportPerfumes403JSONResponse) VisitReadSupportPerfumesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumes404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadSupportPerfumes404JSONResponse) VisitReadSupportPerfumesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumes409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ReadSupportPerfumes409JSONResponse) VisitReadSupportPerfumesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumes500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ReadSupportPerfumes500JSONResponse) VisitReadSupportPerfumesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumesRecordRequestObject struct {
+	BusinessId int64 `json:"businessId"`
+	SessionId  int64 `json:"sessionId"`
+	PerfumeId  int64 `json:"perfumeId"`
+}
+
+type ReadSupportPerfumesRecordResponseObject interface {
+	VisitReadSupportPerfumesRecordResponse(w http.ResponseWriter) error
+}
+
+type ReadSupportPerfumesRecord200JSONResponse SupportPerfume
+
+func (response ReadSupportPerfumesRecord200JSONResponse) VisitReadSupportPerfumesRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumesRecord400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ReadSupportPerfumesRecord400JSONResponse) VisitReadSupportPerfumesRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumesRecord401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ReadSupportPerfumesRecord401JSONResponse) VisitReadSupportPerfumesRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumesRecord403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ReadSupportPerfumesRecord403JSONResponse) VisitReadSupportPerfumesRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumesRecord404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadSupportPerfumesRecord404JSONResponse) VisitReadSupportPerfumesRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumesRecord409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ReadSupportPerfumesRecord409JSONResponse) VisitReadSupportPerfumesRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadSupportPerfumesRecord500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ReadSupportPerfumesRecord500JSONResponse) VisitReadSupportPerfumesRecordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSupportPerfumeDescriptionRequestObject struct {
+	BusinessId int64 `json:"businessId"`
+	SessionId  int64 `json:"sessionId"`
+	PerfumeId  int64 `json:"perfumeId"`
+	Params     UpdateSupportPerfumeDescriptionParams
+	Body       *UpdateSupportPerfumeDescriptionJSONRequestBody
+}
+
+type UpdateSupportPerfumeDescriptionResponseObject interface {
+	VisitUpdateSupportPerfumeDescriptionResponse(w http.ResponseWriter) error
+}
+
+type UpdateSupportPerfumeDescription200JSONResponse SupportPerfume
+
+func (response UpdateSupportPerfumeDescription200JSONResponse) VisitUpdateSupportPerfumeDescriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSupportPerfumeDescription400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateSupportPerfumeDescription400JSONResponse) VisitUpdateSupportPerfumeDescriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSupportPerfumeDescription401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateSupportPerfumeDescription401JSONResponse) VisitUpdateSupportPerfumeDescriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSupportPerfumeDescription403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateSupportPerfumeDescription403JSONResponse) VisitUpdateSupportPerfumeDescriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSupportPerfumeDescription404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateSupportPerfumeDescription404JSONResponse) VisitUpdateSupportPerfumeDescriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSupportPerfumeDescription409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateSupportPerfumeDescription409JSONResponse) VisitUpdateSupportPerfumeDescriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSupportPerfumeDescription500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateSupportPerfumeDescription500JSONResponse) VisitUpdateSupportPerfumeDescriptionResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -10068,8 +13141,790 @@ func (response ReplaceStaffPermissions500JSONResponse) VisitReplaceStaffPermissi
 	return err
 }
 
+type ListOwnerSupportAuditRequestObject struct {
+	Params ListOwnerSupportAuditParams
+}
+
+type ListOwnerSupportAuditResponseObject interface {
+	VisitListOwnerSupportAuditResponse(w http.ResponseWriter) error
+}
+
+type ListOwnerSupportAudit200JSONResponse PlatformAuditPage
+
+func (response ListOwnerSupportAudit200JSONResponse) VisitListOwnerSupportAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportAudit400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListOwnerSupportAudit400JSONResponse) VisitListOwnerSupportAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportAudit401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListOwnerSupportAudit401JSONResponse) VisitListOwnerSupportAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportAudit403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListOwnerSupportAudit403JSONResponse) VisitListOwnerSupportAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportAudit404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListOwnerSupportAudit404JSONResponse) VisitListOwnerSupportAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportAudit409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ListOwnerSupportAudit409JSONResponse) VisitListOwnerSupportAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportAudit500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListOwnerSupportAudit500JSONResponse) VisitListOwnerSupportAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportRequestsRequestObject struct {
+	Params ListOwnerSupportRequestsParams
+}
+
+type ListOwnerSupportRequestsResponseObject interface {
+	VisitListOwnerSupportRequestsResponse(w http.ResponseWriter) error
+}
+
+type ListOwnerSupportRequests200JSONResponse SupportRequestPage
+
+func (response ListOwnerSupportRequests200JSONResponse) VisitListOwnerSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportRequests400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListOwnerSupportRequests400JSONResponse) VisitListOwnerSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportRequests401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListOwnerSupportRequests401JSONResponse) VisitListOwnerSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportRequests403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListOwnerSupportRequests403JSONResponse) VisitListOwnerSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportRequests404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListOwnerSupportRequests404JSONResponse) VisitListOwnerSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportRequests409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ListOwnerSupportRequests409JSONResponse) VisitListOwnerSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportRequests500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListOwnerSupportRequests500JSONResponse) VisitListOwnerSupportRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestOwnerSupportRequestObject struct {
+	Body *RequestOwnerSupportJSONRequestBody
+}
+
+type RequestOwnerSupportResponseObject interface {
+	VisitRequestOwnerSupportResponse(w http.ResponseWriter) error
+}
+
+type RequestOwnerSupport201JSONResponse SupportRequest
+
+func (response RequestOwnerSupport201JSONResponse) VisitRequestOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestOwnerSupport400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response RequestOwnerSupport400JSONResponse) VisitRequestOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestOwnerSupport401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response RequestOwnerSupport401JSONResponse) VisitRequestOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestOwnerSupport403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response RequestOwnerSupport403JSONResponse) VisitRequestOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestOwnerSupport404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response RequestOwnerSupport404JSONResponse) VisitRequestOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestOwnerSupport409JSONResponse struct{ ConflictJSONResponse }
+
+func (response RequestOwnerSupport409JSONResponse) VisitRequestOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestOwnerSupport500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response RequestOwnerSupport500JSONResponse) VisitRequestOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOwnerSupportRequestRequestObject struct {
+	RequestId int64 `json:"requestId"`
+}
+
+type GetOwnerSupportRequestResponseObject interface {
+	VisitGetOwnerSupportRequestResponse(w http.ResponseWriter) error
+}
+
+type GetOwnerSupportRequest200JSONResponse SupportRequest
+
+func (response GetOwnerSupportRequest200JSONResponse) VisitGetOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOwnerSupportRequest400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetOwnerSupportRequest400JSONResponse) VisitGetOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOwnerSupportRequest401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetOwnerSupportRequest401JSONResponse) VisitGetOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOwnerSupportRequest403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetOwnerSupportRequest403JSONResponse) VisitGetOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOwnerSupportRequest404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetOwnerSupportRequest404JSONResponse) VisitGetOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOwnerSupportRequest409JSONResponse struct{ ConflictJSONResponse }
+
+func (response GetOwnerSupportRequest409JSONResponse) VisitGetOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOwnerSupportRequest500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetOwnerSupportRequest500JSONResponse) VisitGetOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeOwnerSupportRequestRequestObject struct {
+	RequestId int64 `json:"requestId"`
+	Body      *RevokeOwnerSupportRequestJSONRequestBody
+}
+
+type RevokeOwnerSupportRequestResponseObject interface {
+	VisitRevokeOwnerSupportRequestResponse(w http.ResponseWriter) error
+}
+
+type RevokeOwnerSupportRequest200JSONResponse SupportRequest
+
+func (response RevokeOwnerSupportRequest200JSONResponse) VisitRevokeOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeOwnerSupportRequest400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response RevokeOwnerSupportRequest400JSONResponse) VisitRevokeOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeOwnerSupportRequest401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response RevokeOwnerSupportRequest401JSONResponse) VisitRevokeOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeOwnerSupportRequest403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response RevokeOwnerSupportRequest403JSONResponse) VisitRevokeOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeOwnerSupportRequest404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response RevokeOwnerSupportRequest404JSONResponse) VisitRevokeOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeOwnerSupportRequest409JSONResponse struct{ ConflictJSONResponse }
+
+func (response RevokeOwnerSupportRequest409JSONResponse) VisitRevokeOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeOwnerSupportRequest500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response RevokeOwnerSupportRequest500JSONResponse) VisitRevokeOwnerSupportRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportSessionsRequestObject struct {
+	Params ListOwnerSupportSessionsParams
+}
+
+type ListOwnerSupportSessionsResponseObject interface {
+	VisitListOwnerSupportSessionsResponse(w http.ResponseWriter) error
+}
+
+type ListOwnerSupportSessions200JSONResponse SupportSessionPage
+
+func (response ListOwnerSupportSessions200JSONResponse) VisitListOwnerSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportSessions400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListOwnerSupportSessions400JSONResponse) VisitListOwnerSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportSessions401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListOwnerSupportSessions401JSONResponse) VisitListOwnerSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportSessions403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListOwnerSupportSessions403JSONResponse) VisitListOwnerSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportSessions404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListOwnerSupportSessions404JSONResponse) VisitListOwnerSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportSessions409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ListOwnerSupportSessions409JSONResponse) VisitListOwnerSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOwnerSupportSessions500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListOwnerSupportSessions500JSONResponse) VisitListOwnerSupportSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndOwnerSupportRequestObject struct {
+	SessionId int64 `json:"sessionId"`
+	Body      *EndOwnerSupportJSONRequestBody
+}
+
+type EndOwnerSupportResponseObject interface {
+	VisitEndOwnerSupportResponse(w http.ResponseWriter) error
+}
+
+type EndOwnerSupport200JSONResponse SupportSession
+
+func (response EndOwnerSupport200JSONResponse) VisitEndOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndOwnerSupport400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response EndOwnerSupport400JSONResponse) VisitEndOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndOwnerSupport401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response EndOwnerSupport401JSONResponse) VisitEndOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndOwnerSupport403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response EndOwnerSupport403JSONResponse) VisitEndOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndOwnerSupport404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response EndOwnerSupport404JSONResponse) VisitEndOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndOwnerSupport409JSONResponse struct{ ConflictJSONResponse }
+
+func (response EndOwnerSupport409JSONResponse) VisitEndOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EndOwnerSupport500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response EndOwnerSupport500JSONResponse) VisitEndOwnerSupportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Tenant audit identities and actions with sensitive payloads omitted.
+	// (GET /audit-logs)
+	ListBusinessAudit(ctx context.Context, request ListBusinessAuditRequestObject) (ListBusinessAuditResponseObject, error)
 	// Authenticate a user
 	// (POST /auth/login)
 	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
@@ -10229,6 +14084,9 @@ type StrictServerInterface interface {
 	// List available action grants
 	// (GET /permissions)
 	ListPermissions(ctx context.Context, request ListPermissionsRequestObject) (ListPermissionsResponseObject, error)
+	// ListPlatformAudit
+	// (GET /platform/audit-logs)
+	ListPlatformAudit(ctx context.Context, request ListPlatformAuditRequestObject) (ListPlatformAuditResponseObject, error)
 	// Authenticate the platform administrator
 	// (POST /platform/auth/login)
 	PlatformLogin(ctx context.Context, request PlatformLoginRequestObject) (PlatformLoginResponseObject, error)
@@ -10241,6 +14099,51 @@ type StrictServerInterface interface {
 	// Rotate a platform refresh token
 	// (POST /platform/auth/refresh)
 	PlatformRefresh(ctx context.Context, request PlatformRefreshRequestObject) (PlatformRefreshResponseObject, error)
+	// ListPlatformBusinesses
+	// (GET /platform/businesses)
+	ListPlatformBusinesses(ctx context.Context, request ListPlatformBusinessesRequestObject) (ListPlatformBusinessesResponseObject, error)
+	// ProvisionPlatformBusiness
+	// (POST /platform/businesses)
+	ProvisionPlatformBusiness(ctx context.Context, request ProvisionPlatformBusinessRequestObject) (ProvisionPlatformBusinessResponseObject, error)
+	// GetPlatformBusiness
+	// (GET /platform/businesses/{businessId})
+	GetPlatformBusiness(ctx context.Context, request GetPlatformBusinessRequestObject) (GetPlatformBusinessResponseObject, error)
+	// SetPlatformBusinessActivation
+	// (PATCH /platform/businesses/{businessId}/activation)
+	SetPlatformBusinessActivation(ctx context.Context, request SetPlatformBusinessActivationRequestObject) (SetPlatformBusinessActivationResponseObject, error)
+	// ListBusinessAuditLogs
+	// (GET /platform/businesses/{businessId}/audit-logs)
+	ListBusinessAuditLogs(ctx context.Context, request ListBusinessAuditLogsRequestObject) (ListBusinessAuditLogsResponseObject, error)
+	// ListBusinessSupportRequests
+	// (GET /platform/businesses/{businessId}/support-requests)
+	ListBusinessSupportRequests(ctx context.Context, request ListBusinessSupportRequestsRequestObject) (ListBusinessSupportRequestsResponseObject, error)
+	// ListBusinessSupportSessions
+	// (GET /platform/businesses/{businessId}/support-sessions)
+	ListBusinessSupportSessions(ctx context.Context, request ListBusinessSupportSessionsRequestObject) (ListBusinessSupportSessionsResponseObject, error)
+	// StartPlatformSupport
+	// (POST /platform/businesses/{businessId}/support-sessions)
+	StartPlatformSupport(ctx context.Context, request StartPlatformSupportRequestObject) (StartPlatformSupportResponseObject, error)
+	// ReadSupportDiagnostics
+	// (GET /platform/businesses/{businessId}/support-sessions/{sessionId}/diagnostics)
+	ReadSupportDiagnostics(ctx context.Context, request ReadSupportDiagnosticsRequestObject) (ReadSupportDiagnosticsResponseObject, error)
+	// EndPlatformSupport
+	// (POST /platform/businesses/{businessId}/support-sessions/{sessionId}/end)
+	EndPlatformSupport(ctx context.Context, request EndPlatformSupportRequestObject) (EndPlatformSupportResponseObject, error)
+	// ReadSupportOutlets
+	// (GET /platform/businesses/{businessId}/support-sessions/{sessionId}/outlets)
+	ReadSupportOutlets(ctx context.Context, request ReadSupportOutletsRequestObject) (ReadSupportOutletsResponseObject, error)
+	// ReadSupportOutletsRecord
+	// (GET /platform/businesses/{businessId}/support-sessions/{sessionId}/outlets/{outletId})
+	ReadSupportOutletsRecord(ctx context.Context, request ReadSupportOutletsRecordRequestObject) (ReadSupportOutletsRecordResponseObject, error)
+	// ReadSupportPerfumes
+	// (GET /platform/businesses/{businessId}/support-sessions/{sessionId}/perfumes)
+	ReadSupportPerfumes(ctx context.Context, request ReadSupportPerfumesRequestObject) (ReadSupportPerfumesResponseObject, error)
+	// ReadSupportPerfumesRecord
+	// (GET /platform/businesses/{businessId}/support-sessions/{sessionId}/perfumes/{perfumeId})
+	ReadSupportPerfumesRecord(ctx context.Context, request ReadSupportPerfumesRecordRequestObject) (ReadSupportPerfumesRecordResponseObject, error)
+	// READ_WRITE only. Changes description without financial mutations.
+	// (PATCH /platform/businesses/{businessId}/support-sessions/{sessionId}/perfumes/{perfumeId}/description)
+	UpdateSupportPerfumeDescription(ctx context.Context, request UpdateSupportPerfumeDescriptionRequestObject) (UpdateSupportPerfumeDescriptionResponseObject, error)
 	// Check whether the API is ready to serve database-backed requests
 	// (GET /readyz)
 	GetReadiness(ctx context.Context, request GetReadinessRequestObject) (GetReadinessResponseObject, error)
@@ -10277,6 +14180,27 @@ type StrictServerInterface interface {
 	// Replace a staff member's explicit action grants
 	// (PUT /staff/{userId}/permissions)
 	ReplaceStaffPermissions(ctx context.Context, request ReplaceStaffPermissionsRequestObject) (ReplaceStaffPermissionsResponseObject, error)
+	// ListOwnerSupportAudit
+	// (GET /support-audit)
+	ListOwnerSupportAudit(ctx context.Context, request ListOwnerSupportAuditRequestObject) (ListOwnerSupportAuditResponseObject, error)
+	// ListOwnerSupportRequests
+	// (GET /support-requests)
+	ListOwnerSupportRequests(ctx context.Context, request ListOwnerSupportRequestsRequestObject) (ListOwnerSupportRequestsResponseObject, error)
+	// RequestOwnerSupport
+	// (POST /support-requests)
+	RequestOwnerSupport(ctx context.Context, request RequestOwnerSupportRequestObject) (RequestOwnerSupportResponseObject, error)
+	// GetOwnerSupportRequest
+	// (GET /support-requests/{requestId})
+	GetOwnerSupportRequest(ctx context.Context, request GetOwnerSupportRequestRequestObject) (GetOwnerSupportRequestResponseObject, error)
+	// RevokeOwnerSupportRequest
+	// (POST /support-requests/{requestId}/revoke)
+	RevokeOwnerSupportRequest(ctx context.Context, request RevokeOwnerSupportRequestRequestObject) (RevokeOwnerSupportRequestResponseObject, error)
+	// ListOwnerSupportSessions
+	// (GET /support-sessions)
+	ListOwnerSupportSessions(ctx context.Context, request ListOwnerSupportSessionsRequestObject) (ListOwnerSupportSessionsResponseObject, error)
+	// EndOwnerSupport
+	// (POST /support-sessions/{sessionId}/end)
+	EndOwnerSupport(ctx context.Context, request EndOwnerSupportRequestObject) (EndOwnerSupportResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx echo.Context, request any) (any, error)
@@ -10289,6 +14213,31 @@ func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareF
 type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
+}
+
+// ListBusinessAudit operation middleware
+func (sh *strictHandler) ListBusinessAudit(ctx echo.Context, params ListBusinessAuditParams) error {
+	var request ListBusinessAuditRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListBusinessAudit(ctx.Request().Context(), request.(ListBusinessAuditRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListBusinessAudit")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListBusinessAuditResponseObject); ok {
+		return validResponse.VisitListBusinessAuditResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
 }
 
 // Login operation middleware
@@ -11727,6 +15676,31 @@ func (sh *strictHandler) ListPermissions(ctx echo.Context) error {
 	return nil
 }
 
+// ListPlatformAudit operation middleware
+func (sh *strictHandler) ListPlatformAudit(ctx echo.Context, params ListPlatformAuditParams) error {
+	var request ListPlatformAuditRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPlatformAudit(ctx.Request().Context(), request.(ListPlatformAuditRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPlatformAudit")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListPlatformAuditResponseObject); ok {
+		return validResponse.VisitListPlatformAuditResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // PlatformLogin operation middleware
 func (sh *strictHandler) PlatformLogin(ctx echo.Context) error {
 	var request PlatformLoginRequestObject
@@ -11831,6 +15805,425 @@ func (sh *strictHandler) PlatformRefresh(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(PlatformRefreshResponseObject); ok {
 		return validResponse.VisitPlatformRefreshResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListPlatformBusinesses operation middleware
+func (sh *strictHandler) ListPlatformBusinesses(ctx echo.Context, params ListPlatformBusinessesParams) error {
+	var request ListPlatformBusinessesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPlatformBusinesses(ctx.Request().Context(), request.(ListPlatformBusinessesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPlatformBusinesses")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListPlatformBusinessesResponseObject); ok {
+		return validResponse.VisitListPlatformBusinessesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ProvisionPlatformBusiness operation middleware
+func (sh *strictHandler) ProvisionPlatformBusiness(ctx echo.Context) error {
+	var request ProvisionPlatformBusinessRequestObject
+
+	var body ProvisionPlatformBusinessJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ProvisionPlatformBusiness(ctx.Request().Context(), request.(ProvisionPlatformBusinessRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ProvisionPlatformBusiness")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ProvisionPlatformBusinessResponseObject); ok {
+		return validResponse.VisitProvisionPlatformBusinessResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetPlatformBusiness operation middleware
+func (sh *strictHandler) GetPlatformBusiness(ctx echo.Context, businessId int64) error {
+	var request GetPlatformBusinessRequestObject
+
+	request.BusinessId = businessId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPlatformBusiness(ctx.Request().Context(), request.(GetPlatformBusinessRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPlatformBusiness")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetPlatformBusinessResponseObject); ok {
+		return validResponse.VisitGetPlatformBusinessResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// SetPlatformBusinessActivation operation middleware
+func (sh *strictHandler) SetPlatformBusinessActivation(ctx echo.Context, businessId int64) error {
+	var request SetPlatformBusinessActivationRequestObject
+
+	request.BusinessId = businessId
+
+	var body SetPlatformBusinessActivationJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SetPlatformBusinessActivation(ctx.Request().Context(), request.(SetPlatformBusinessActivationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetPlatformBusinessActivation")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(SetPlatformBusinessActivationResponseObject); ok {
+		return validResponse.VisitSetPlatformBusinessActivationResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListBusinessAuditLogs operation middleware
+func (sh *strictHandler) ListBusinessAuditLogs(ctx echo.Context, businessId int64, params ListBusinessAuditLogsParams) error {
+	var request ListBusinessAuditLogsRequestObject
+
+	request.BusinessId = businessId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListBusinessAuditLogs(ctx.Request().Context(), request.(ListBusinessAuditLogsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListBusinessAuditLogs")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListBusinessAuditLogsResponseObject); ok {
+		return validResponse.VisitListBusinessAuditLogsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListBusinessSupportRequests operation middleware
+func (sh *strictHandler) ListBusinessSupportRequests(ctx echo.Context, businessId int64, params ListBusinessSupportRequestsParams) error {
+	var request ListBusinessSupportRequestsRequestObject
+
+	request.BusinessId = businessId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListBusinessSupportRequests(ctx.Request().Context(), request.(ListBusinessSupportRequestsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListBusinessSupportRequests")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListBusinessSupportRequestsResponseObject); ok {
+		return validResponse.VisitListBusinessSupportRequestsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListBusinessSupportSessions operation middleware
+func (sh *strictHandler) ListBusinessSupportSessions(ctx echo.Context, businessId int64, params ListBusinessSupportSessionsParams) error {
+	var request ListBusinessSupportSessionsRequestObject
+
+	request.BusinessId = businessId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListBusinessSupportSessions(ctx.Request().Context(), request.(ListBusinessSupportSessionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListBusinessSupportSessions")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListBusinessSupportSessionsResponseObject); ok {
+		return validResponse.VisitListBusinessSupportSessionsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// StartPlatformSupport operation middleware
+func (sh *strictHandler) StartPlatformSupport(ctx echo.Context, businessId int64) error {
+	var request StartPlatformSupportRequestObject
+
+	request.BusinessId = businessId
+
+	var body StartPlatformSupportJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.StartPlatformSupport(ctx.Request().Context(), request.(StartPlatformSupportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartPlatformSupport")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(StartPlatformSupportResponseObject); ok {
+		return validResponse.VisitStartPlatformSupportResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ReadSupportDiagnostics operation middleware
+func (sh *strictHandler) ReadSupportDiagnostics(ctx echo.Context, businessId int64, sessionId int64) error {
+	var request ReadSupportDiagnosticsRequestObject
+
+	request.BusinessId = businessId
+	request.SessionId = sessionId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadSupportDiagnostics(ctx.Request().Context(), request.(ReadSupportDiagnosticsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadSupportDiagnostics")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ReadSupportDiagnosticsResponseObject); ok {
+		return validResponse.VisitReadSupportDiagnosticsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// EndPlatformSupport operation middleware
+func (sh *strictHandler) EndPlatformSupport(ctx echo.Context, businessId int64, sessionId int64) error {
+	var request EndPlatformSupportRequestObject
+
+	request.BusinessId = businessId
+	request.SessionId = sessionId
+
+	var body EndPlatformSupportJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.EndPlatformSupport(ctx.Request().Context(), request.(EndPlatformSupportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "EndPlatformSupport")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(EndPlatformSupportResponseObject); ok {
+		return validResponse.VisitEndPlatformSupportResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ReadSupportOutlets operation middleware
+func (sh *strictHandler) ReadSupportOutlets(ctx echo.Context, businessId int64, sessionId int64, params ReadSupportOutletsParams) error {
+	var request ReadSupportOutletsRequestObject
+
+	request.BusinessId = businessId
+	request.SessionId = sessionId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadSupportOutlets(ctx.Request().Context(), request.(ReadSupportOutletsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadSupportOutlets")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ReadSupportOutletsResponseObject); ok {
+		return validResponse.VisitReadSupportOutletsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ReadSupportOutletsRecord operation middleware
+func (sh *strictHandler) ReadSupportOutletsRecord(ctx echo.Context, businessId int64, sessionId int64, outletId int64) error {
+	var request ReadSupportOutletsRecordRequestObject
+
+	request.BusinessId = businessId
+	request.SessionId = sessionId
+	request.OutletId = outletId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadSupportOutletsRecord(ctx.Request().Context(), request.(ReadSupportOutletsRecordRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadSupportOutletsRecord")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ReadSupportOutletsRecordResponseObject); ok {
+		return validResponse.VisitReadSupportOutletsRecordResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ReadSupportPerfumes operation middleware
+func (sh *strictHandler) ReadSupportPerfumes(ctx echo.Context, businessId int64, sessionId int64, params ReadSupportPerfumesParams) error {
+	var request ReadSupportPerfumesRequestObject
+
+	request.BusinessId = businessId
+	request.SessionId = sessionId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadSupportPerfumes(ctx.Request().Context(), request.(ReadSupportPerfumesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadSupportPerfumes")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ReadSupportPerfumesResponseObject); ok {
+		return validResponse.VisitReadSupportPerfumesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ReadSupportPerfumesRecord operation middleware
+func (sh *strictHandler) ReadSupportPerfumesRecord(ctx echo.Context, businessId int64, sessionId int64, perfumeId int64) error {
+	var request ReadSupportPerfumesRecordRequestObject
+
+	request.BusinessId = businessId
+	request.SessionId = sessionId
+	request.PerfumeId = perfumeId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadSupportPerfumesRecord(ctx.Request().Context(), request.(ReadSupportPerfumesRecordRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadSupportPerfumesRecord")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ReadSupportPerfumesRecordResponseObject); ok {
+		return validResponse.VisitReadSupportPerfumesRecordResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateSupportPerfumeDescription operation middleware
+func (sh *strictHandler) UpdateSupportPerfumeDescription(ctx echo.Context, businessId int64, sessionId int64, perfumeId int64, params UpdateSupportPerfumeDescriptionParams) error {
+	var request UpdateSupportPerfumeDescriptionRequestObject
+
+	request.BusinessId = businessId
+	request.SessionId = sessionId
+	request.PerfumeId = perfumeId
+	request.Params = params
+
+	var body UpdateSupportPerfumeDescriptionJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateSupportPerfumeDescription(ctx.Request().Context(), request.(UpdateSupportPerfumeDescriptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateSupportPerfumeDescription")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateSupportPerfumeDescriptionResponseObject); ok {
+		return validResponse.VisitUpdateSupportPerfumeDescriptionResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -12161,6 +16554,197 @@ func (sh *strictHandler) ReplaceStaffPermissions(ctx echo.Context, userId Entity
 		return err
 	} else if validResponse, ok := response.(ReplaceStaffPermissionsResponseObject); ok {
 		return validResponse.VisitReplaceStaffPermissionsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListOwnerSupportAudit operation middleware
+func (sh *strictHandler) ListOwnerSupportAudit(ctx echo.Context, params ListOwnerSupportAuditParams) error {
+	var request ListOwnerSupportAuditRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOwnerSupportAudit(ctx.Request().Context(), request.(ListOwnerSupportAuditRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOwnerSupportAudit")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListOwnerSupportAuditResponseObject); ok {
+		return validResponse.VisitListOwnerSupportAuditResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListOwnerSupportRequests operation middleware
+func (sh *strictHandler) ListOwnerSupportRequests(ctx echo.Context, params ListOwnerSupportRequestsParams) error {
+	var request ListOwnerSupportRequestsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOwnerSupportRequests(ctx.Request().Context(), request.(ListOwnerSupportRequestsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOwnerSupportRequests")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListOwnerSupportRequestsResponseObject); ok {
+		return validResponse.VisitListOwnerSupportRequestsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RequestOwnerSupport operation middleware
+func (sh *strictHandler) RequestOwnerSupport(ctx echo.Context) error {
+	var request RequestOwnerSupportRequestObject
+
+	var body RequestOwnerSupportJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RequestOwnerSupport(ctx.Request().Context(), request.(RequestOwnerSupportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RequestOwnerSupport")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RequestOwnerSupportResponseObject); ok {
+		return validResponse.VisitRequestOwnerSupportResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetOwnerSupportRequest operation middleware
+func (sh *strictHandler) GetOwnerSupportRequest(ctx echo.Context, requestId int64) error {
+	var request GetOwnerSupportRequestRequestObject
+
+	request.RequestId = requestId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOwnerSupportRequest(ctx.Request().Context(), request.(GetOwnerSupportRequestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOwnerSupportRequest")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetOwnerSupportRequestResponseObject); ok {
+		return validResponse.VisitGetOwnerSupportRequestResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RevokeOwnerSupportRequest operation middleware
+func (sh *strictHandler) RevokeOwnerSupportRequest(ctx echo.Context, requestId int64) error {
+	var request RevokeOwnerSupportRequestRequestObject
+
+	request.RequestId = requestId
+
+	var body RevokeOwnerSupportRequestJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeOwnerSupportRequest(ctx.Request().Context(), request.(RevokeOwnerSupportRequestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeOwnerSupportRequest")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RevokeOwnerSupportRequestResponseObject); ok {
+		return validResponse.VisitRevokeOwnerSupportRequestResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListOwnerSupportSessions operation middleware
+func (sh *strictHandler) ListOwnerSupportSessions(ctx echo.Context, params ListOwnerSupportSessionsParams) error {
+	var request ListOwnerSupportSessionsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOwnerSupportSessions(ctx.Request().Context(), request.(ListOwnerSupportSessionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOwnerSupportSessions")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListOwnerSupportSessionsResponseObject); ok {
+		return validResponse.VisitListOwnerSupportSessionsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// EndOwnerSupport operation middleware
+func (sh *strictHandler) EndOwnerSupport(ctx echo.Context, sessionId int64) error {
+	var request EndOwnerSupportRequestObject
+
+	request.SessionId = sessionId
+
+	var body EndOwnerSupportJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.EndOwnerSupport(ctx.Request().Context(), request.(EndOwnerSupportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "EndOwnerSupport")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(EndOwnerSupportResponseObject); ok {
+		return validResponse.VisitEndOwnerSupportResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

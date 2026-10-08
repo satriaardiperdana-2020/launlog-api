@@ -70,6 +70,7 @@ test-race:
 	$(GO) test -race ./...
 
 test-integration:
+	@test -n "$(TEST_BOOTSTRAP_DATABASE_URL)" || (echo 'TEST_BOOTSTRAP_DATABASE_URL is required for platform bootstrap coverage'; exit 1)
 	@test -n "$(TEST_DATABASE_URL)" || (echo 'TEST_DATABASE_URL is required; refusing to silently skip PostgreSQL integration tests'; exit 1)
 	@test -n "$(TEST_ADMIN_DATABASE_URL)" || (echo 'TEST_ADMIN_DATABASE_URL is required for isolated fixture setup/cleanup'; exit 1)
 	@test "$(TEST_EXPECT_LEAST_PRIVILEGE)" = "true" || (echo 'TEST_EXPECT_LEAST_PRIVILEGE=true is required'; exit 1)

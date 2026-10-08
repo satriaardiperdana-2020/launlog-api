@@ -11,18 +11,21 @@ import (
 )
 
 type AuditLog struct {
-	ID          int64              `json:"id"`
-	BusinessID  int64              `json:"business_id"`
-	OutletID    pgtype.Int8        `json:"outlet_id"`
-	ActorUserID pgtype.Int8        `json:"actor_user_id"`
-	Action      string             `json:"action"`
-	EntityType  string             `json:"entity_type"`
-	EntityID    pgtype.Int8        `json:"entity_id"`
-	OldValues   []byte             `json:"old_values"`
-	NewValues   []byte             `json:"new_values"`
-	IpAddress   *netip.Addr        `json:"ip_address"`
-	UserAgent   pgtype.Text        `json:"user_agent"`
-	OccurredAt  pgtype.Timestamptz `json:"occurred_at"`
+	ID                   int64              `json:"id"`
+	BusinessID           int64              `json:"business_id"`
+	OutletID             pgtype.Int8        `json:"outlet_id"`
+	ActorUserID          pgtype.Int8        `json:"actor_user_id"`
+	Action               string             `json:"action"`
+	EntityType           string             `json:"entity_type"`
+	EntityID             pgtype.Int8        `json:"entity_id"`
+	OldValues            []byte             `json:"old_values"`
+	NewValues            []byte             `json:"new_values"`
+	IpAddress            *netip.Addr        `json:"ip_address"`
+	UserAgent            pgtype.Text        `json:"user_agent"`
+	OccurredAt           pgtype.Timestamptz `json:"occurred_at"`
+	ActorPlatformAdminID pgtype.Int8        `json:"actor_platform_admin_id"`
+	SupportSessionID     pgtype.Int8        `json:"support_session_id"`
+	PlatformAuditID      pgtype.Int8        `json:"platform_audit_id"`
 }
 
 // Root tenant. All business-owned records are scoped to one business.
@@ -209,6 +212,7 @@ type Perfume struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+	Version     int64              `json:"version"`
 }
 
 // Global catalog of permission codes; grants remain tenant-scoped in user_permissions.
@@ -240,6 +244,9 @@ type PlatformAuditLog struct {
 	RequestID            pgtype.Text        `json:"request_id"`
 	Metadata             []byte             `json:"metadata"`
 	OccurredAt           pgtype.Timestamptz `json:"occurred_at"`
+	BusinessID           pgtype.Int8        `json:"business_id"`
+	SupportSessionID     pgtype.Int8        `json:"support_session_id"`
+	Reason               pgtype.Text        `json:"reason"`
 }
 
 type PlatformRefreshToken struct {
@@ -257,6 +264,32 @@ type PlatformSessionFamily struct {
 	PlatformAdminID int64              `json:"platform_admin_id"`
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	RevokedAt       pgtype.Timestamptz `json:"revoked_at"`
+}
+
+type PlatformSupportRequest struct {
+	ID                int64              `json:"id"`
+	BusinessID        int64              `json:"business_id"`
+	RequestedByUserID int64              `json:"requested_by_user_id"`
+	Reason            string             `json:"reason"`
+	AccessScope       string             `json:"access_scope"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	ExpiresAt         pgtype.Timestamptz `json:"expires_at"`
+	RevokedAt         pgtype.Timestamptz `json:"revoked_at"`
+	RevocationReason  pgtype.Text        `json:"revocation_reason"`
+}
+
+type PlatformSupportSession struct {
+	ID               int64              `json:"id"`
+	BusinessID       int64              `json:"business_id"`
+	SupportRequestID int64              `json:"support_request_id"`
+	PlatformAdminID  int64              `json:"platform_admin_id"`
+	PlatformFamilyID int64              `json:"platform_family_id"`
+	Reason           string             `json:"reason"`
+	AccessScope      string             `json:"access_scope"`
+	StartedAt        pgtype.Timestamptz `json:"started_at"`
+	ExpiresAt        pgtype.Timestamptz `json:"expires_at"`
+	EndedAt          pgtype.Timestamptz `json:"ended_at"`
+	EndReason        pgtype.Text        `json:"end_reason"`
 }
 
 type ReceiptTemplate struct {

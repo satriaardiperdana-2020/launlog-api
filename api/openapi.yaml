@@ -1557,6 +1557,523 @@ paths:
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
+  /platform/businesses:
+    get:
+      operationId: ListPlatformBusinesses
+      summary: ListPlatformBusinesses
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: pageSize, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+        - {name: q, in: query, schema: {type: string}}
+        - {name: isActive, in: query, schema: {type: boolean}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlatformBusinessPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      operationId: ProvisionPlatformBusiness
+      summary: ProvisionPlatformBusiness
+      security: [{ PlatformBearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProvisionBusinessRequest" }
+      responses:
+        "201":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProvisionBusinessResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/businesses/{businessId}:
+    get:
+      operationId: GetPlatformBusiness
+      summary: GetPlatformBusiness
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: businessId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlatformBusinessDetail" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/businesses/{businessId}/activation:
+    patch:
+      operationId: SetPlatformBusinessActivation
+      summary: SetPlatformBusinessActivation
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: businessId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PlatformActivationRequest" }
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlatformBusiness" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/audit-logs:
+    get:
+      operationId: ListPlatformAudit
+      summary: ListPlatformAudit
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: pageSize, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlatformAuditPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/businesses/{businessId}/support-requests:
+    get:
+      operationId: ListBusinessSupportRequests
+      summary: ListBusinessSupportRequests
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: pageSize, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+        - {name: businessId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportRequestPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/businesses/{businessId}/support-sessions:
+    get:
+      operationId: ListBusinessSupportSessions
+      summary: ListBusinessSupportSessions
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: pageSize, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+        - {name: businessId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportSessionPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      operationId: StartPlatformSupport
+      summary: StartPlatformSupport
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: businessId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StartSupportRequest" }
+      responses:
+        "201":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportSession" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/businesses/{businessId}/audit-logs:
+    get:
+      operationId: ListBusinessAuditLogs
+      summary: ListBusinessAuditLogs
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: pageSize, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+        - {name: businessId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlatformAuditPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/businesses/{businessId}/support-sessions/{sessionId}/end:
+    post:
+      operationId: EndPlatformSupport
+      summary: EndPlatformSupport
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: businessId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+        - {name: sessionId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportReasonRequest" }
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportSession" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/businesses/{businessId}/support-sessions/{sessionId}/diagnostics:
+    get:
+      operationId: ReadSupportDiagnostics
+      summary: ReadSupportDiagnostics
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: businessId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+        - {name: sessionId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportDiagnostics" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/businesses/{businessId}/support-sessions/{sessionId}/outlets:
+    get:
+      operationId: ReadSupportOutlets
+      summary: ReadSupportOutlets
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: pageSize, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+        - {name: businessId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+        - {name: sessionId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportOutletPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/businesses/{businessId}/support-sessions/{sessionId}/outlets/{outletId}:
+    get:
+      operationId: ReadSupportOutletsRecord
+      summary: ReadSupportOutletsRecord
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: businessId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+        - {name: sessionId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+        - {name: outletId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlatformOutlet" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/businesses/{businessId}/support-sessions/{sessionId}/perfumes:
+    get:
+      operationId: ReadSupportPerfumes
+      summary: ReadSupportPerfumes
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: pageSize, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+        - {name: businessId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+        - {name: sessionId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportPerfumePage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/businesses/{businessId}/support-sessions/{sessionId}/perfumes/{perfumeId}:
+    get:
+      operationId: ReadSupportPerfumesRecord
+      summary: ReadSupportPerfumesRecord
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: businessId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+        - {name: sessionId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+        - {name: perfumeId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportPerfume" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/businesses/{businessId}/support-sessions/{sessionId}/perfumes/{perfumeId}/description:
+    patch:
+      operationId: UpdateSupportPerfumeDescription
+      summary: READ_WRITE only. Changes description without financial mutations.
+      security: [{ PlatformBearerAuth: [] }]
+      parameters:
+        - {name: If-Match, in: header, required: true, schema: {type: string}, description: Quoted numeric version from the perfume response.}
+        - {name: businessId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+        - {name: sessionId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+        - {name: perfumeId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportDescriptionRequest" }
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportPerfume" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /support-requests:
+    post:
+      operationId: RequestOwnerSupport
+      summary: RequestOwnerSupport
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OwnerSupportRequest" }
+      responses:
+        "201":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportRequest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    get:
+      operationId: ListOwnerSupportRequests
+      summary: ListOwnerSupportRequests
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: pageSize, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportRequestPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /support-requests/{requestId}:
+    get:
+      operationId: GetOwnerSupportRequest
+      summary: GetOwnerSupportRequest
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - {name: requestId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportRequest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /support-requests/{requestId}/revoke:
+    post:
+      operationId: RevokeOwnerSupportRequest
+      summary: RevokeOwnerSupportRequest
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - {name: requestId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportReasonRequest" }
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportRequest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /support-sessions:
+    get:
+      operationId: ListOwnerSupportSessions
+      summary: ListOwnerSupportSessions
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: pageSize, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportSessionPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /support-sessions/{sessionId}/end:
+    post:
+      operationId: EndOwnerSupport
+      summary: EndOwnerSupport
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - {name: sessionId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportReasonRequest" }
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportSession" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /support-audit:
+    get:
+      operationId: ListOwnerSupportAudit
+      summary: ListOwnerSupportAudit
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: pageSize, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlatformAuditPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /audit-logs:
+    get:
+      operationId: ListBusinessAudit
+      summary: Tenant audit identities and actions with sensitive payloads omitted.
+      security: [{BearerAuth: []}]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: pageSize, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+      responses:
+        "200":
+          description: Tenant-filtered audit history.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/BusinessAuditPage'}
+        "400": {$ref: '#/components/responses/BadRequest'}
+        "401": {$ref: '#/components/responses/Unauthorized'}
+        "403": {$ref: '#/components/responses/Forbidden'}
+        "500": {$ref: '#/components/responses/InternalServerError'}
 components:
   securitySchemes:
     PlatformBearerAuth:
@@ -1679,6 +2196,250 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
 
   schemas:
+    BusinessAuditPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        pagination: {$ref: '#/components/schemas/PaginationMeta'}
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, business_id, action, entity_type, occurred_at]
+            properties:
+              id: {type: integer, format: int64}
+              business_id: {type: integer, format: int64}
+              outlet_id: {type: integer, format: int64, nullable: true}
+              actor_user_id: {type: integer, format: int64, nullable: true}
+              actor_platform_admin_id: {type: integer, format: int64, nullable: true}
+              support_session_id: {type: integer, format: int64, nullable: true}
+              platform_audit_id: {type: integer, format: int64, nullable: true}
+              action: {type: string}
+              entity_type: {type: string}
+              entity_id: {type: integer, format: int64, nullable: true}
+              occurred_at: {type: string, format: date-time}
+
+    PlatformBusiness:
+      type: object
+      required: [id, name, timezone, is_active, created_at, updated_at]
+      properties:
+        id: {type: integer, format: int64}
+        name: {type: string}
+        timezone: {type: string, enum: [Asia/Jakarta]}
+        phone: {type: string, nullable: true}
+        address: {type: string, nullable: true}
+        is_active: {type: boolean}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    PlatformBusinessDetail:
+      type: object
+      required: [business, outletCount, activeAdminCount]
+      properties:
+        business: {$ref: '#/components/schemas/PlatformBusiness'}
+        outletCount: {type: integer, format: int64}
+        activeAdminCount: {type: integer, format: int64}
+    PlatformOutlet:
+      type: object
+      required: [id, business_id, code, name, is_active]
+      properties:
+        id: {type: integer, format: int64}
+        business_id: {type: integer, format: int64}
+        code: {type: string}
+        name: {type: string}
+        phone: {type: string, nullable: true}
+        address: {type: string, nullable: true}
+        is_active: {type: boolean}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    ProvisionBusinessRequest:
+      type: object
+      additionalProperties: false
+      required: [business, firstOutlet, firstAdmin]
+      properties:
+        business:
+          type: object
+          additionalProperties: false
+          required: [name]
+          properties:
+            name: {type: string, minLength: 1, maxLength: 200}
+            phone: {type: string, nullable: true, maxLength: 32}
+            address: {type: string, nullable: true, maxLength: 500}
+        firstOutlet:
+          type: object
+          additionalProperties: false
+          required: [code, name]
+          properties:
+            code: {type: string, minLength: 1, maxLength: 64}
+            name: {type: string, minLength: 1, maxLength: 200}
+            phone: {type: string, nullable: true, maxLength: 32}
+            address: {type: string, nullable: true, maxLength: 500}
+        firstAdmin:
+          type: object
+          additionalProperties: false
+          required: [email, fullName, password]
+          properties:
+            email: {type: string, format: email, maxLength: 254}
+            fullName: {type: string, minLength: 1, maxLength: 200}
+            password: {type: string, format: password, writeOnly: true, minLength: 8, maxLength: 72}
+    ProvisionBusinessResponse:
+      type: object
+      required: [business, firstOutlet, firstAdmin]
+      properties:
+        business: {$ref: '#/components/schemas/PlatformBusiness'}
+        firstOutlet: {$ref: '#/components/schemas/PlatformOutlet'}
+        firstAdmin:
+          type: object
+          required: [id, business_id, email, full_name, role, is_active]
+          properties:
+            id: {type: integer, format: int64}
+            business_id: {type: integer, format: int64}
+            email: {type: string, format: email}
+            full_name: {type: string}
+            role: {type: string, enum: [ADMIN]}
+            is_active: {type: boolean}
+    PlatformActivationRequest:
+      type: object
+      additionalProperties: false
+      required: [isActive, reason]
+      properties:
+        isActive: {type: boolean}
+        reason: {type: string, minLength: 1, maxLength: 500}
+    OwnerSupportRequest:
+      type: object
+      additionalProperties: false
+      required: [reason, accessScope, expiresAt, confirmationPassword]
+      properties:
+        reason: {type: string, minLength: 1, maxLength: 500}
+        accessScope: {type: string, enum: [READ_ONLY, READ_WRITE]}
+        expiresAt: {type: string, format: date-time, description: Future time no more than one hour away.}
+        confirmationPassword: {type: string, format: password, writeOnly: true}
+    StartSupportRequest:
+      type: object
+      additionalProperties: false
+      required: [supportRequestId]
+      properties:
+        supportRequestId: {type: integer, format: int64, minimum: 1}
+    SupportReasonRequest:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason: {type: string, minLength: 1, maxLength: 500}
+    SupportRequest:
+      type: object
+      required: [id, business_id, requested_by_user_id, reason, access_scope, created_at, expires_at]
+      properties:
+        id: {type: integer, format: int64}
+        business_id: {type: integer, format: int64}
+        requested_by_user_id: {type: integer, format: int64}
+        reason: {type: string}
+        access_scope: {type: string, enum: [READ_ONLY, READ_WRITE]}
+        created_at: {type: string, format: date-time}
+        expires_at: {type: string, format: date-time}
+        revoked_at: {type: string, format: date-time, nullable: true}
+        revocation_reason: {type: string, nullable: true}
+    SupportSession:
+      type: object
+      required: [id, business_id, support_request_id, platform_admin_id, platform_family_id, reason, access_scope, started_at, expires_at]
+      properties:
+        id: {type: integer, format: int64}
+        business_id: {type: integer, format: int64}
+        support_request_id: {type: integer, format: int64}
+        platform_admin_id: {type: integer, format: int64}
+        platform_family_id: {type: integer, format: int64}
+        reason: {type: string}
+        access_scope: {type: string, enum: [READ_ONLY, READ_WRITE]}
+        started_at: {type: string, format: date-time}
+        expires_at: {type: string, format: date-time}
+        ended_at: {type: string, format: date-time, nullable: true}
+        end_reason: {type: string, nullable: true}
+    SupportPerfume:
+      type: object
+      required: [id, business_id, name, is_active, version]
+      properties:
+        id: {type: integer, format: int64}
+        business_id: {type: integer, format: int64}
+        name: {type: string}
+        description: {type: string, nullable: true}
+        is_active: {type: boolean}
+        version: {type: integer, format: int64, minimum: 1}
+    SupportDescriptionRequest:
+      type: object
+      additionalProperties: false
+      required: [description]
+      properties:
+        description: {type: string, maxLength: 1000}
+    SupportDiagnostics:
+      type: object
+      required: [outlets, users, perfumes]
+      properties:
+        outlets: {type: integer, format: int64}
+        users: {type: integer, format: int64}
+        perfumes: {type: integer, format: int64}
+    PlatformAuditEntry:
+      type: object
+      required: [id, action, target_type, outcome, occurred_at, metadata]
+      properties:
+        id: {type: integer, format: int64}
+        business_id: {type: integer, format: int64, nullable: true}
+        actor_platform_admin_id: {type: integer, format: int64, nullable: true}
+        support_session_id: {type: integer, format: int64, nullable: true}
+        reason: {type: string, nullable: true}
+        action: {type: string}
+        target_type: {type: string}
+        target_id: {type: integer, format: int64, nullable: true}
+        outcome: {type: string, enum: [SUCCESS, DENIED]}
+        request_id: {type: string, nullable: true}
+        metadata: {type: object, additionalProperties: true}
+        occurred_at: {type: string, format: date-time}
+    PlatformBusinessPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/PlatformBusiness'}
+        pagination: {$ref: '#/components/schemas/PaginationMeta'}
+    SupportOutletPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/PlatformOutlet'}
+        pagination: {$ref: '#/components/schemas/PaginationMeta'}
+    SupportPerfumePage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/SupportPerfume'}
+        pagination: {$ref: '#/components/schemas/PaginationMeta'}
+    SupportRequestPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/SupportRequest'}
+        pagination: {$ref: '#/components/schemas/PaginationMeta'}
+    SupportSessionPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/SupportSession'}
+        pagination: {$ref: '#/components/schemas/PaginationMeta'}
+    PlatformAuditPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/PlatformAuditEntry'}
+        pagination: {$ref: '#/components/schemas/PaginationMeta'}
     ReceiptPayload:
       type: object
       description: Historical order/customer/item snapshots plus current status, payment balance, outlet profile, and template settings.

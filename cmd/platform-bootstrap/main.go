@@ -70,12 +70,13 @@ func run() error {
 	}
 	defer pool.Close()
 	var role string
+	var canCreateRole, canCreateDB, runtimeMember, canDeleteAudit, canTruncateAudit bool
 	var isSuperuser, canCreateSchema, ownerMember, canUpdateAudit bool
-	if err := pool.QueryRow(ctx, `SELECT current_user, r.rolsuper,
+	if err := pool.QueryRow(ctx, `SELECT r.rolcreaterole,r.rolcreatedb,pg_has_role(current_user, 'launlog_runtime', 'MEMBER'),has_table_privilege(current_user, 'public.platform_audit_logs', 'DELETE'),has_table_privilege(current_user, 'public.platform_audit_logs', 'TRUNCATE'),current_user, r.rolsuper,
 		has_schema_privilege(current_user, 'public', 'CREATE'),
 		pg_has_role(current_user, 'launlog_owner', 'MEMBER'),
 		has_table_privilege(current_user, 'public.platform_audit_logs', 'UPDATE')
-		FROM pg_roles r WHERE r.rolname=current_user`).Scan(&role, &isSuperuser, &canCreateSchema, &ownerMember, &canUpdateAudit); err != nil || role != "launlog_bootstrap" || isSuperuser || canCreateSchema || ownerMember || canUpdateAudit {
+		FROM pg_roles r WHERE r.rolname=current_user`).Scan(&canCreateRole, &canCreateDB, &runtimeMember, &canDeleteAudit, &canTruncateAudit, &role, &isSuperuser, &canCreateSchema, &ownerMember, &canUpdateAudit); err != nil || canCreateRole || canCreateDB || runtimeMember || canDeleteAudit || canTruncateAudit || role != "launlog_bootstrap" || isSuperuser || canCreateSchema || ownerMember || canUpdateAudit {
 		return errors.New("dedicated least-privilege launlog_bootstrap role is required")
 	}
 	tx, err := pool.Begin(ctx)
