@@ -123,6 +123,7 @@ func TestLoadValidation(t *testing.T) {
 		{name: "invalid maximum connections", variable: "DATABASE_MAX_CONNS", value: "0", errorPart: "DATABASE_MAX_CONNS", setDatabase: true},
 		{name: "minimum exceeds maximum", variable: "DATABASE_MIN_CONNS", value: "11", errorPart: "DATABASE_MIN_CONNS", setDatabase: true},
 		{name: "public example signing secret", variable: "JWT_SIGNING_SECRET", value: "replace-with-a-random-secret-of-at-least-32-bytes", errorPart: "JWT_SIGNING_SECRET", setDatabase: true},
+		{name: "platform signing secret must differ", variable: "PLATFORM_JWT_SIGNING_SECRET", value: "01234567890123456789012345678901", errorPart: "PLATFORM_JWT_SIGNING_SECRET", setDatabase: true},
 	}
 
 	for _, test := range tests {
@@ -154,7 +155,7 @@ func TestLoadReadsEnvironmentSpecificDotenv(t *testing.T) {
 	temporaryDirectory := t.TempDir()
 	if err := os.WriteFile(
 		filepath.Join(temporaryDirectory, ".env.test"),
-		[]byte("DATABASE_URL=postgres://dotenv@localhost:5432/launlog\nJWT_SIGNING_SECRET=01234567890123456789012345678901\nHTTP_PORT=9091\n"),
+		[]byte("DATABASE_URL=postgres://dotenv@localhost:5432/launlog\nJWT_SIGNING_SECRET=01234567890123456789012345678901\nPLATFORM_JWT_SIGNING_SECRET=platform-test-signing-secret-at-least-32-bytes\nHTTP_PORT=9091\n"),
 		0600,
 	); err != nil {
 		t.Fatalf("os.WriteFile() error = %v", err)
@@ -178,6 +179,7 @@ func TestLoadPreservesExplicitEnvironment(t *testing.T) {
 	t.Setenv("APP_ENV", "test")
 	t.Setenv("DATABASE_URL", "postgres://explicit@localhost:5432/launlog")
 	t.Setenv("JWT_SIGNING_SECRET", "01234567890123456789012345678901")
+	t.Setenv("PLATFORM_JWT_SIGNING_SECRET", "platform-test-signing-secret-at-least-32-bytes")
 	workingDirectory, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("os.Getwd() error = %v", err)
@@ -221,12 +223,14 @@ func clearConfigEnvironment(t *testing.T) {
 		"DATABASE_MAX_CONNS",
 		"DATABASE_MIN_CONNS",
 		"JWT_SIGNING_SECRET",
+		"PLATFORM_JWT_SIGNING_SECRET",
 		"JWT_ACCESS_TOKEN_TTL",
 		"JWT_REFRESH_TOKEN_TTL",
 		"CORS_ALLOWED_ORIGINS",
 	} {
 		t.Setenv(name, "")
 	}
+	t.Setenv("PLATFORM_JWT_SIGNING_SECRET", "platform-test-signing-secret-at-least-32-bytes")
 }
 
 func unsetConfigEnvironment(t *testing.T) {
@@ -263,6 +267,7 @@ func configEnvironmentNames() []string {
 		"DATABASE_MAX_CONNS",
 		"DATABASE_MIN_CONNS",
 		"JWT_SIGNING_SECRET",
+		"PLATFORM_JWT_SIGNING_SECRET",
 		"JWT_ACCESS_TOKEN_TTL",
 		"JWT_REFRESH_TOKEN_TTL",
 		"CORS_ALLOWED_ORIGINS",

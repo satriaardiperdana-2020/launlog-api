@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	BearerAuthScopes bearerAuthContextKey = "BearerAuth.Scopes"
+	BearerAuthScopes         bearerAuthContextKey         = "BearerAuth.Scopes"
+	PlatformBearerAuthScopes platformBearerAuthContextKey = "PlatformBearerAuth.Scopes"
 )
 
 // Defines values for CancellationReportTimezone.
@@ -335,6 +336,21 @@ func (e PaymentMethod) Valid() bool {
 	case PaymentMethodCASH:
 		return true
 	case PaymentMethodQRIS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PlatformAdminRole.
+const (
+	PLATFORMADMIN PlatformAdminRole = "PLATFORM_ADMIN"
+)
+
+// Valid indicates whether the value is a known member of the PlatformAdminRole enum.
+func (e PlatformAdminRole) Valid() bool {
+	switch e {
+	case PLATFORMADMIN:
 		return true
 	default:
 		return false
@@ -1314,6 +1330,24 @@ type PermissionList struct {
 	Items []Permission `json:"items"`
 }
 
+// PlatformAdmin defines model for PlatformAdmin.
+type PlatformAdmin struct {
+	Email openapi_types.Email `json:"email"`
+
+	// Id Database identifier backed by a PostgreSQL BIGINT.
+	Id   EntityId          `json:"id"`
+	Role PlatformAdminRole `json:"role"`
+}
+
+// PlatformAdminRole defines model for PlatformAdmin.Role.
+type PlatformAdminRole string
+
+// PlatformAuthSessionResponse defines model for PlatformAuthSessionResponse.
+type PlatformAuthSessionResponse struct {
+	Admin  PlatformAdmin `json:"admin"`
+	Tokens TokenPair     `json:"tokens"`
+}
+
 // ProfitLossReport defines model for ProfitLossReport.
 type ProfitLossReport struct {
 	Daily []struct {
@@ -1611,6 +1645,9 @@ type Unauthorized = ErrorResponse
 // bearerAuthContextKey is the context key for BearerAuth security scheme
 type bearerAuthContextKey string
 
+// platformBearerAuthContextKey is the context key for PlatformBearerAuth security scheme
+type platformBearerAuthContextKey string
+
 // ListCustomersParams defines parameters for ListCustomers.
 type ListCustomersParams struct {
 	// Page One-based page number.
@@ -1859,6 +1896,15 @@ type CreatePerfumeJSONRequestBody = CreatePerfumeInput
 // UpdatePerfumeJSONRequestBody defines body for UpdatePerfume for application/json ContentType.
 type UpdatePerfumeJSONRequestBody = UpdatePerfumeInput
 
+// PlatformLoginJSONRequestBody defines body for PlatformLogin for application/json ContentType.
+type PlatformLoginJSONRequestBody = LoginRequest
+
+// PlatformLogoutJSONRequestBody defines body for PlatformLogout for application/json ContentType.
+type PlatformLogoutJSONRequestBody = LogoutRequest
+
+// PlatformRefreshJSONRequestBody defines body for PlatformRefresh for application/json ContentType.
+type PlatformRefreshJSONRequestBody = RefreshRequest
+
 // CreateServiceJSONRequestBody defines body for CreateService for application/json ContentType.
 type CreateServiceJSONRequestBody = CreateServiceInput
 
@@ -2038,6 +2084,18 @@ type ServerInterface interface {
 	// List available action grants
 	// (GET /permissions)
 	ListPermissions(ctx echo.Context) error
+	// Authenticate the platform administrator
+	// (POST /platform/auth/login)
+	PlatformLogin(ctx echo.Context) error
+	// Revoke a platform session family
+	// (POST /platform/auth/logout)
+	PlatformLogout(ctx echo.Context) error
+	// Get the active platform identity
+	// (GET /platform/auth/me)
+	PlatformMe(ctx echo.Context) error
+	// Rotate a platform refresh token
+	// (POST /platform/auth/refresh)
+	PlatformRefresh(ctx echo.Context) error
 	// Check whether the API is ready to serve database-backed requests
 	// (GET /readyz)
 	GetReadiness(ctx echo.Context) error
@@ -3294,6 +3352,46 @@ func (w *ServerInterfaceWrapper) ListPermissions(ctx echo.Context) error {
 	return err
 }
 
+// PlatformLogin converts echo context to params.
+func (w *ServerInterfaceWrapper) PlatformLogin(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PlatformLogin(ctx)
+	return err
+}
+
+// PlatformLogout converts echo context to params.
+func (w *ServerInterfaceWrapper) PlatformLogout(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PlatformLogout(ctx)
+	return err
+}
+
+// PlatformMe converts echo context to params.
+func (w *ServerInterfaceWrapper) PlatformMe(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(string(PlatformBearerAuthScopes), []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PlatformMe(ctx)
+	return err
+}
+
+// PlatformRefresh converts echo context to params.
+func (w *ServerInterfaceWrapper) PlatformRefresh(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PlatformRefresh(ctx)
+	return err
+}
+
 // GetReadiness converts echo context to params.
 func (w *ServerInterfaceWrapper) GetReadiness(ctx echo.Context) error {
 	var err error
@@ -3626,6 +3724,10 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/perfumes/:perfumeId", wrapper.GetPerfume, options.OperationMiddlewares["getPerfume"]...)
 	router.PUT(options.BaseURL+"/perfumes/:perfumeId", wrapper.UpdatePerfume, options.OperationMiddlewares["updatePerfume"]...)
 	router.GET(options.BaseURL+"/permissions", wrapper.ListPermissions, options.OperationMiddlewares["listPermissions"]...)
+	router.POST(options.BaseURL+"/platform/auth/login", wrapper.PlatformLogin, options.OperationMiddlewares["platformLogin"]...)
+	router.POST(options.BaseURL+"/platform/auth/logout", wrapper.PlatformLogout, options.OperationMiddlewares["platformLogout"]...)
+	router.GET(options.BaseURL+"/platform/auth/me", wrapper.PlatformMe, options.OperationMiddlewares["platformMe"]...)
+	router.POST(options.BaseURL+"/platform/auth/refresh", wrapper.PlatformRefresh, options.OperationMiddlewares["platformRefresh"]...)
 	router.GET(options.BaseURL+"/readyz", wrapper.GetReadiness, options.OperationMiddlewares["getReadiness"]...)
 	router.GET(options.BaseURL+"/services", wrapper.ListServices, options.OperationMiddlewares["listServices"]...)
 	router.POST(options.BaseURL+"/services", wrapper.CreateService, options.OperationMiddlewares["createService"]...)
@@ -8535,6 +8637,337 @@ func (response ListPermissions500JSONResponse) VisitListPermissionsResponse(w ht
 	return err
 }
 
+type PlatformLoginRequestObject struct {
+	Body *PlatformLoginJSONRequestBody
+}
+
+type PlatformLoginResponseObject interface {
+	VisitPlatformLoginResponse(w http.ResponseWriter) error
+}
+
+type PlatformLogin200JSONResponse PlatformAuthSessionResponse
+
+func (response PlatformLogin200JSONResponse) VisitPlatformLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformLogin400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response PlatformLogin400JSONResponse) VisitPlatformLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformLogin401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response PlatformLogin401JSONResponse) VisitPlatformLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformLogin413JSONResponse struct{ RequestTooLargeJSONResponse }
+
+func (response PlatformLogin413JSONResponse) VisitPlatformLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformLogin429JSONResponse struct{ TooManyRequestsJSONResponse }
+
+func (response PlatformLogin429JSONResponse) VisitPlatformLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.RetryAfter != nil {
+		w.Header().Set("Retry-After", fmt.Sprint(*response.Headers.RetryAfter))
+	}
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformLogin500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response PlatformLogin500JSONResponse) VisitPlatformLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformLogoutRequestObject struct {
+	Body *PlatformLogoutJSONRequestBody
+}
+
+type PlatformLogoutResponseObject interface {
+	VisitPlatformLogoutResponse(w http.ResponseWriter) error
+}
+
+type PlatformLogout204Response struct {
+}
+
+func (response PlatformLogout204Response) VisitPlatformLogoutResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type PlatformLogout400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response PlatformLogout400JSONResponse) VisitPlatformLogoutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformLogout401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response PlatformLogout401JSONResponse) VisitPlatformLogoutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformLogout413JSONResponse struct{ RequestTooLargeJSONResponse }
+
+func (response PlatformLogout413JSONResponse) VisitPlatformLogoutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformLogout500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response PlatformLogout500JSONResponse) VisitPlatformLogoutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformMeRequestObject struct {
+}
+
+type PlatformMeResponseObject interface {
+	VisitPlatformMeResponse(w http.ResponseWriter) error
+}
+
+type PlatformMe200JSONResponse PlatformAdmin
+
+func (response PlatformMe200JSONResponse) VisitPlatformMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformMe401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response PlatformMe401JSONResponse) VisitPlatformMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformMe500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response PlatformMe500JSONResponse) VisitPlatformMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformRefreshRequestObject struct {
+	Body *PlatformRefreshJSONRequestBody
+}
+
+type PlatformRefreshResponseObject interface {
+	VisitPlatformRefreshResponse(w http.ResponseWriter) error
+}
+
+type PlatformRefresh200JSONResponse PlatformAuthSessionResponse
+
+func (response PlatformRefresh200JSONResponse) VisitPlatformRefreshResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformRefresh400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response PlatformRefresh400JSONResponse) VisitPlatformRefreshResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformRefresh401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response PlatformRefresh401JSONResponse) VisitPlatformRefreshResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.WWWAuthenticate != nil {
+		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformRefresh413JSONResponse struct{ RequestTooLargeJSONResponse }
+
+func (response PlatformRefresh413JSONResponse) VisitPlatformRefreshResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformRefresh429JSONResponse struct{ TooManyRequestsJSONResponse }
+
+func (response PlatformRefresh429JSONResponse) VisitPlatformRefreshResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.RetryAfter != nil {
+		w.Header().Set("Retry-After", fmt.Sprint(*response.Headers.RetryAfter))
+	}
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlatformRefresh500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response PlatformRefresh500JSONResponse) VisitPlatformRefreshResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetReadinessRequestObject struct {
 }
 
@@ -9796,6 +10229,18 @@ type StrictServerInterface interface {
 	// List available action grants
 	// (GET /permissions)
 	ListPermissions(ctx context.Context, request ListPermissionsRequestObject) (ListPermissionsResponseObject, error)
+	// Authenticate the platform administrator
+	// (POST /platform/auth/login)
+	PlatformLogin(ctx context.Context, request PlatformLoginRequestObject) (PlatformLoginResponseObject, error)
+	// Revoke a platform session family
+	// (POST /platform/auth/logout)
+	PlatformLogout(ctx context.Context, request PlatformLogoutRequestObject) (PlatformLogoutResponseObject, error)
+	// Get the active platform identity
+	// (GET /platform/auth/me)
+	PlatformMe(ctx context.Context, request PlatformMeRequestObject) (PlatformMeResponseObject, error)
+	// Rotate a platform refresh token
+	// (POST /platform/auth/refresh)
+	PlatformRefresh(ctx context.Context, request PlatformRefreshRequestObject) (PlatformRefreshResponseObject, error)
 	// Check whether the API is ready to serve database-backed requests
 	// (GET /readyz)
 	GetReadiness(ctx context.Context, request GetReadinessRequestObject) (GetReadinessResponseObject, error)
@@ -11276,6 +11721,116 @@ func (sh *strictHandler) ListPermissions(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(ListPermissionsResponseObject); ok {
 		return validResponse.VisitListPermissionsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PlatformLogin operation middleware
+func (sh *strictHandler) PlatformLogin(ctx echo.Context) error {
+	var request PlatformLoginRequestObject
+
+	var body PlatformLoginJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.PlatformLogin(ctx.Request().Context(), request.(PlatformLoginRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PlatformLogin")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(PlatformLoginResponseObject); ok {
+		return validResponse.VisitPlatformLoginResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PlatformLogout operation middleware
+func (sh *strictHandler) PlatformLogout(ctx echo.Context) error {
+	var request PlatformLogoutRequestObject
+
+	var body PlatformLogoutJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.PlatformLogout(ctx.Request().Context(), request.(PlatformLogoutRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PlatformLogout")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(PlatformLogoutResponseObject); ok {
+		return validResponse.VisitPlatformLogoutResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PlatformMe operation middleware
+func (sh *strictHandler) PlatformMe(ctx echo.Context) error {
+	var request PlatformMeRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.PlatformMe(ctx.Request().Context(), request.(PlatformMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PlatformMe")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(PlatformMeResponseObject); ok {
+		return validResponse.VisitPlatformMeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PlatformRefresh operation middleware
+func (sh *strictHandler) PlatformRefresh(ctx echo.Context) error {
+	var request PlatformRefreshRequestObject
+
+	var body PlatformRefreshJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.PlatformRefresh(ctx.Request().Context(), request.(PlatformRefreshRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PlatformRefresh")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(PlatformRefreshResponseObject); ok {
+		return validResponse.VisitPlatformRefreshResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

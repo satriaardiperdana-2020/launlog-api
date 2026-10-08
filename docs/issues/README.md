@@ -18,3 +18,5 @@ The issues are implemented in order. Each specification defines its goal, scope,
 14. [ISSUE-014: Receipts and settings](issue-014-receipts-settings.md)
 15. [ISSUE-015: Audit and security hardening](issue-015-audit-security.md)
 16. [ISSUE-016: Integration tests and release readiness](issue-016-release-readiness.md)
+17. [ISSUE-017: Platform admin identity and audit foundation](issue-017-platform-admin-and-audit.md)
+18. [ISSUE-018: Tenant management and support access](issue-018-tenant-management-and-support-access.md)

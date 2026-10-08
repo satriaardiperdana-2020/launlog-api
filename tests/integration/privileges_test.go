@@ -53,7 +53,13 @@ func TestVerifyLeastPrivilegeRejectsElevatedRoles(t *testing.T) {
 		{name: "create_schema", grant: "GRANT CREATE ON SCHEMA public TO %s"},
 		{name: "update_audit", grant: "GRANT UPDATE ON public.audit_logs TO %s"},
 		{name: "delete_audit", grant: "GRANT DELETE ON public.audit_logs TO %s"},
+		{name: "update_platform_audit", grant: "GRANT UPDATE ON public.platform_audit_logs TO %s"},
+		{name: "delete_platform_audit", grant: "GRANT DELETE ON public.platform_audit_logs TO %s"},
+		{name: "insert_platform_admin", grant: "GRANT INSERT ON public.platform_admins TO %s"},
+		{name: "update_platform_admin", grant: "GRANT UPDATE ON public.platform_admins TO %s"},
+		{name: "delete_platform_admin", grant: "GRANT DELETE ON public.platform_admins TO %s"},
 		{name: "owner_membership", grant: "GRANT launlog_owner TO %s"},
+		{name: "bootstrap_membership", grant: "GRANT launlog_bootstrap TO %s"},
 		{name: "indirect_owner_membership"},
 		{name: "database_owner"},
 	}
