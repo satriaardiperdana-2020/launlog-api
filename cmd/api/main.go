@@ -53,13 +53,20 @@ func run(logger *slog.Logger) error {
 		if err := database.VerifyLeastPrivilege(privilegeContext); err != nil {
 			return fmt.Errorf("verify PostgreSQL runtime role: %w", err)
 		}
+		if err := database.VerifyPlatformAdminReady(privilegeContext); err != nil {
+			return err
+		}
 	}
 	jwtTokens, err := security.NewTokenManager(cfg.JWTSigningSecret, cfg.JWTAccessTokenTTL)
 	if err != nil {
 		return fmt.Errorf("configure JWT: %w", err)
 	}
+	platformTokens, err := security.NewPlatformTokenManager(cfg.PlatformJWTSigningSecret, cfg.JWTAccessTokenTTL)
+	if err != nil {
+		return fmt.Errorf("configure platform JWT: %w", err)
+	}
 
-	e := server.New(cfg, database, jwtTokens)
+	e := server.New(cfg, database, jwtTokens, platformTokens)
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress(),
 		Handler:           e,

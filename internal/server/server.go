@@ -18,7 +18,7 @@ import (
 )
 
 // New builds the same production router used by the executable and API tests.
-func New(cfg config.Config, database *repository.Postgres, jwtTokens *security.TokenManager) *echo.Echo {
+func New(cfg config.Config, database *repository.Postgres, jwtTokens *security.TokenManager, platformTokens ...*security.PlatformTokenManager) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
@@ -54,6 +54,13 @@ func New(cfg config.Config, database *repository.Postgres, jwtTokens *security.T
 	e.POST("/auth/refresh", authHandler.Refresh, authBody, authLimiter.Middleware, launmiddleware.NoStore)
 	e.POST("/auth/logout", authHandler.Logout, authBody, launmiddleware.AuthenticateForLogout(database, jwtTokens), launmiddleware.NoStore)
 	e.GET("/auth/me", authHandler.Me, launmiddleware.Authenticate(database, jwtTokens), launmiddleware.NoStore)
+	if len(platformTokens) > 0 && platformTokens[0] != nil {
+		platformHandler := handlers.NewPlatformAuthHandler(database, platformTokens[0], cfg.JWTRefreshTokenTTL)
+		e.POST("/platform/auth/login", platformHandler.Login, authBody, authLimiter.Middleware, launmiddleware.NoStore)
+		e.POST("/platform/auth/refresh", platformHandler.Refresh, authBody, authLimiter.Middleware, launmiddleware.NoStore)
+		e.POST("/platform/auth/logout", platformHandler.Logout, authBody, launmiddleware.AuthenticatePlatform(database, platformTokens[0], true), launmiddleware.RequirePlatform(), launmiddleware.NoStore)
+		e.GET("/platform/auth/me", platformHandler.Me, launmiddleware.AuthenticatePlatform(database, platformTokens[0], false), launmiddleware.RequirePlatform(), launmiddleware.NoStore)
+	}
 
 	owner := e.Group("", launmiddleware.Authenticate(database, jwtTokens), launmiddleware.RequireAdmin())
 	owner.GET("/outlets", managementHandler.ListOutlets)

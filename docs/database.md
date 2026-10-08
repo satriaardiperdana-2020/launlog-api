@@ -129,6 +129,10 @@ Migration `000016_receipt_qr_and_snapshots` adds a unique opaque QR locator gene
 
 An immutable business audit stream. It records an optional outlet and actor, action, polymorphic entity identity, before/after JSON objects, client address, user agent, and occurrence time. Tenant-safe foreign keys apply to the outlet and actor; `entity_id` is intentionally polymorphic and therefore has no single-table foreign key. A trigger rejects updates and deletes.
 
+### Platform identity and audit
+
+Migration `000018_platform_admin_and_audit` adds a singleton `platform_admins` row (`id = 1`, always active), separate platform session families and refresh-token hashes, and `platform_audit_logs`. No platform table has a tenant `business_id` or references `users`. The fixed primary key prevents a second account; the protected bootstrap command creates the first row and its audit record atomically. The platform audit trigger rejects updates and deletes. Only the dedicated provisioning role may insert the initial account; the API runtime may select it but cannot insert, update, or delete it.
+
 ## Migration order
 
 1. `000001_ownership_and_access`
@@ -147,12 +151,16 @@ An immutable business audit stream. It records an optional outlet and actor, act
 14. `000014_expense_versions`
 15. `000015_report_indexes`
 16. `000016_receipt_qr_and_snapshots`
+17. `000017_service_unit_codes`
+18. `000018_platform_admin_and_audit`
 
 Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run in reverse order because later domains reference earlier ownership and order tables.
 
 ## Runtime database role
 
 Production must use distinct login roles: `launlog_owner` owns schema changes and `launlog_runtime` serves API traffic. The runtime login must not be a superuser, database/role administrator, schema owner, or have `CREATE` on `public`; it receives normal table DML and sequence usage, but no `UPDATE`/`DELETE` on `audit_logs`. The application verifies these boundaries at production startup. Set `DATABASE_URL` to the runtime login and `MIGRATION_DATABASE_URL` to the migration login. Keep credentials outside Git and use PostgreSQL TLS with `sslmode=verify-full`.
+
+After migration 18, reapply `db/roles/least_privilege.sql`; it also removes runtime writes to `platform_admins` and platform audit mutation/deletion rights. Provision a distinct `launlog_bootstrap` login with no owner/runtime membership and apply `db/roles/platform_bootstrap.sql` as DBA. Supply `PLATFORM_BOOTSTRAP_DATABASE_URL` only to the one-time command. Its password input is file descriptor 3, provided by a secret manager; never pass the account password as a flag or environment value. The command creates the account and audit event in one transaction. Provision the account before starting the API and then disable or withdraw the bootstrap credential. `PLATFORM_JWT_SIGNING_SECRET` is distinct from the tenant JWT key and must be supplied to the API through the deployment secret manager.
 
 Provision login roles through the DBA/secret-management process (for example `CREATE ROLE launlog_owner LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE` and the equivalent runtime role; set passwords interactively with `\password`). Then apply `psql -v database_name=launlog -f db/roles/least_privilege.sql` as a database administrator. Run that grant script after migration changes that add tables. CI exercises the same split: only the owner owns DDL; integration HTTP traffic uses runtime credentials; a separate test-admin connection performs schema-only migration fixtures and test cleanup.
 

@@ -28,23 +28,24 @@ const (
 
 // Config contains all process-level settings. It is loaded once at startup.
 type Config struct {
-	Environment            string
-	HTTPHost               string
-	HTTPPort               int
-	HTTPReadTimeout        time.Duration
-	HTTPWriteTimeout       time.Duration
-	HTTPIdleTimeout        time.Duration
-	ShutdownTimeout        time.Duration
-	ReadinessTimeout       time.Duration
-	Timezone               string
-	DatabaseURL            string
-	DatabaseConnectTimeout time.Duration
-	DatabaseMaxConnections int32
-	DatabaseMinConnections int32
-	JWTSigningSecret       string
-	JWTAccessTokenTTL      time.Duration
-	JWTRefreshTokenTTL     time.Duration
-	CORSAllowedOrigins     []string
+	Environment              string
+	HTTPHost                 string
+	HTTPPort                 int
+	HTTPReadTimeout          time.Duration
+	HTTPWriteTimeout         time.Duration
+	HTTPIdleTimeout          time.Duration
+	ShutdownTimeout          time.Duration
+	ReadinessTimeout         time.Duration
+	Timezone                 string
+	DatabaseURL              string
+	DatabaseConnectTimeout   time.Duration
+	DatabaseMaxConnections   int32
+	DatabaseMinConnections   int32
+	JWTSigningSecret         string
+	PlatformJWTSigningSecret string
+	JWTAccessTokenTTL        time.Duration
+	JWTRefreshTokenTTL       time.Duration
+	CORSAllowedOrigins       []string
 }
 
 // Load reads optional dotenv files and validates environment configuration.
@@ -57,11 +58,12 @@ func Load() (Config, error) {
 
 func loadFromEnvironment() (Config, error) {
 	cfg := Config{
-		Environment:      valueOrDefault("APP_ENV", defaultEnvironment),
-		HTTPHost:         valueOrDefault("HTTP_HOST", defaultHTTPHost),
-		Timezone:         valueOrDefault("APP_TIMEZONE", defaultTimezone),
-		DatabaseURL:      os.Getenv("DATABASE_URL"),
-		JWTSigningSecret: os.Getenv("JWT_SIGNING_SECRET"),
+		Environment:              valueOrDefault("APP_ENV", defaultEnvironment),
+		HTTPHost:                 valueOrDefault("HTTP_HOST", defaultHTTPHost),
+		Timezone:                 valueOrDefault("APP_TIMEZONE", defaultTimezone),
+		DatabaseURL:              os.Getenv("DATABASE_URL"),
+		JWTSigningSecret:         os.Getenv("JWT_SIGNING_SECRET"),
+		PlatformJWTSigningSecret: os.Getenv("PLATFORM_JWT_SIGNING_SECRET"),
 	}
 	var originErr error
 	if cfg.CORSAllowedOrigins, originErr = corsOrigins(os.Getenv("CORS_ALLOWED_ORIGINS")); originErr != nil {
@@ -199,6 +201,9 @@ func (c Config) validate() error {
 	}
 	if len(c.JWTSigningSecret) < 32 || c.JWTSigningSecret == "replace-with-a-random-secret-of-at-least-32-bytes" {
 		return errors.New("JWT_SIGNING_SECRET must be a non-placeholder secret of at least 32 bytes")
+	}
+	if len(c.PlatformJWTSigningSecret) < 32 || c.PlatformJWTSigningSecret == "replace-with-a-random-secret-of-at-least-32-bytes" || c.PlatformJWTSigningSecret == c.JWTSigningSecret {
+		return errors.New("PLATFORM_JWT_SIGNING_SECRET must be distinct from JWT_SIGNING_SECRET and at least 32 bytes")
 	}
 	if c.JWTAccessTokenTTL <= 0 || c.JWTAccessTokenTTL > time.Hour {
 		return errors.New("JWT_ACCESS_TOKEN_TTL must be between 1ns and 1h")

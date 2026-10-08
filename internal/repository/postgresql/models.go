@@ -219,6 +219,46 @@ type Permission struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+// Singleton platform operator, never a tenant user. Bootstrap creates id 1 exactly once.
+type PlatformAdmin struct {
+	ID           int64              `json:"id"`
+	Email        string             `json:"email"`
+	PasswordHash string             `json:"password_hash"`
+	IsActive     bool               `json:"is_active"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+// Append-only platform security history without credentials or tenant payloads.
+type PlatformAuditLog struct {
+	ID                   int64              `json:"id"`
+	ActorPlatformAdminID pgtype.Int8        `json:"actor_platform_admin_id"`
+	Action               string             `json:"action"`
+	TargetType           string             `json:"target_type"`
+	TargetID             pgtype.Int8        `json:"target_id"`
+	Outcome              string             `json:"outcome"`
+	RequestID            pgtype.Text        `json:"request_id"`
+	Metadata             []byte             `json:"metadata"`
+	OccurredAt           pgtype.Timestamptz `json:"occurred_at"`
+}
+
+type PlatformRefreshToken struct {
+	ID              int64              `json:"id"`
+	PlatformAdminID int64              `json:"platform_admin_id"`
+	FamilyID        int64              `json:"family_id"`
+	TokenHash       string             `json:"token_hash"`
+	ExpiresAt       pgtype.Timestamptz `json:"expires_at"`
+	RevokedAt       pgtype.Timestamptz `json:"revoked_at"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+}
+
+type PlatformSessionFamily struct {
+	ID              int64              `json:"id"`
+	PlatformAdminID int64              `json:"platform_admin_id"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	RevokedAt       pgtype.Timestamptz `json:"revoked_at"`
+}
+
 type ReceiptTemplate struct {
 	ID                      int64              `json:"id"`
 	BusinessID              int64              `json:"business_id"`

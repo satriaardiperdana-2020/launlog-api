@@ -24,6 +24,7 @@ HTTP_HOST=127.0.0.1 \
 HTTP_PORT="$port" \
 DATABASE_URL="$E2E_DATABASE_URL" \
 JWT_SIGNING_SECRET=issue-016-isolated-smoke-signing-key-only \
+PLATFORM_JWT_SIGNING_SECRET=issue-017-isolated-platform-signing-key-only \
 JWT_ACCESS_TOKEN_TTL=1m \
 JWT_REFRESH_TOKEN_TTL=1h \
 SHUTDOWN_TIMEOUT=5s \

@@ -21,6 +21,8 @@ tags:
     description: Application dependency status
   - name: Authentication
     description: Session and current-user operations
+  - name: Platform authentication
+    description: Separate single-platform-administrator sessions; no public registration
   - name: Outlets and staff
     description: Business-scoped outlet, staff, and permission administration (ADMIN only)
   - name: Customers
@@ -43,6 +45,64 @@ tags:
     description: Authorized historical receipts, owner-managed templates, and client-side printing/share preferences
 
 paths:
+  /platform/auth/login:
+    post:
+      operationId: platformLogin
+      summary: Authenticate the platform administrator
+      tags: [Platform authentication]
+      security: []
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/LoginRequest" } } }
+      responses:
+        "200": { description: Platform session created., content: { application/json: { schema: { $ref: "#/components/schemas/PlatformAuthSessionResponse" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "413": { $ref: "#/components/responses/RequestTooLarge" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/auth/refresh:
+    post:
+      operationId: platformRefresh
+      summary: Rotate a platform refresh token
+      description: Reuse of a consumed token revokes its platform session family.
+      tags: [Platform authentication]
+      security: []
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RefreshRequest" } } }
+      responses:
+        "200": { description: Platform session rotated., content: { application/json: { schema: { $ref: "#/components/schemas/PlatformAuthSessionResponse" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "413": { $ref: "#/components/responses/RequestTooLarge" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/auth/logout:
+    post:
+      operationId: platformLogout
+      summary: Revoke a platform session family
+      tags: [Platform authentication]
+      security: [{ PlatformBearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/LogoutRequest" } } }
+      responses:
+        "204": { description: Platform session revoked. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "413": { $ref: "#/components/responses/RequestTooLarge" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /platform/auth/me:
+    get:
+      operationId: platformMe
+      summary: Get the active platform identity
+      tags: [Platform authentication]
+      security: [{ PlatformBearerAuth: [] }]
+      responses:
+        "200": { description: Active platform identity., content: { application/json: { schema: { $ref: "#/components/schemas/PlatformAdmin" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /expense-categories:
     get:
       operationId: listExpenseCategories
@@ -1499,6 +1559,11 @@ paths:
 
 components:
   securitySchemes:
+    PlatformBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Platform JWT access token with the launlog-platform audience."
     BearerAuth:
       type: http
       scheme: bearer
@@ -1778,6 +1843,21 @@ components:
             - unavailable
           example: unavailable
 
+    PlatformAdmin:
+      type: object
+      additionalProperties: false
+      required: [id, email, role]
+      properties:
+        id: { $ref: "#/components/schemas/EntityId" }
+        email: { type: string, format: email }
+        role: { type: string, enum: [PLATFORM_ADMIN] }
+    PlatformAuthSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [tokens, admin]
+      properties:
+        tokens: { $ref: "#/components/schemas/TokenPair" }
+        admin: { $ref: "#/components/schemas/PlatformAdmin" }
     LoginRequest:
       type: object
       additionalProperties: false
