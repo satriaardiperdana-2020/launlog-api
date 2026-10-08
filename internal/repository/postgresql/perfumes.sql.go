@@ -208,7 +208,7 @@ func (q *Queries) ListPerfumes(ctx context.Context, arg ListPerfumesParams) ([]L
 
 const softDeletePerfume = `-- name: SoftDeletePerfume :one
 UPDATE perfumes
-SET is_active = FALSE, deleted_at = now(), updated_at = now()
+SET version = version + 1, is_active = FALSE, deleted_at = now(), updated_at = now()
 WHERE business_id = $1 AND id = $2 AND deleted_at IS NULL
 RETURNING id
 `
@@ -227,7 +227,7 @@ func (q *Queries) SoftDeletePerfume(ctx context.Context, arg SoftDeletePerfumePa
 
 const updatePerfume = `-- name: UpdatePerfume :one
 UPDATE perfumes
-SET name = $1, description = $2, is_active = $3, updated_at = now()
+SET version = version + 1, name = $1, description = $2, is_active = $3, updated_at = now()
 WHERE business_id = $4 AND id = $5 AND deleted_at IS NULL
 RETURNING id, business_id, name, description, is_active, created_at, updated_at
 `

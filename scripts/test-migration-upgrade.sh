@@ -66,8 +66,8 @@ BEGIN
     NULL;
   END;
   SELECT version, dirty INTO current_version, migration_dirty FROM schema_migrations;
-  IF current_version <> 18 OR migration_dirty THEN
-    RAISE EXCEPTION 'upgrade did not finish cleanly at migration 18 (version %, dirty %)', current_version, migration_dirty;
+  IF current_version <> 19 OR migration_dirty THEN
+    RAISE EXCEPTION 'upgrade did not finish cleanly at migration 19 (version %, dirty %)', current_version, migration_dirty;
   END IF;
 END $$;
 SQL

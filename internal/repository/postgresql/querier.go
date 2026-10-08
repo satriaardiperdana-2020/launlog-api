@@ -6,12 +6,17 @@ package postgresql
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	AddStaffOutlet(ctx context.Context, arg AddStaffOutletParams) error
 	AddStaffPermission(ctx context.Context, arg AddStaffPermissionParams) error
 	AllocateInvoiceNumber(ctx context.Context, arg AllocateInvoiceNumberParams) (AllocateInvoiceNumberRow, error)
+	BusinessAuditCount(ctx context.Context, businessID int64) (int64, error)
+	BusinessAuditView(ctx context.Context, arg BusinessAuditViewParams) ([]BusinessAuditViewRow, error)
+	BusinessWritePlatformAudit(ctx context.Context, arg BusinessWritePlatformAuditParams) error
 	CancelOrder(ctx context.Context, arg CancelOrderParams) (CancelOrderRow, error)
 	CheckDatabaseHealth(ctx context.Context) (int32, error)
 	ClearActiveDefaultReceiptTemplates(ctx context.Context, arg ClearActiveDefaultReceiptTemplatesParams) error
@@ -133,6 +138,19 @@ type Querier interface {
 	LockPlatformSessionFamily(ctx context.Context, arg LockPlatformSessionFamilyParams) (LockPlatformSessionFamilyRow, error)
 	LockReceiptTemplateOutlet(ctx context.Context, arg LockReceiptTemplateOutletParams) (int64, error)
 	LockSessionFamily(ctx context.Context, arg LockSessionFamilyParams) (LockSessionFamilyRow, error)
+	PlatformAuditCount(ctx context.Context, businessID pgtype.Int8) (int64, error)
+	PlatformAuditView(ctx context.Context, arg PlatformAuditViewParams) ([]PlatformAuditViewRow, error)
+	PlatformBusinessCounts(ctx context.Context, id int64) (PlatformBusinessCountsRow, error)
+	PlatformCountBusinesses(ctx context.Context, arg PlatformCountBusinessesParams) (int64, error)
+	PlatformCreateBusiness(ctx context.Context, arg PlatformCreateBusinessParams) (Business, error)
+	PlatformCreateFirstAdmin(ctx context.Context, arg PlatformCreateFirstAdminParams) (PlatformCreateFirstAdminRow, error)
+	PlatformGetBusiness(ctx context.Context, id int64) (Business, error)
+	PlatformListBusinesses(ctx context.Context, arg PlatformListBusinessesParams) ([]Business, error)
+	PlatformLockBusiness(ctx context.Context, id int64) (PlatformLockBusinessRow, error)
+	PlatformRevokeBusinessSupport(ctx context.Context, businessID int64) error
+	PlatformRevokeTenantFamilies(ctx context.Context, businessID int64) error
+	PlatformSetBusinessActive(ctx context.Context, arg PlatformSetBusinessActiveParams) error
+	PlatformWriteTenantAudit(ctx context.Context, arg PlatformWriteTenantAuditParams) (int64, error)
 	RevokePlatformRefreshToken(ctx context.Context, arg RevokePlatformRefreshTokenParams) (int64, error)
 	RevokePlatformSessionFamily(ctx context.Context, arg RevokePlatformSessionFamilyParams) (int64, error)
 	RevokeRefreshToken(ctx context.Context, arg RevokeRefreshTokenParams) (int64, error)
@@ -141,6 +159,25 @@ type Querier interface {
 	SoftDeletePerfume(ctx context.Context, arg SoftDeletePerfumeParams) (int64, error)
 	SoftDeleteReceiptTemplate(ctx context.Context, arg SoftDeleteReceiptTemplateParams) (SoftDeleteReceiptTemplateRow, error)
 	SoftDeleteService(ctx context.Context, arg SoftDeleteServiceParams) (int64, error)
+	SupportCountPerfumes(ctx context.Context, businessID int64) (int64, error)
+	SupportCountRequests(ctx context.Context, businessID int64) (int64, error)
+	SupportCountSessions(ctx context.Context, businessID int64) (int64, error)
+	SupportCreateRequest(ctx context.Context, arg SupportCreateRequestParams) (PlatformSupportRequest, error)
+	SupportCreateSession(ctx context.Context, arg SupportCreateSessionParams) (PlatformSupportSession, error)
+	SupportDiagnostics(ctx context.Context, id int64) (SupportDiagnosticsRow, error)
+	SupportEndSession(ctx context.Context, arg SupportEndSessionParams) (PlatformSupportSession, error)
+	SupportGetPerfume(ctx context.Context, arg SupportGetPerfumeParams) (SupportGetPerfumeRow, error)
+	SupportGetPlatformFamily(ctx context.Context, arg SupportGetPlatformFamilyParams) (int64, error)
+	SupportGetRequest(ctx context.Context, arg SupportGetRequestParams) (PlatformSupportRequest, error)
+	SupportListPerfumes(ctx context.Context, arg SupportListPerfumesParams) ([]SupportListPerfumesRow, error)
+	SupportListRequests(ctx context.Context, arg SupportListRequestsParams) ([]PlatformSupportRequest, error)
+	SupportListSessions(ctx context.Context, arg SupportListSessionsParams) ([]PlatformSupportSession, error)
+	SupportLockOwner(ctx context.Context, arg SupportLockOwnerParams) (SupportLockOwnerRow, error)
+	SupportLockRequest(ctx context.Context, arg SupportLockRequestParams) (PlatformSupportRequest, error)
+	SupportLockSession(ctx context.Context, arg SupportLockSessionParams) (PlatformSupportSession, error)
+	SupportRevokeRequest(ctx context.Context, arg SupportRevokeRequestParams) (PlatformSupportRequest, error)
+	SupportSessionStillValid(ctx context.Context, id int64) (bool, error)
+	SupportUpdatePerfumeDescription(ctx context.Context, arg SupportUpdatePerfumeDescriptionParams) (SupportUpdatePerfumeDescriptionRow, error)
 	TransitionOrderStatus(ctx context.Context, arg TransitionOrderStatusParams) (TransitionOrderStatusRow, error)
 	UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) (UpdateCustomerRow, error)
 	UpdateExpense(ctx context.Context, arg UpdateExpenseParams) (Expense, error)

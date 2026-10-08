@@ -30,3 +30,21 @@ Generator versions are pinned in the Makefile. Generated files are committed aft
 In deployed environments use a separate `MIGRATION_DATABASE_URL` and `DATABASE_URL`; the first is a schema owner and the second is the verified least-privilege runtime role. Local Compose credentials are for development only. `make check` includes the pinned `govulncheck` scan against the Go vulnerability database.
 
 PostgreSQL tests are never considered passed when skipped. `make test-integration` requires `TEST_DATABASE_URL`, `TEST_ADMIN_DATABASE_URL`, and `TEST_EXPECT_LEAST_PRIVILEGE=true`. The release gate additionally requires the upgrade, restore, and E2E database variables documented in [release readiness](release-readiness.md).
+
+## ISSUE-018 deployment
+
+1. Back up the database and rehearse migration 19 up/down/up on an isolated database.
+2. Apply migration 19 as `launlog_owner`, then reapply `db/roles/least_privilege.sql`
+   as DBA. Runtime remains `launlog_runtime`; bootstrap must have no owner/runtime
+   membership or administrative privileges.
+3. Deploy the API and run platform/tenant credential-separation smoke checks.
+4. Provision initial owners only through authenticated platform onboarding. Supply
+   the initial password through an approved secure owner/operator channel over
+   TLS; it is write-only and must not appear in shell history, tickets, logs, or
+   audit. Automated invitation delivery and password reset are not implemented.
+5. Production rollback reverts application code while retaining the additive
+   schema and immutable audit history; destructive down migration is rehearsal only.
+
+Onboarding has no automatic retry/idempotency key. After a network timeout, inspect
+business metadata and email availability before retrying. Duplicate email yields
+409 without disclosing its owning tenant. A retry must never overwrite credentials.

@@ -77,7 +77,7 @@ func (h *PlatformAuthHandler) Login(c echo.Context) error {
 		return internalError(c)
 	}
 	response, err := h.createSession(ctx, q, u.ID, u.Email, familyID)
-	if err != nil || platformAudit(ctx, q, u.ID, "PLATFORM_SESSION_CREATED", familyID) != nil {
+	if err != nil || platformAudit(ctx, q, u.ID, "PLATFORM_SESSION_CREATED", familyID, platformActor(c).RequestID) != nil {
 		return internalError(c)
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -123,7 +123,7 @@ func (h *PlatformAuthHandler) Refresh(c echo.Context) error {
 		if affected, err := q.RevokePlatformSessionFamily(commitCtx, postgresql.RevokePlatformSessionFamilyParams{ID: family.ID, PlatformAdminID: family.PlatformAdminID}); err != nil || affected != 1 {
 			return internalError(c)
 		}
-		if err := platformAudit(commitCtx, q, family.PlatformAdminID, "PLATFORM_REFRESH_REPLAY_DETECTED", family.ID); err != nil {
+		if err := platformAudit(commitCtx, q, family.PlatformAdminID, "PLATFORM_REFRESH_REPLAY_DETECTED", family.ID, platformActor(c).RequestID); err != nil {
 			return internalError(c)
 		}
 		if err := tx.Commit(commitCtx); err != nil {
@@ -145,7 +145,7 @@ func (h *PlatformAuthHandler) Refresh(c echo.Context) error {
 	if affected, err := q.RevokePlatformRefreshToken(ctx, postgresql.RevokePlatformRefreshTokenParams{ID: session.ID, PlatformAdminID: u.ID}); err != nil || affected != 1 {
 		return internalError(c)
 	}
-	if err := platformAudit(ctx, q, u.ID, "PLATFORM_SESSION_REFRESHED", family.ID); err != nil {
+	if err := platformAudit(ctx, q, u.ID, "PLATFORM_SESSION_REFRESHED", family.ID, platformActor(c).RequestID); err != nil {
 		return internalError(c)
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -188,7 +188,7 @@ func (h *PlatformAuthHandler) Logout(c echo.Context) error {
 	if affected, err := q.RevokePlatformSessionFamily(ctx, postgresql.RevokePlatformSessionFamilyParams{ID: family.ID, PlatformAdminID: p.ID}); err != nil || affected != 1 {
 		return internalError(c)
 	}
-	if err := platformAudit(ctx, q, p.ID, "PLATFORM_SESSION_REVOKED", family.ID); err != nil {
+	if err := platformAudit(ctx, q, p.ID, "PLATFORM_SESSION_REVOKED", family.ID, platformActor(c).RequestID); err != nil {
 		return internalError(c)
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -224,11 +224,11 @@ func (h *PlatformAuthHandler) createSession(ctx context.Context, q *postgresql.Q
 	return map[string]any{"tokens": map[string]any{"accessToken": access, "refreshToken": raw, "tokenType": "Bearer", "accessTokenExpiresAt": expiry, "refreshTokenExpiresAt": session.ExpiresAt.Time}, "admin": map[string]any{"id": id, "email": email, "role": "PLATFORM_ADMIN"}}, nil
 }
 
-func platformAudit(ctx context.Context, q *postgresql.Queries, actorID int64, action string, familyID int64) error {
+func platformAudit(ctx context.Context, q *postgresql.Queries, actorID int64, action string, familyID int64, requestID string) error {
 	return q.InsertPlatformAuditLog(ctx, postgresql.InsertPlatformAuditLogParams{
 		ActorPlatformAdminID: pgtype.Int8{Int64: actorID, Valid: true},
 		Action:               action, TargetType: "session_family", TargetID: pgtype.Int8{Int64: familyID, Valid: true},
-		Outcome: "SUCCESS",
+		Outcome: "SUCCESS", RequestID: pgtype.Text{String: requestID, Valid: requestID != ""},
 	})
 }
 
@@ -236,7 +236,7 @@ func platformAudit(ctx context.Context, q *postgresql.Queries, actorID int64, ac
 // The route's bounded direct-peer limiter limits the rate of these records.
 func platformLoginDenied(c echo.Context, q *postgresql.Queries) error {
 	if err := q.InsertPlatformAuditLog(c.Request().Context(), postgresql.InsertPlatformAuditLogParams{
-		Action: "PLATFORM_LOGIN_DENIED", TargetType: "platform_auth", Outcome: "DENIED",
+		Action: "PLATFORM_LOGIN_DENIED", TargetType: "platform_auth", Outcome: "DENIED", RequestID: pgtype.Text{String: platformActor(c).RequestID, Valid: true},
 	}); err != nil {
 		return internalError(c)
 	}

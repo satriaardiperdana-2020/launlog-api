@@ -90,3 +90,20 @@ Expense creation returns a quoted `ETag` version; detail also returns the curren
 - Date-times are RFC 3339 values with an explicit offset; business-facing values use Asia/Jakarta.
 - Do not accept actor, user, business, or outlet authority from request JSON. Derive it from authenticated context.
 - List endpoints added by later issues must use the shared `page` and `pageSize` conventions.
+
+## ISSUE-018 platform and owner support
+
+The complete request/response contract is in `api/openapi.yaml`. Business and
+support response rows use snake_case fields consistent with sqlc responses;
+request DTOs use camelCase. Platform endpoints use PlatformBearerAuth, while
+owner `/support-requests`, `/support-sessions`, and `/support-audit` use tenant
+BearerAuth and require ADMIN.
+
+Platform onboarding creates business, first outlet, ADMIN, assignment, and both
+audit streams in one transaction. There is no public registration. Owner requests
+must record reason, accessScope READ_ONLY/READ_WRITE, expiresAt within one hour,
+and confirmationPassword. Platform start accepts only supportRequestId: it cannot
+choose a stronger scope or later expiry. Every support path includes businessId
+and sessionId, checked against the stored grant. READ_WRITE only adds perfume
+description updates with `If-Match: "<version>"`; financial and identity mutations
+remain unavailable. `/support-audit` gives the owner a tenant-filtered activity view.

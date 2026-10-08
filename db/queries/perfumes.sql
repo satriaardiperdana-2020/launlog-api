@@ -34,12 +34,12 @@ RETURNING id, business_id, name, description, is_active, created_at, updated_at;
 
 -- name: UpdatePerfume :one
 UPDATE perfumes
-SET name = sqlc.arg(name), description = sqlc.arg(description), is_active = sqlc.arg(is_active), updated_at = now()
+SET version = version + 1, name = sqlc.arg(name), description = sqlc.arg(description), is_active = sqlc.arg(is_active), updated_at = now()
 WHERE business_id = sqlc.arg(business_id) AND id = sqlc.arg(perfume_id) AND deleted_at IS NULL
 RETURNING id, business_id, name, description, is_active, created_at, updated_at;
 
 -- name: SoftDeletePerfume :one
 UPDATE perfumes
-SET is_active = FALSE, deleted_at = now(), updated_at = now()
+SET version = version + 1, is_active = FALSE, deleted_at = now(), updated_at = now()
 WHERE business_id = sqlc.arg(business_id) AND id = sqlc.arg(perfume_id) AND deleted_at IS NULL
 RETURNING id;
