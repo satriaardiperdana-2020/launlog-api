@@ -27,7 +27,7 @@ The table maps each issue to executable evidence; it is not a substitute for a h
 
 ## Release gate
 
-Use Go 1.27.1 and PostgreSQL 16. From a clean checkout, install the pinned tools and run:
+Use Go 1.27.2 and PostgreSQL 16. From a clean checkout, install the pinned tools and run:
 
 ```sh
 make tools

@@ -1,6 +1,6 @@
 module github.com/satriaardiperdana-2020/launlog-api
 
-go 1.27.1
+go 1.27.2
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.2.2

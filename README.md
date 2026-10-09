@@ -4,7 +4,7 @@ Launlog is the Go backend for a multi-outlet laundry POS. It uses Echo, PostgreS
 
 ## Prerequisites
 
-- Go 1.27.1
+- Go 1.27.2
 - Docker Compose with PostgreSQL 16, or an equivalent local PostgreSQL 16 instance
 - GNU Make
 - PostgreSQL 16 client utilities (`psql`, `pg_dump`, `pg_restore`) and `curl` for the full release rehearsal
@@ -13,7 +13,7 @@ The repository pins its generation, migration, lint, and vulnerability-scan tool
 
 | Component | Selected version |
 | --- | --- |
-| Go | 1.27.1 |
+| Go | 1.27.2 |
 | Echo | v4.15.4 |
 | pgx/v5 | v5.11.0 |
 | PostgreSQL | 16-alpine |
