@@ -14,6 +14,7 @@ import (
 	"github.com/satriaardiperdana-2020/launlog-api/internal/repository"
 	db "github.com/satriaardiperdana-2020/launlog-api/internal/repository/postgresql"
 	"github.com/satriaardiperdana-2020/launlog-api/internal/security"
+	"github.com/satriaardiperdana-2020/launlog-api/internal/timezone"
 )
 
 var (
@@ -108,10 +109,11 @@ type ProvisionBusinessInput struct {
 		Address *string `json:"address"`
 	} `json:"business"`
 	FirstOutlet struct {
-		Code    string  `json:"code"`
-		Name    string  `json:"name"`
-		Phone   *string `json:"phone"`
-		Address *string `json:"address"`
+		Timezone *string `json:"timezone"`
+		Code     string  `json:"code"`
+		Name     string  `json:"name"`
+		Phone    *string `json:"phone"`
+		Address  *string `json:"address"`
 	} `json:"firstOutlet"`
 	FirstAdmin struct {
 		Email    string `json:"email"`
@@ -127,6 +129,10 @@ func (s *PlatformTenants) Provision(ctx context.Context, a PlatformActor, in Pro
 	in.FirstOutlet.Name = strings.TrimSpace(in.FirstOutlet.Name)
 	in.FirstAdmin.Email = strings.ToLower(strings.TrimSpace(in.FirstAdmin.Email))
 	in.FirstAdmin.FullName = strings.TrimSpace(in.FirstAdmin.FullName)
+	outletTimezone, err := timezone.Normalize(in.FirstOutlet.Timezone)
+	if err != nil {
+		return nil, err
+	}
 	email, err := mail.ParseAddress(in.FirstAdmin.Email)
 	if err != nil || email.Address != in.FirstAdmin.Email || len(in.FirstAdmin.Email) > 254 || in.Business.Name == "" || len([]rune(in.Business.Name)) > 200 || in.FirstOutlet.Code == "" || len([]rune(in.FirstOutlet.Code)) > 64 || in.FirstOutlet.Name == "" || len([]rune(in.FirstOutlet.Name)) > 200 || in.FirstAdmin.FullName == "" || len([]rune(in.FirstAdmin.FullName)) > 200 || !validOptional(in.Business.Phone, 32) || !validOptional(in.Business.Address, 500) || !validOptional(in.FirstOutlet.Phone, 32) || !validOptional(in.FirstOutlet.Address, 500) {
 		return nil, ErrPlatformInvalid
@@ -140,7 +146,7 @@ func (s *PlatformTenants) Provision(ctx context.Context, a PlatformActor, in Pro
 		if err != nil {
 			return nil, err
 		}
-		o, err := q.CreateOutlet(ctx, db.CreateOutletParams{BusinessID: b.ID, Code: in.FirstOutlet.Code, Name: in.FirstOutlet.Name, Phone: optionalPlatformText(in.FirstOutlet.Phone), Address: optionalPlatformText(in.FirstOutlet.Address)})
+		o, err := q.CreateOutlet(ctx, db.CreateOutletParams{BusinessID: b.ID, Code: in.FirstOutlet.Code, Name: in.FirstOutlet.Name, Phone: optionalPlatformText(in.FirstOutlet.Phone), Address: optionalPlatformText(in.FirstOutlet.Address), Timezone: pgtype.Text{String: outletTimezone, Valid: true}})
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +157,7 @@ func (s *PlatformTenants) Provision(ctx context.Context, a PlatformActor, in Pro
 		if err := q.AddStaffOutlet(ctx, db.AddStaffOutletParams{BusinessID: b.ID, UserID: u.ID, OutletID: o.ID}); err != nil {
 			return nil, err
 		}
-		if err := platformBusinessAudit(ctx, q, a, 0, b.ID, 0, "Tenant onboarding", "BUSINESS_PROVISIONED", "business", b.ID, map[string]any{"outletId": o.ID, "adminId": u.ID, "role": "ADMIN"}); err != nil {
+		if err := platformBusinessAudit(ctx, q, a, 0, b.ID, 0, "Tenant onboarding", "BUSINESS_PROVISIONED", "business", b.ID, map[string]any{"outletId": o.ID, "outletTimezone": o.Timezone, "adminId": u.ID, "role": "ADMIN"}); err != nil {
 			return nil, err
 		}
 		return map[string]any{"business": b, "firstOutlet": o, "firstAdmin": u}, nil

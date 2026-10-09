@@ -46,12 +46,13 @@ WHERE business_id = sqlc.arg(business_id) AND id = sqlc.arg(customer_id) AND del
 RETURNING id, business_id, name, phone, address, created_at, updated_at, deleted_at;
 
 -- name: ListCustomerOrderHistory :many
-SELECT id, business_id, outlet_id, customer_id, invoice_number, status,
-       payment_status, total_amount, received_at, due_at, completed_at, cancelled_at, created_at
+SELECT orders.id, orders.business_id, orders.outlet_id, orders.customer_id, orders.invoice_number, orders.status,
+       orders.payment_status, orders.total_amount, orders.received_at, orders.due_at, orders.completed_at, orders.cancelled_at, orders.created_at, outlet.timezone AS outlet_timezone
 FROM orders
-WHERE business_id = sqlc.arg(business_id) AND customer_id = sqlc.arg(customer_id)
-  AND (sqlc.arg(is_admin)::boolean OR outlet_id = ANY(sqlc.arg(outlet_ids)::bigint[]))
-ORDER BY created_at DESC, id DESC
+JOIN outlets outlet ON outlet.business_id=orders.business_id AND outlet.id=orders.outlet_id
+WHERE orders.business_id = sqlc.arg(business_id) AND orders.customer_id = sqlc.arg(customer_id)
+  AND (sqlc.arg(is_admin)::boolean OR orders.outlet_id = ANY(sqlc.arg(outlet_ids)::bigint[]))
+ORDER BY orders.created_at DESC, orders.id DESC
 LIMIT sqlc.arg(page_limit) OFFSET sqlc.arg(page_offset);
 
 -- name: CountCustomerOrderHistory :one

@@ -165,6 +165,8 @@ type Outlet struct {
 	IsActive  bool               `json:"is_active"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	// IANA timezone used by clients to display outlet timestamps; validated by the API. Does not rewrite order instants or change invoice/report day policy.
+	Timezone string `json:"timezone"`
 }
 
 type Payment struct {

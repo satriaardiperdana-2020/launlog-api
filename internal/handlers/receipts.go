@@ -143,7 +143,7 @@ func (h *ReceiptsHandler) receipt(c echo.Context, p Principal, orderID pgtype.In
 	}
 	return c.JSON(http.StatusOK, map[string]any{
 		"order":  map[string]any{"id": order.ID, "invoiceNumber": order.InvoiceNumber, "status": order.Status, "receivedAt": order.ReceivedAt.Time, "dueAt": due, "customer": map[string]any{"name": order.CustomerNameSnapshot, "phone": textPtr(order.CustomerPhoneSnapshot)}, "totalAmount": order.TotalAmount, "receiptQrId": order.ReceiptQrID},
-		"outlet": map[string]any{"id": order.OutletID, "code": order.OutletCode, "name": order.OutletName, "phone": textPtr(order.OutletPhone), "address": textPtr(order.OutletAddress)},
+		"outlet": map[string]any{"timezone": order.OutletTimezone, "id": order.OutletID, "code": order.OutletCode, "name": order.OutletName, "phone": textPtr(order.OutletPhone), "address": textPtr(order.OutletAddress)},
 		"items":  lineItems, "payment": map[string]any{"status": order.PaymentStatus, "paidAmount": paid, "outstandingAmount": outstanding},
 		"template":      map[string]any{"id": nullableInt(order.ReceiptTemplateID), "name": textPtr(order.ReceiptTemplateName), "headerText": textPtr(order.ReceiptHeaderText), "footerText": textPtr(order.ReceiptFooterText), "paperWidthMm": defaultWidth(order.PaperWidthMm)},
 		"whatsappShare": map[string]any{"phone": textPtr(order.CustomerPhoneSnapshot), "message": message},

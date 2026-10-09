@@ -1,7 +1,7 @@
 -- name: GetOutletDashboard :one
 WITH outlet_scope AS MATERIALIZED (
     SELECT o.id, o.business_id, o.code, o.name, o.phone, o.address, o.is_active, o.created_at, o.updated_at,
-           b.timezone,
+           o.timezone AS outlet_timezone, b.timezone,
            (now() AT TIME ZONE b.timezone)::date AS business_date
     FROM outlets o
     JOIN businesses b ON b.id=o.business_id AND b.is_active
@@ -43,7 +43,7 @@ WITH outlet_scope AS MATERIALIZED (
     GROUP BY e.business_id, e.outlet_id
 )
 SELECT d.id AS outlet_id, d.business_id, d.code, d.name, d.phone, d.address, d.is_active, d.created_at, d.updated_at,
-       d.timezone, d.business_date,
+       d.outlet_timezone, d.timezone, d.business_date,
        COALESCE(p.confirmed_payment_count, 0)::bigint AS confirmed_payment_count,
        COALESCE(p.confirmed_payment_amount, 0)::bigint AS confirmed_payment_amount,
        COALESCE(e.expense_count, 0)::bigint AS expense_count,

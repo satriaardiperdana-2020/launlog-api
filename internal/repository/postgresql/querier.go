@@ -128,6 +128,7 @@ type Querier interface {
 	ListStaffOutletIDs(ctx context.Context, arg ListStaffOutletIDsParams) ([]int64, error)
 	ListStaffPermissionCodes(ctx context.Context, arg ListStaffPermissionCodesParams) ([]string, error)
 	ListUserOutletIDs(ctx context.Context, arg ListUserOutletIDsParams) ([]int64, error)
+	ListUserOutlets(ctx context.Context, arg ListUserOutletsParams) ([]ListUserOutletsRow, error)
 	ListUserPermissionCodes(ctx context.Context, arg ListUserPermissionCodesParams) ([]string, error)
 	LockActiveBusiness(ctx context.Context, id int64) (int64, error)
 	LockActiveExpenseOutlet(ctx context.Context, arg LockActiveExpenseOutletParams) (int64, error)

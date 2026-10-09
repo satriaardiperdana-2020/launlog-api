@@ -230,12 +230,13 @@ func (q *Queries) GetCustomerForUpdate(ctx context.Context, arg GetCustomerForUp
 }
 
 const listCustomerOrderHistory = `-- name: ListCustomerOrderHistory :many
-SELECT id, business_id, outlet_id, customer_id, invoice_number, status,
-       payment_status, total_amount, received_at, due_at, completed_at, cancelled_at, created_at
+SELECT orders.id, orders.business_id, orders.outlet_id, orders.customer_id, orders.invoice_number, orders.status,
+       orders.payment_status, orders.total_amount, orders.received_at, orders.due_at, orders.completed_at, orders.cancelled_at, orders.created_at, outlet.timezone AS outlet_timezone
 FROM orders
-WHERE business_id = $1 AND customer_id = $2
-  AND ($3::boolean OR outlet_id = ANY($4::bigint[]))
-ORDER BY created_at DESC, id DESC
+JOIN outlets outlet ON outlet.business_id=orders.business_id AND outlet.id=orders.outlet_id
+WHERE orders.business_id = $1 AND orders.customer_id = $2
+  AND ($3::boolean OR orders.outlet_id = ANY($4::bigint[]))
+ORDER BY orders.created_at DESC, orders.id DESC
 LIMIT $6 OFFSET $5
 `
 
@@ -249,19 +250,20 @@ type ListCustomerOrderHistoryParams struct {
 }
 
 type ListCustomerOrderHistoryRow struct {
-	ID            int64              `json:"id"`
-	BusinessID    int64              `json:"business_id"`
-	OutletID      int64              `json:"outlet_id"`
-	CustomerID    int64              `json:"customer_id"`
-	InvoiceNumber string             `json:"invoice_number"`
-	Status        string             `json:"status"`
-	PaymentStatus string             `json:"payment_status"`
-	TotalAmount   int64              `json:"total_amount"`
-	ReceivedAt    pgtype.Timestamptz `json:"received_at"`
-	DueAt         pgtype.Timestamptz `json:"due_at"`
-	CompletedAt   pgtype.Timestamptz `json:"completed_at"`
-	CancelledAt   pgtype.Timestamptz `json:"cancelled_at"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	ID             int64              `json:"id"`
+	BusinessID     int64              `json:"business_id"`
+	OutletID       int64              `json:"outlet_id"`
+	CustomerID     int64              `json:"customer_id"`
+	InvoiceNumber  string             `json:"invoice_number"`
+	Status         string             `json:"status"`
+	PaymentStatus  string             `json:"payment_status"`
+	TotalAmount    int64              `json:"total_amount"`
+	ReceivedAt     pgtype.Timestamptz `json:"received_at"`
+	DueAt          pgtype.Timestamptz `json:"due_at"`
+	CompletedAt    pgtype.Timestamptz `json:"completed_at"`
+	CancelledAt    pgtype.Timestamptz `json:"cancelled_at"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	OutletTimezone string             `json:"outlet_timezone"`
 }
 
 func (q *Queries) ListCustomerOrderHistory(ctx context.Context, arg ListCustomerOrderHistoryParams) ([]ListCustomerOrderHistoryRow, error) {
@@ -294,6 +296,7 @@ func (q *Queries) ListCustomerOrderHistory(ctx context.Context, arg ListCustomer
 			&i.CompletedAt,
 			&i.CancelledAt,
 			&i.CreatedAt,
+			&i.OutletTimezone,
 		); err != nil {
 			return nil, err
 		}

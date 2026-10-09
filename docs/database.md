@@ -7,7 +7,7 @@
 - Composite foreign keys such as `(business_id, outlet_id)` and `(business_id, order_id)` prevent a row from referencing an entity owned by another business.
 - Rupiah values use `BIGINT`, never floating point or PostgreSQL `MONEY`.
 - Service quantities use `NUMERIC(12,3)`. Piece-based quantities must be whole numbers.
-- Timestamps use `TIMESTAMPTZ`. The application and PostgreSQL connection use `Asia/Jakarta` as the business timezone.
+- Timestamps use `TIMESTAMPTZ`. The connection and existing business-day policies use `Asia/Jakarta`. Each outlet also stores an IANA display timezone; changing it never rewrites order instants.
 - Physical deletion is intentionally restricted by foreign keys. Master records are disabled or soft-deleted, and cancelled orders are retained.
 - Database constraints protect row-level invariants. Cross-row totals and workflow operations are performed in service-layer transactions with the relevant order locked.
 
@@ -21,7 +21,7 @@ The root tenant record. It stores the business name, contact information, active
 
 ### `outlets`
 
-A business location. Each outlet belongs to one business, and its code is unique within that business. The `(business_id, id)` unique key is the target for tenant-safe composite foreign keys.
+A business location. Migration `000020_outlet_timezone` adds a non-null, nonempty `timezone`, defaults and backfills legacy outlets to `Asia/Jakarta`, and preserves order timestamps. API input validates named zones using `time.LoadLocation`; omitted, null, and blank values normalize to Jakarta, including full PUT updates. Direct SQL inserts that omit the column use the database default; explicit NULL or blank direct inserts violate constraints. Each outlet belongs to one business, and its code is unique within that business. The `(business_id, id)` unique key is the target for tenant-safe composite foreign keys.
 
 ### `users`
 
@@ -153,6 +153,8 @@ Migration `000018_platform_admin_and_audit` adds a singleton `platform_admins` r
 16. `000016_receipt_qr_and_snapshots`
 17. `000017_service_unit_codes`
 18. `000018_platform_admin_and_audit`
+19. `000019_platform_tenants_and_support`
+20. `000020_outlet_timezone`
 
 Each migration has matching `.up.sql` and `.down.sql` files. Rollbacks must run in reverse order because later domains reference earlier ownership and order tables.
 

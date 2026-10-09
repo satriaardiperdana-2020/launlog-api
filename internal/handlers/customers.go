@@ -37,19 +37,20 @@ type customerResponse struct {
 }
 
 type customerOrderResponse struct {
-	ID            int64      `json:"id"`
-	BusinessID    int64      `json:"business_id"`
-	OutletID      int64      `json:"outlet_id"`
-	CustomerID    int64      `json:"customer_id"`
-	InvoiceNumber string     `json:"invoice_number"`
-	Status        string     `json:"status"`
-	PaymentStatus string     `json:"payment_status"`
-	TotalAmount   int64      `json:"total_amount"`
-	ReceivedAt    time.Time  `json:"received_at"`
-	DueAt         *time.Time `json:"due_at"`
-	CompletedAt   *time.Time `json:"completed_at"`
-	CancelledAt   *time.Time `json:"cancelled_at"`
-	CreatedAt     time.Time  `json:"created_at"`
+	OutletTimezone string     `json:"outlet_timezone"`
+	ID             int64      `json:"id"`
+	BusinessID     int64      `json:"business_id"`
+	OutletID       int64      `json:"outlet_id"`
+	CustomerID     int64      `json:"customer_id"`
+	InvoiceNumber  string     `json:"invoice_number"`
+	Status         string     `json:"status"`
+	PaymentStatus  string     `json:"payment_status"`
+	TotalAmount    int64      `json:"total_amount"`
+	ReceivedAt     time.Time  `json:"received_at"`
+	DueAt          *time.Time `json:"due_at"`
+	CompletedAt    *time.Time `json:"completed_at"`
+	CancelledAt    *time.Time `json:"cancelled_at"`
+	CreatedAt      time.Time  `json:"created_at"`
 }
 
 func (h *CustomerHandler) List(c echo.Context) error {
@@ -244,7 +245,7 @@ func (h *CustomerHandler) OrderHistory(c echo.Context) error {
 	response := make([]customerOrderResponse, 0, len(items))
 	for _, item := range items {
 		response = append(response, customerOrderResponse{
-			ID: item.ID, BusinessID: item.BusinessID, OutletID: item.OutletID, CustomerID: item.CustomerID,
+			OutletTimezone: item.OutletTimezone, ID: item.ID, BusinessID: item.BusinessID, OutletID: item.OutletID, CustomerID: item.CustomerID,
 			InvoiceNumber: item.InvoiceNumber, Status: item.Status, PaymentStatus: item.PaymentStatus,
 			TotalAmount: item.TotalAmount, ReceivedAt: item.ReceivedAt.Time, DueAt: nullableTimestamp(item.DueAt),
 			CompletedAt: nullableTimestamp(item.CompletedAt), CancelledAt: nullableTimestamp(item.CancelledAt), CreatedAt: item.CreatedAt.Time,

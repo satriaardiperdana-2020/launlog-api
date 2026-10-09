@@ -19,6 +19,7 @@ func NewDashboardHandler(database *repository.Postgres) *DashboardHandler {
 }
 
 type dashboardOutlet struct {
+	Timezone   string    `json:"timezone"`
 	ID         int64     `json:"id"`
 	BusinessID int64     `json:"business_id"`
 	Code       string    `json:"code"`
@@ -78,7 +79,7 @@ func (h *DashboardHandler) GetOutlet(c echo.Context) error {
 	date := row.BusinessDate.Time.Format("2006-01-02")
 	return c.JSON(http.StatusOK, dashboardResponse{
 		Outlet: dashboardOutlet{
-			ID: row.OutletID, BusinessID: row.BusinessID, Code: row.Code, Name: row.Name,
+			Timezone: row.OutletTimezone, ID: row.OutletID, BusinessID: row.BusinessID, Code: row.Code, Name: row.Name,
 			Phone: phone, Address: address, IsActive: row.IsActive,
 			CreatedAt: row.CreatedAt.Time, UpdatedAt: row.UpdatedAt.Time,
 		},

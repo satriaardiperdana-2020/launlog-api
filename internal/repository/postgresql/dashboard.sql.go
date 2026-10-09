@@ -14,7 +14,7 @@ import (
 const getOutletDashboard = `-- name: GetOutletDashboard :one
 WITH outlet_scope AS MATERIALIZED (
     SELECT o.id, o.business_id, o.code, o.name, o.phone, o.address, o.is_active, o.created_at, o.updated_at,
-           b.timezone,
+           o.timezone AS outlet_timezone, b.timezone,
            (now() AT TIME ZONE b.timezone)::date AS business_date
     FROM outlets o
     JOIN businesses b ON b.id=o.business_id AND b.is_active
@@ -31,7 +31,7 @@ WITH outlet_scope AS MATERIALIZED (
             AND assignment.user_id=actor.id
       ))
 ), local_day AS (
-    SELECT outlet_scope.id, outlet_scope.business_id, outlet_scope.code, outlet_scope.name, outlet_scope.phone, outlet_scope.address, outlet_scope.is_active, outlet_scope.created_at, outlet_scope.updated_at, outlet_scope.timezone, outlet_scope.business_date,
+    SELECT outlet_scope.id, outlet_scope.business_id, outlet_scope.code, outlet_scope.name, outlet_scope.phone, outlet_scope.address, outlet_scope.is_active, outlet_scope.created_at, outlet_scope.updated_at, outlet_scope.outlet_timezone, outlet_scope.timezone, outlet_scope.business_date,
            business_date::timestamp AT TIME ZONE timezone AS day_start,
            (business_date + 1)::timestamp AT TIME ZONE timezone AS day_end
     FROM outlet_scope
@@ -56,7 +56,7 @@ WITH outlet_scope AS MATERIALIZED (
     GROUP BY e.business_id, e.outlet_id
 )
 SELECT d.id AS outlet_id, d.business_id, d.code, d.name, d.phone, d.address, d.is_active, d.created_at, d.updated_at,
-       d.timezone, d.business_date,
+       d.outlet_timezone, d.timezone, d.business_date,
        COALESCE(p.confirmed_payment_count, 0)::bigint AS confirmed_payment_count,
        COALESCE(p.confirmed_payment_amount, 0)::bigint AS confirmed_payment_amount,
        COALESCE(e.expense_count, 0)::bigint AS expense_count,
@@ -83,6 +83,7 @@ type GetOutletDashboardRow struct {
 	IsActive               bool               `json:"is_active"`
 	CreatedAt              pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`
+	OutletTimezone         string             `json:"outlet_timezone"`
 	Timezone               string             `json:"timezone"`
 	BusinessDate           pgtype.Date        `json:"business_date"`
 	ConfirmedPaymentCount  int64              `json:"confirmed_payment_count"`
@@ -109,6 +110,7 @@ func (q *Queries) GetOutletDashboard(ctx context.Context, arg GetOutletDashboard
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OutletTimezone,
 		&i.Timezone,
 		&i.BusinessDate,
 		&i.ConfirmedPaymentCount,

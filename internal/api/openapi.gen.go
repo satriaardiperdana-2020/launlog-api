@@ -693,10 +693,19 @@ type CurrentUser struct {
 	FullName   string              `json:"fullName"`
 
 	// Id Database identifier backed by a PostgreSQL BIGINT.
-	Id          EntityId   `json:"id"`
-	OutletIds   []EntityId `json:"outletIds"`
-	Permissions []string   `json:"permissions"`
-	Role        UserRole   `json:"role"`
+	Id        EntityId   `json:"id"`
+	OutletIds []EntityId `json:"outletIds"`
+
+	// Outlets Active outlets assigned to this user; metadata grants no additional authorization.
+	Outlets []struct {
+		// Id Database identifier backed by a PostgreSQL BIGINT.
+		Id EntityId `json:"id"`
+
+		// Timezone Valid IANA timezone for client display; timestamp instants and current invoice/report day policies are unchanged.
+		Timezone OutletTimezone `json:"timezone"`
+	} `json:"outlets"`
+	Permissions []string `json:"permissions"`
+	Role        UserRole `json:"role"`
 }
 
 // Customer defines model for Customer.
@@ -706,7 +715,7 @@ type Customer struct {
 	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
 	BusinessId EntityId `json:"business_id"`
 
-	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// CreatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	CreatedAt JakartaDateTime `json:"created_at"`
 
 	// Id Database identifier backed by a PostgreSQL BIGINT.
@@ -714,7 +723,7 @@ type Customer struct {
 	Name  string   `json:"name"`
 	Phone *string  `json:"phone,omitempty"`
 
-	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// UpdatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	UpdatedAt JakartaDateTime `json:"updated_at"`
 }
 
@@ -744,7 +753,7 @@ type CustomerOrderSummary struct {
 	CancelledAt *JakartaDateTime `json:"cancelled_at,omitempty"`
 	CompletedAt *JakartaDateTime `json:"completed_at,omitempty"`
 
-	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// CreatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	CreatedAt JakartaDateTime `json:"created_at"`
 
 	// CustomerId Database identifier backed by a PostgreSQL BIGINT.
@@ -756,10 +765,13 @@ type CustomerOrderSummary struct {
 	InvoiceNumber string   `json:"invoice_number"`
 
 	// OutletId Database identifier backed by a PostgreSQL BIGINT.
-	OutletId      EntityId                          `json:"outlet_id"`
-	PaymentStatus CustomerOrderSummaryPaymentStatus `json:"payment_status"`
+	OutletId EntityId `json:"outlet_id"`
 
-	// ReceivedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// OutletTimezone Valid IANA timezone for client display; timestamp instants and current invoice/report day policies are unchanged.
+	OutletTimezone OutletTimezone                    `json:"outlet_timezone"`
+	PaymentStatus  CustomerOrderSummaryPaymentStatus `json:"payment_status"`
+
+	// ReceivedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	ReceivedAt JakartaDateTime            `json:"received_at"`
 	Status     CustomerOrderSummaryStatus `json:"status"`
 
@@ -832,14 +844,14 @@ type Expense struct {
 	// CategoryId Database identifier backed by a PostgreSQL BIGINT.
 	CategoryId EntityId `json:"category_id"`
 
-	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// CreatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	CreatedAt JakartaDateTime `json:"created_at"`
 
 	// CreatedBy Database identifier backed by a PostgreSQL BIGINT.
 	CreatedBy   EntityId `json:"created_by"`
 	Description string   `json:"description"`
 
-	// ExpenseAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// ExpenseAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	ExpenseAt JakartaDateTime `json:"expense_at"`
 
 	// Id Database identifier backed by a PostgreSQL BIGINT.
@@ -849,7 +861,7 @@ type Expense struct {
 	OutletId         EntityId `json:"outlet_id"`
 	ReceiptReference *string  `json:"receipt_reference"`
 
-	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// UpdatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	UpdatedAt JakartaDateTime `json:"updated_at"`
 	Version   int64           `json:"version"`
 }
@@ -859,7 +871,7 @@ type ExpenseCategory struct {
 	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
 	BusinessId EntityId `json:"business_id"`
 
-	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// CreatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	CreatedAt   JakartaDateTime `json:"created_at"`
 	Description *string         `json:"description"`
 
@@ -868,7 +880,7 @@ type ExpenseCategory struct {
 	IsActive bool     `json:"is_active"`
 	Name     string   `json:"name"`
 
-	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// UpdatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	UpdatedAt JakartaDateTime `json:"updated_at"`
 }
 
@@ -900,7 +912,7 @@ type ExpenseCreateInput struct {
 	CategoryId  EntityId `json:"categoryId"`
 	Description string   `json:"description"`
 
-	// ExpenseAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// ExpenseAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	ExpenseAt *JakartaDateTime `json:"expenseAt,omitempty"`
 
 	// OutletId Database identifier backed by a PostgreSQL BIGINT.
@@ -956,7 +968,7 @@ type ExpenseUpdateInput struct {
 	CategoryId  EntityId `json:"categoryId"`
 	Description string   `json:"description"`
 
-	// ExpenseAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// ExpenseAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	ExpenseAt        JakartaDateTime `json:"expenseAt"`
 	ReceiptReference *string         `json:"receiptReference,omitempty"`
 }
@@ -1015,7 +1027,7 @@ type IncomeReportByMethodMethod string
 // IncomeReportTimezone defines model for IncomeReport.Timezone.
 type IncomeReportTimezone string
 
-// JakartaDateTime RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+// JakartaDateTime RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 type JakartaDateTime = time.Time
 
 // LocalDate ISO 8601 calendar date interpreted in Asia/Jakarta.
@@ -1040,7 +1052,7 @@ type Order struct {
 	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
 	BusinessId EntityId `json:"business_id"`
 
-	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// CreatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	CreatedAt JakartaDateTime `json:"created_at"`
 
 	// CreatedBy Database identifier backed by a PostgreSQL BIGINT.
@@ -1057,17 +1069,20 @@ type Order struct {
 	Notes         *string     `json:"notes"`
 
 	// OutletId Database identifier backed by a PostgreSQL BIGINT.
-	OutletId      EntityId           `json:"outlet_id"`
-	PaymentStatus OrderPaymentStatus `json:"payment_status"`
+	OutletId EntityId `json:"outlet_id"`
 
-	// ReceivedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// OutletTimezone Valid IANA timezone for client display; timestamp instants and current invoice/report day policies are unchanged.
+	OutletTimezone OutletTimezone     `json:"outlet_timezone"`
+	PaymentStatus  OrderPaymentStatus `json:"payment_status"`
+
+	// ReceivedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	ReceivedAt JakartaDateTime `json:"received_at"`
 	Status     OrderStatus     `json:"status"`
 
 	// TotalAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
 	TotalAmount RupiahAmount `json:"total_amount"`
 
-	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// UpdatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	UpdatedAt JakartaDateTime `json:"updated_at"`
 }
 
@@ -1107,7 +1122,7 @@ type OrderLifecycleResult struct {
 	PaymentStatus OrderPaymentStatus `json:"payment_status"`
 	Status        OrderStatus        `json:"status"`
 
-	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// UpdatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	UpdatedAt JakartaDateTime `json:"updated_at"`
 }
 
@@ -1198,7 +1213,7 @@ type OrderStatusHistory struct {
 
 // OrderStatusHistoryEntry defines model for OrderStatusHistoryEntry.
 type OrderStatusHistoryEntry struct {
-	// ChangedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// ChangedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	ChangedAt JakartaDateTime `json:"changed_at"`
 
 	// ChangedBy Database identifier backed by a PostgreSQL BIGINT.
@@ -1226,7 +1241,7 @@ type OrderSummary struct {
 	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
 	BusinessId EntityId `json:"business_id"`
 
-	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// CreatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	CreatedAt JakartaDateTime `json:"created_at"`
 
 	// CreatedBy Database identifier backed by a PostgreSQL BIGINT.
@@ -1242,17 +1257,20 @@ type OrderSummary struct {
 	Notes         *string  `json:"notes"`
 
 	// OutletId Database identifier backed by a PostgreSQL BIGINT.
-	OutletId      EntityId           `json:"outlet_id"`
-	PaymentStatus OrderPaymentStatus `json:"payment_status"`
+	OutletId EntityId `json:"outlet_id"`
 
-	// ReceivedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// OutletTimezone Valid IANA timezone for client display; timestamp instants and current invoice/report day policies are unchanged.
+	OutletTimezone OutletTimezone     `json:"outlet_timezone"`
+	PaymentStatus  OrderPaymentStatus `json:"payment_status"`
+
+	// ReceivedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	ReceivedAt JakartaDateTime `json:"received_at"`
 	Status     OrderStatus     `json:"status"`
 
 	// TotalAmount Exact whole-rupiah amount. Fractional rupiah values are not accepted.
 	TotalAmount RupiahAmount `json:"total_amount"`
 
-	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// UpdatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	UpdatedAt JakartaDateTime `json:"updated_at"`
 }
 
@@ -1264,7 +1282,7 @@ type Outlet struct {
 	BusinessId EntityId `json:"business_id"`
 	Code       string   `json:"code"`
 
-	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// CreatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	CreatedAt JakartaDateTime `json:"created_at"`
 
 	// Id Database identifier backed by a PostgreSQL BIGINT.
@@ -1273,7 +1291,10 @@ type Outlet struct {
 	Name     string   `json:"name"`
 	Phone    *string  `json:"phone,omitempty"`
 
-	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// Timezone Valid IANA timezone for client display; timestamp instants and current invoice/report day policies are unchanged.
+	Timezone OutletTimezone `json:"timezone"`
+
+	// UpdatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	UpdatedAt JakartaDateTime `json:"updated_at"`
 }
 
@@ -1296,6 +1317,9 @@ type OutletCreate struct {
 	Code    string  `json:"code"`
 	Name    string  `json:"name"`
 	Phone   *string `json:"phone,omitempty"`
+
+	// Timezone Omitted, null, empty, or whitespace becomes Asia/Jakarta, including on PUT. Non-empty names are trimmed and validated; Local and unknown timezones are rejected with INVALID_TIMEZONE (400).
+	Timezone *OutletTimezoneInput `json:"timezone,omitempty"`
 }
 
 // OutletDashboard defines model for OutletDashboard.
@@ -1326,6 +1350,12 @@ type OutletList struct {
 	Pagination PaginationMeta `json:"pagination"`
 }
 
+// OutletTimezone Valid IANA timezone for client display; timestamp instants and current invoice/report day policies are unchanged.
+type OutletTimezone = string
+
+// OutletTimezoneInput Omitted, null, empty, or whitespace becomes Asia/Jakarta, including on PUT. Non-empty names are trimmed and validated; Local and unknown timezones are rejected with INVALID_TIMEZONE (400).
+type OutletTimezoneInput = string
+
 // OutletUpdate defines model for OutletUpdate.
 type OutletUpdate struct {
 	Address  *string `json:"address,omitempty"`
@@ -1333,6 +1363,9 @@ type OutletUpdate struct {
 	IsActive bool    `json:"isActive"`
 	Name     string  `json:"name"`
 	Phone    *string `json:"phone,omitempty"`
+
+	// Timezone Omitted, null, empty, or whitespace becomes Asia/Jakarta, including on PUT. Non-empty names are trimmed and validated; Local and unknown timezones are rejected with INVALID_TIMEZONE (400).
+	Timezone *OutletTimezoneInput `json:"timezone,omitempty"`
 }
 
 // OwnerSupportRequest defines model for OwnerSupportRequest.
@@ -1362,7 +1395,7 @@ type Payment struct {
 	Amount      RupiahAmountPositive `json:"amount"`
 	ConfirmedAt *JakartaDateTime     `json:"confirmed_at"`
 
-	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// CreatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	CreatedAt JakartaDateTime `json:"created_at"`
 
 	// CreatedBy Database identifier backed by a PostgreSQL BIGINT.
@@ -1420,7 +1453,7 @@ type Perfume struct {
 	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
 	BusinessId EntityId `json:"business_id"`
 
-	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// CreatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	CreatedAt   JakartaDateTime `json:"created_at"`
 	Description *string         `json:"description"`
 
@@ -1429,7 +1462,7 @@ type Perfume struct {
 	IsActive bool     `json:"is_active"`
 	Name     string   `json:"name"`
 
-	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// UpdatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	UpdatedAt JakartaDateTime `json:"updated_at"`
 }
 
@@ -1550,7 +1583,10 @@ type PlatformOutlet struct {
 	IsActive   bool       `json:"is_active"`
 	Name       string     `json:"name"`
 	Phone      *string    `json:"phone,omitempty"`
-	UpdatedAt  *time.Time `json:"updated_at,omitempty"`
+
+	// Timezone Valid IANA timezone for client display; timestamp instants and current invoice/report day policies are unchanged.
+	Timezone  OutletTimezone `json:"timezone"`
+	UpdatedAt *time.Time     `json:"updated_at,omitempty"`
 }
 
 // ProfitLossReport defines model for ProfitLossReport.
@@ -1607,6 +1643,9 @@ type ProvisionBusinessRequest struct {
 		Code    string  `json:"code"`
 		Name    string  `json:"name"`
 		Phone   *string `json:"phone,omitempty"`
+
+		// Timezone Omitted, null, empty, or whitespace becomes Asia/Jakarta, including on PUT. Non-empty names are trimmed and validated; Local and unknown timezones are rejected with INVALID_TIMEZONE (400).
+		Timezone *OutletTimezoneInput `json:"timezone,omitempty"`
 	} `json:"firstOutlet"`
 }
 
@@ -1627,12 +1666,12 @@ type ProvisionBusinessResponse struct {
 // ProvisionBusinessResponseFirstAdminRole defines model for ProvisionBusinessResponse.FirstAdmin.Role.
 type ProvisionBusinessResponseFirstAdminRole string
 
-// ReceiptPayload Historical order/customer/item snapshots plus current status, payment balance, outlet profile, and template settings.
+// ReceiptPayload Historical order/customer/item snapshots plus current status, payment balance, outlet profile including timezone, and template settings.
 type ReceiptPayload map[string]interface{}
 
 // ReceiptTemplate defines model for ReceiptTemplate.
 type ReceiptTemplate struct {
-	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// CreatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	CreatedAt  JakartaDateTime `json:"createdAt"`
 	FooterText *string         `json:"footerText,omitempty"`
 	HeaderText *string         `json:"headerText,omitempty"`
@@ -1646,7 +1685,7 @@ type ReceiptTemplate struct {
 	OutletId     EntityId                    `json:"outletId"`
 	PaperWidthMm ReceiptTemplatePaperWidthMm `json:"paperWidthMm"`
 
-	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// UpdatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	UpdatedAt               JakartaDateTime `json:"updatedAt"`
 	WhatsappMessageTemplate *string         `json:"whatsappMessageTemplate,omitempty"`
 }
@@ -1719,7 +1758,7 @@ type Service struct {
 	// BusinessId Database identifier backed by a PostgreSQL BIGINT.
 	BusinessId EntityId `json:"business_id"`
 
-	// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// CreatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	CreatedAt                JakartaDateTime `json:"created_at"`
 	Description              *string         `json:"description"`
 	EstimatedDurationMinutes int32           `json:"estimated_duration_minutes"`
@@ -1735,7 +1774,7 @@ type Service struct {
 	// UnitPriceAmount Exact whole rupiah.
 	UnitPriceAmount int64 `json:"unit_price_amount"`
 
-	// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+	// UpdatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 	UpdatedAt JakartaDateTime `json:"updated_at"`
 }
 
@@ -1779,7 +1818,7 @@ type StaffList struct {
 		// BusinessId Database identifier backed by a PostgreSQL BIGINT.
 		BusinessId EntityId `json:"business_id"`
 
-		// CreatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+		// CreatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 		CreatedAt *JakartaDateTime    `json:"created_at,omitempty"`
 		Email     openapi_types.Email `json:"email"`
 		FullName  string              `json:"full_name"`
@@ -1789,7 +1828,7 @@ type StaffList struct {
 		IsActive bool     `json:"is_active"`
 		Role     UserRole `json:"role"`
 
-		// UpdatedAt RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+		// UpdatedAt RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 		UpdatedAt *JakartaDateTime `json:"updated_at,omitempty"`
 	} `json:"items"`
 	Pagination PaginationMeta `json:"pagination"`

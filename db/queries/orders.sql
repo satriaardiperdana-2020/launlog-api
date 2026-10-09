@@ -2,14 +2,15 @@
 SELECT pg_advisory_xact_lock(hashtextextended(sqlc.arg(lock_key)::text, 0));
 
 -- name: GetOrderByIdempotencyKey :one
-SELECT id, business_id, outlet_id, customer_id, invoice_number, status, payment_status,
-       total_amount, notes, received_at, due_at, created_by, created_at, updated_at, request_hash
+SELECT orders.id, orders.business_id, orders.outlet_id, orders.customer_id, orders.invoice_number, orders.status, orders.payment_status,
+       orders.total_amount, orders.notes, orders.received_at, orders.due_at, orders.created_by, orders.created_at, orders.updated_at, orders.request_hash, outlet.timezone AS outlet_timezone
 FROM orders
-WHERE business_id = sqlc.arg(business_id) AND outlet_id = sqlc.arg(outlet_id)
-  AND idempotency_key = sqlc.arg(idempotency_key);
+JOIN outlets outlet ON outlet.business_id=orders.business_id AND outlet.id=orders.outlet_id
+WHERE orders.business_id = sqlc.arg(business_id) AND orders.outlet_id = sqlc.arg(outlet_id)
+  AND orders.idempotency_key = sqlc.arg(idempotency_key);
 
 -- name: GetActiveOrderOutlet :one
-SELECT id, code, name
+SELECT id, code, name, timezone
 FROM outlets
 WHERE business_id = sqlc.arg(business_id) AND id = sqlc.arg(outlet_id) AND is_active
 FOR SHARE;
@@ -93,11 +94,12 @@ VALUES (sqlc.arg(business_id), sqlc.arg(outlet_id), sqlc.arg(actor_user_id), sql
         sqlc.arg(order_id), sqlc.arg(old_values), sqlc.arg(new_values), sqlc.arg(ip_address), sqlc.arg(user_agent));
 
 -- name: GetOrder :one
-SELECT id, business_id, outlet_id, customer_id, invoice_number, status, payment_status,
-       total_amount, notes, received_at, due_at, created_by, created_at, updated_at
+SELECT orders.id, orders.business_id, orders.outlet_id, orders.customer_id, orders.invoice_number, orders.status, orders.payment_status,
+       orders.total_amount, orders.notes, orders.received_at, orders.due_at, orders.created_by, orders.created_at, orders.updated_at, outlet.timezone AS outlet_timezone
 FROM orders
-WHERE business_id = sqlc.arg(business_id) AND id = sqlc.arg(order_id)
-  AND (sqlc.arg(is_admin)::boolean OR outlet_id = ANY(sqlc.arg(outlet_ids)::bigint[]));
+JOIN outlets outlet ON outlet.business_id=orders.business_id AND outlet.id=orders.outlet_id
+WHERE orders.business_id = sqlc.arg(business_id) AND orders.id = sqlc.arg(order_id)
+  AND (sqlc.arg(is_admin)::boolean OR orders.outlet_id = ANY(sqlc.arg(outlet_ids)::bigint[]));
 
 -- name: GetOrderForUpdate :one
 SELECT o.id, o.business_id, o.outlet_id, o.status, o.payment_status, o.total_amount, o.completed_at,
@@ -149,14 +151,15 @@ WHERE h.business_id=sqlc.arg(business_id) AND h.outlet_id=sqlc.arg(outlet_id)
 ORDER BY h.changed_at, h.id;
 
 -- name: ListOrders :many
-SELECT id, business_id, outlet_id, customer_id, invoice_number, status, payment_status,
-       total_amount, notes, received_at, due_at, created_by, created_at, updated_at
+SELECT orders.id, orders.business_id, orders.outlet_id, orders.customer_id, orders.invoice_number, orders.status, orders.payment_status,
+       orders.total_amount, orders.notes, orders.received_at, orders.due_at, orders.created_by, orders.created_at, orders.updated_at, outlet.timezone AS outlet_timezone
 FROM orders
-WHERE business_id = sqlc.arg(business_id)
-  AND (sqlc.arg(is_admin)::boolean OR outlet_id = ANY(sqlc.arg(outlet_ids)::bigint[]))
-  AND (sqlc.narg(outlet_id)::bigint IS NULL OR outlet_id = sqlc.narg(outlet_id)::bigint)
-  AND (sqlc.narg(status)::text IS NULL OR status = sqlc.narg(status)::text)
-ORDER BY created_at DESC, id DESC
+JOIN outlets outlet ON outlet.business_id=orders.business_id AND outlet.id=orders.outlet_id
+WHERE orders.business_id = sqlc.arg(business_id)
+  AND (sqlc.arg(is_admin)::boolean OR orders.outlet_id = ANY(sqlc.arg(outlet_ids)::bigint[]))
+  AND (sqlc.narg(outlet_id)::bigint IS NULL OR orders.outlet_id = sqlc.narg(outlet_id)::bigint)
+  AND (sqlc.narg(status)::text IS NULL OR orders.status = sqlc.narg(status)::text)
+ORDER BY orders.created_at DESC, orders.id DESC
 LIMIT sqlc.arg(page_limit) OFFSET sqlc.arg(page_offset);
 
 -- name: CountOrders :one

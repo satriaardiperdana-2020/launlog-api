@@ -20,3 +20,4 @@ The issues are implemented in order. Each specification defines its goal, scope,
 16. [ISSUE-016: Integration tests and release readiness](issue-016-release-readiness.md)
 17. [ISSUE-017: Platform admin identity and audit foundation](issue-017-platform-admin-and-audit.md)
 18. [ISSUE-018: Tenant management and support access](issue-018-tenant-management-and-support-access.md)
+19. [ISSUE-019: Outlet timezone](issue-019-outlet-timezone.md)

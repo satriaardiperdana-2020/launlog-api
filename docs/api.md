@@ -87,7 +87,7 @@ Expense creation returns a quoted `ETag` version; detail also returns the curren
 
 - Add all endpoint changes to OpenAPI before generating Echo types with `make generate`.
 - IDs and rupiah values are signed 64-bit JSON integers. Decimal quantities are strings with up to three fractional digits.
-- Date-times are RFC 3339 values with an explicit offset; business-facing values use Asia/Jakarta.
+- Date-times are RFC 3339 values with an explicit offset or Z. Outlet timezone metadata controls client display without changing the represented instant.
 - Do not accept actor, user, business, or outlet authority from request JSON. Derive it from authenticated context.
 - List endpoints added by later issues must use the shared `page` and `pageSize` conventions.
 
@@ -107,3 +107,23 @@ choose a stronger scope or later expiry. Every support path includes businessId
 and sessionId, checked against the stored grant. READ_WRITE only adds perfume
 description updates with `If-Match: "<version>"`; financial and identity mutations
 remain unavailable. `/support-audit` gives the owner a tenant-filtered activity view.
+
+## Outlet timezone (ISSUE-019)
+
+`firstOutlet.timezone` on platform onboarding and `timezone` on POST/PUT outlet
+requests accept IANA names such as Asia/Jakarta, Asia/Makassar, and Asia/Jayapura.
+Omitted, null, empty, or whitespace values normalize to Asia/Jakarta, including
+PUT; explicit valid names are preserved after trimming. Invalid names and Local
+return 400 INVALID_TIMEZONE; invalid JSON types return the existing invalid-body
+error. Writes and their audit records are transactional.
+
+Outlet list/detail/create/update, dashboard/receipt outlet profiles, and platform
+outlet responses include timezone. The dashboard top-level timezone still denotes
+its business-day aggregation policy.
+Tenant /auth/me and login/refresh user responses include outlets [{id, timezone}]
+for active assigned outlets, while preserving outletIds. Staff permissions and
+ADMIN outlet-management rules are unchanged. Order detail/create/list/replay and
+customer history include outlet_timezone from the current outlet settings.
+Timestamp fields remain RFC3339 and changing timezone never rewrites orders.
+Existing invoice allocation, dashboard/report/expense date rules, and receipt
+message formatting retain their documented Jakarta policy.

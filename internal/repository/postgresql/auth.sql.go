@@ -320,6 +320,43 @@ func (q *Queries) ListUserOutletIDs(ctx context.Context, arg ListUserOutletIDsPa
 	return items, nil
 }
 
+const listUserOutlets = `-- name: ListUserOutlets :many
+SELECT o.id, o.timezone FROM outlets o
+JOIN user_outlets uo ON uo.business_id=o.business_id AND uo.outlet_id=o.id
+WHERE o.business_id=$1 AND uo.user_id=$2 AND o.is_active
+ORDER BY o.id
+`
+
+type ListUserOutletsParams struct {
+	BusinessID int64 `json:"business_id"`
+	UserID     int64 `json:"user_id"`
+}
+
+type ListUserOutletsRow struct {
+	ID       int64  `json:"id"`
+	Timezone string `json:"timezone"`
+}
+
+func (q *Queries) ListUserOutlets(ctx context.Context, arg ListUserOutletsParams) ([]ListUserOutletsRow, error) {
+	rows, err := q.db.Query(ctx, listUserOutlets, arg.BusinessID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserOutletsRow
+	for rows.Next() {
+		var i ListUserOutletsRow
+		if err := rows.Scan(&i.ID, &i.Timezone); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUserPermissionCodes = `-- name: ListUserPermissionCodes :many
 SELECT permission_code
 FROM user_permissions
