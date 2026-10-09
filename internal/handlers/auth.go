@@ -155,7 +155,7 @@ func (h *AuthHandler) Refresh(c echo.Context) error {
 	if err != nil {
 		return internalError(c)
 	}
-	response, err := h.sessionResponse(u.ID, u.BusinessID, u.Email, u.FullName, u.Role, newSession.ID, raw, newSession.ExpiresAt.Time, outs, perms)
+	response, err := h.sessionResponse(ctx, q, u.ID, u.BusinessID, u.Email, u.FullName, u.Role, newSession.ID, raw, newSession.ExpiresAt.Time, outs, perms)
 	if err != nil {
 		return internalError(c)
 	}
@@ -222,7 +222,14 @@ func (h *AuthHandler) Me(c echo.Context) error {
 	if !ok {
 		return unauthorized(c)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"id": p.UserID, "businessId": p.BusinessID, "email": p.Email, "fullName": p.FullName, "role": p.Role, "outletIds": p.OutletIDs, "permissions": p.Permissions})
+	outlets, err := h.database.Queries().ListUserOutlets(c.Request().Context(), postgresql.ListUserOutletsParams{BusinessID: p.BusinessID, UserID: p.UserID})
+	if err != nil {
+		return internalError(c)
+	}
+	if outlets == nil {
+		outlets = []postgresql.ListUserOutletsRow{}
+	}
+	return c.JSON(http.StatusOK, map[string]any{"outlets": outlets, "id": p.UserID, "businessId": p.BusinessID, "email": p.Email, "fullName": p.FullName, "role": p.Role, "outletIds": p.OutletIDs, "permissions": p.Permissions})
 }
 
 func (h *AuthHandler) issue(c echo.Context, id, bid int64, email, name, role string) error {
@@ -252,7 +259,7 @@ func (h *AuthHandler) issue(c echo.Context, id, bid int64, email, name, role str
 	if err != nil {
 		return internalError(c)
 	}
-	response, err := h.sessionResponse(id, bid, email, name, role, session.ID, raw, session.ExpiresAt.Time, outs, perms)
+	response, err := h.sessionResponse(ctx, q, id, bid, email, name, role, session.ID, raw, session.ExpiresAt.Time, outs, perms)
 	if err != nil {
 		return internalError(c)
 	}
@@ -297,12 +304,19 @@ func (h *AuthHandler) authorization(ctx context.Context, q *postgresql.Queries, 
 	return outs, perms, err
 }
 
-func (h *AuthHandler) sessionResponse(id, bid int64, email, name, role string, sid int64, refresh string, refreshExpiry time.Time, outs []int64, perms []string) (map[string]any, error) {
+func (h *AuthHandler) sessionResponse(ctx context.Context, q *postgresql.Queries, id, bid int64, email, name, role string, sid int64, refresh string, refreshExpiry time.Time, outs []int64, perms []string) (map[string]any, error) {
+	outlets, err := q.ListUserOutlets(ctx, postgresql.ListUserOutletsParams{BusinessID: bid, UserID: id})
+	if err != nil {
+		return nil, err
+	}
+	if outlets == nil {
+		outlets = []postgresql.ListUserOutletsRow{}
+	}
 	access, accessExp, err := h.tokens.NewAccessToken(id, bid, sid, role, outs, time.Now())
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"tokens": map[string]any{"accessToken": access, "refreshToken": refresh, "tokenType": "Bearer", "accessTokenExpiresAt": accessExp, "refreshTokenExpiresAt": refreshExpiry}, "user": map[string]any{"id": id, "businessId": bid, "email": email, "fullName": name, "role": role, "outletIds": outs, "permissions": perms}}, nil
+	return map[string]any{"tokens": map[string]any{"accessToken": access, "refreshToken": refresh, "tokenType": "Bearer", "accessTokenExpiresAt": accessExp, "refreshTokenExpiresAt": refreshExpiry}, "user": map[string]any{"outlets": outlets, "id": id, "businessId": bid, "email": email, "fullName": name, "role": role, "outletIds": outs, "permissions": perms}}, nil
 }
 
 func badRequest(c echo.Context, code, msg string) error {

@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/satriaardiperdana-2020/launlog-api/internal/repository"
 	"github.com/satriaardiperdana-2020/launlog-api/internal/service"
+	"github.com/satriaardiperdana-2020/launlog-api/internal/timezone"
 )
 
 type PlatformTenantHandler struct{ catalog *service.PlatformTenants }
@@ -29,6 +30,8 @@ func platformResult(c echo.Context, result any, err error, status int) error {
 	switch {
 	case err == nil:
 		return c.JSON(status, result)
+	case errors.Is(err, timezone.ErrInvalid):
+		return badRequest(c, "INVALID_TIMEZONE", err.Error())
 	case errors.Is(err, service.ErrPlatformInvalid):
 		return badRequest(c, "INVALID_REQUEST", "Request is invalid.")
 	case errors.Is(err, service.ErrPlatformDenied):

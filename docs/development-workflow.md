@@ -48,3 +48,13 @@ PostgreSQL tests are never considered passed when skipped. `make test-integratio
 Onboarding has no automatic retry/idempotency key. After a network timeout, inspect
 business metadata and email availability before retrying. Duplicate email yields
 409 without disclosing its owning tenant. A retry must never overwrite credentials.
+
+## Outlet timezone deployment (ISSUE-019)
+
+Apply additive migration 20 with the migration owner before deploying the API;
+rehearse up/down/up and legacy backfill on isolated databases. Existing outlets
+are backfilled to Asia/Jakarta. Roll back the API before dropping the column;
+the down migration discards selected outlet timezones. Clients using full PUT
+must send their selected timezone or it resets to Jakarta. Generated sqlc and
+OpenAPI artifacts are regenerated with make generate; never edit them by hand.
+Order instants, invoice/report day policy, and tenant permissions are preserved.

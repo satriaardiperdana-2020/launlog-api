@@ -65,38 +65,40 @@ type OrderItem struct {
 }
 
 type Order struct {
-	ID            int64       `json:"id"`
-	BusinessID    int64       `json:"business_id"`
-	OutletID      int64       `json:"outlet_id"`
-	CustomerID    int64       `json:"customer_id"`
-	InvoiceNumber string      `json:"invoice_number"`
-	Status        string      `json:"status"`
-	PaymentStatus string      `json:"payment_status"`
-	TotalAmount   int64       `json:"total_amount"`
-	Notes         *string     `json:"notes"`
-	ReceivedAt    time.Time   `json:"received_at"`
-	DueAt         *time.Time  `json:"due_at"`
-	CreatedBy     int64       `json:"created_by"`
-	CreatedAt     time.Time   `json:"created_at"`
-	UpdatedAt     time.Time   `json:"updated_at"`
-	Items         []OrderItem `json:"items"`
+	ID             int64       `json:"id"`
+	BusinessID     int64       `json:"business_id"`
+	OutletTimezone string      `json:"outlet_timezone"`
+	OutletID       int64       `json:"outlet_id"`
+	CustomerID     int64       `json:"customer_id"`
+	InvoiceNumber  string      `json:"invoice_number"`
+	Status         string      `json:"status"`
+	PaymentStatus  string      `json:"payment_status"`
+	TotalAmount    int64       `json:"total_amount"`
+	Notes          *string     `json:"notes"`
+	ReceivedAt     time.Time   `json:"received_at"`
+	DueAt          *time.Time  `json:"due_at"`
+	CreatedBy      int64       `json:"created_by"`
+	CreatedAt      time.Time   `json:"created_at"`
+	UpdatedAt      time.Time   `json:"updated_at"`
+	Items          []OrderItem `json:"items"`
 }
 
 type OrderSummary struct {
-	ID            int64      `json:"id"`
-	BusinessID    int64      `json:"business_id"`
-	OutletID      int64      `json:"outlet_id"`
-	CustomerID    int64      `json:"customer_id"`
-	InvoiceNumber string     `json:"invoice_number"`
-	Status        string     `json:"status"`
-	PaymentStatus string     `json:"payment_status"`
-	TotalAmount   int64      `json:"total_amount"`
-	Notes         *string    `json:"notes"`
-	ReceivedAt    time.Time  `json:"received_at"`
-	DueAt         *time.Time `json:"due_at"`
-	CreatedBy     int64      `json:"created_by"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+	ID             int64      `json:"id"`
+	BusinessID     int64      `json:"business_id"`
+	OutletTimezone string     `json:"outlet_timezone"`
+	OutletID       int64      `json:"outlet_id"`
+	CustomerID     int64      `json:"customer_id"`
+	InvoiceNumber  string     `json:"invoice_number"`
+	Status         string     `json:"status"`
+	PaymentStatus  string     `json:"payment_status"`
+	TotalAmount    int64      `json:"total_amount"`
+	Notes          *string    `json:"notes"`
+	ReceivedAt     time.Time  `json:"received_at"`
+	DueAt          *time.Time `json:"due_at"`
+	CreatedBy      int64      `json:"created_by"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
 type OrderCreationResult struct {
@@ -194,7 +196,7 @@ func (s *OrderCatalog) Create(ctx context.Context, actor Actor, input CreateOrde
 		}
 		order, err := loadOrder(ctx, q, existing.ID, existing.BusinessID, existing.OutletID, existing.CustomerID,
 			existing.InvoiceNumber, existing.Status, existing.PaymentStatus, existing.TotalAmount, existing.Notes,
-			existing.ReceivedAt, existing.DueAt, existing.CreatedBy, existing.CreatedAt, existing.UpdatedAt)
+			existing.ReceivedAt, existing.DueAt, existing.CreatedBy, existing.CreatedAt, existing.UpdatedAt, existing.OutletTimezone)
 		if err != nil {
 			return OrderCreationResult{}, err
 		}
@@ -337,7 +339,7 @@ func (s *OrderCatalog) Create(ctx context.Context, actor Actor, input CreateOrde
 	}
 	order, err := loadOrder(ctx, q, orderRow.ID, orderRow.BusinessID, orderRow.OutletID, orderRow.CustomerID,
 		orderRow.InvoiceNumber, orderRow.Status, orderRow.PaymentStatus, orderRow.TotalAmount, orderRow.Notes,
-		orderRow.ReceivedAt, orderRow.DueAt, orderRow.CreatedBy, orderRow.CreatedAt, orderRow.UpdatedAt)
+		orderRow.ReceivedAt, orderRow.DueAt, orderRow.CreatedBy, orderRow.CreatedAt, orderRow.UpdatedAt, outlet.Timezone)
 	if err != nil {
 		return OrderCreationResult{}, err
 	}
@@ -359,7 +361,7 @@ func (s *OrderCatalog) Get(ctx context.Context, actor Actor, orderID int64) (Ord
 	}
 	return loadOrder(ctx, s.database.Queries(), row.ID, row.BusinessID, row.OutletID, row.CustomerID,
 		row.InvoiceNumber, row.Status, row.PaymentStatus, row.TotalAmount, row.Notes, row.ReceivedAt,
-		row.DueAt, row.CreatedBy, row.CreatedAt, row.UpdatedAt)
+		row.DueAt, row.CreatedBy, row.CreatedAt, row.UpdatedAt, row.OutletTimezone)
 }
 
 func allowedOrderTransition(from, to string) bool {
@@ -549,19 +551,19 @@ func (s *OrderCatalog) List(ctx context.Context, actor Actor, filter OrderFilter
 	result := make([]OrderSummary, 0, len(rows))
 	for _, row := range rows {
 		result = append(result, orderSummaryFrom(row.ID, row.BusinessID, row.OutletID, row.CustomerID, row.InvoiceNumber,
-			row.Status, row.PaymentStatus, row.TotalAmount, row.Notes, row.ReceivedAt, row.DueAt, row.CreatedBy, row.CreatedAt, row.UpdatedAt))
+			row.Status, row.PaymentStatus, row.TotalAmount, row.Notes, row.ReceivedAt, row.DueAt, row.CreatedBy, row.CreatedAt, row.UpdatedAt, row.OutletTimezone))
 	}
 	return result, total, nil
 }
 
 func loadOrder(ctx context.Context, q *postgresql.Queries, id, businessID, outletID, customerID int64,
 	invoiceNumber, status, paymentStatus string, totalAmount int64, notes pgtype.Text,
-	receivedAt, dueAt pgtype.Timestamptz, createdBy int64, createdAt, updatedAt pgtype.Timestamptz) (Order, error) {
+	receivedAt, dueAt pgtype.Timestamptz, createdBy int64, createdAt, updatedAt pgtype.Timestamptz, outletTimezone string) (Order, error) {
 	items, err := q.ListOrderItems(ctx, postgresql.ListOrderItemsParams{BusinessID: businessID, OutletID: outletID, OrderID: id})
 	if err != nil {
 		return Order{}, err
 	}
-	order := Order{ID: id, BusinessID: businessID, OutletID: outletID, CustomerID: customerID,
+	order := Order{OutletTimezone: outletTimezone, ID: id, BusinessID: businessID, OutletID: outletID, CustomerID: customerID,
 		InvoiceNumber: invoiceNumber, Status: status, PaymentStatus: paymentStatus, TotalAmount: totalAmount,
 		Notes: textPointer(notes), ReceivedAt: receivedAt.Time, DueAt: timePointer(dueAt), CreatedBy: createdBy,
 		CreatedAt: createdAt.Time, UpdatedAt: updatedAt.Time, Items: make([]OrderItem, 0, len(items))}
@@ -586,8 +588,8 @@ func FormatQuantity(value string) string {
 
 func orderSummaryFrom(id, businessID, outletID, customerID int64, invoice, status, paymentStatus string,
 	total int64, notes pgtype.Text, received, due pgtype.Timestamptz, createdBy int64,
-	created, updated pgtype.Timestamptz) OrderSummary {
-	return OrderSummary{ID: id, BusinessID: businessID, OutletID: outletID, CustomerID: customerID,
+	created, updated pgtype.Timestamptz, outletTimezone string) OrderSummary {
+	return OrderSummary{OutletTimezone: outletTimezone, ID: id, BusinessID: businessID, OutletID: outletID, CustomerID: customerID,
 		InvoiceNumber: invoice, Status: status, PaymentStatus: paymentStatus, TotalAmount: total, Notes: textPointer(notes),
 		ReceivedAt: received.Time, DueAt: timePointer(due), CreatedBy: createdBy, CreatedAt: created.Time, UpdatedAt: updated.Time}
 }

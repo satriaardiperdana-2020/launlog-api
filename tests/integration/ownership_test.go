@@ -68,6 +68,15 @@ func TestOwnershipMigrationAndTenantIsolation(t *testing.T) {
 		($1, $2, 'A', 'Outlet A'),
 		($3, $4, 'B', 'Outlet B')`, outletAID, businessAID, outletBID, businessBID)
 
+	var outletTimezone string
+	if err := tx.QueryRow(ctx, "SELECT timezone FROM outlets WHERE business_id=$1 AND id=$2", businessAID, outletAID).Scan(&outletTimezone); err != nil || outletTimezone != "Asia/Jakarta" {
+		t.Fatalf("legacy/default outlet timezone: %q %v", outletTimezone, err)
+	}
+	assertSQLState(t, mustExecErr(ctx, tx, "UPDATE outlets SET timezone=NULL WHERE business_id=$1 AND id=$2", businessAID, outletAID), "23502")
+	for _, invalid := range []string{"", "   ", " Asia/Makassar "} {
+		assertCheckViolation(t, mustExecErr(ctx, tx, "UPDATE outlets SET timezone=$1 WHERE business_id=$2 AND id=$3", invalid, businessAID, outletAID))
+	}
+
 	mustExec(t, ctx, tx, `INSERT INTO user_outlets (business_id, user_id, outlet_id) VALUES ($1, $2, $3)`, businessAID, userAID, outletAID)
 	assertForeignKeyViolation(t, mustExecErr(ctx, tx,
 		`INSERT INTO user_outlets (business_id, user_id, outlet_id) VALUES ($1, $2, $3)`, businessAID, userAID, outletBID))
@@ -123,8 +132,8 @@ func assertSchemaVersion(t *testing.T, ctx context.Context, tx pgx.Tx) {
 	if err := tx.QueryRow(ctx, `SELECT version, dirty FROM schema_migrations`).Scan(&version, &dirty); err != nil {
 		t.Fatalf("read schema migration state: %v", err)
 	}
-	if version != 19 || dirty {
-		t.Fatalf("expected clean platform migration at version 19, got version=%d dirty=%t", version, dirty)
+	if version != 20 || dirty {
+		t.Fatalf("expected clean outlet timezone migration at version 20, got version=%d dirty=%t", version, dirty)
 	}
 }
 

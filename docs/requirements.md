@@ -6,7 +6,7 @@ Launlog is a laundry POS for a laundry outlet. The backend is implemented first 
 
 ## Foundation constraints
 
-- The supported toolchain is Go 1.27.1; PostgreSQL 16 is the development and CI database image.
+- The supported toolchain is Go 1.27.2; PostgreSQL 16 is the development and CI database image.
 - The HTTP server uses Echo and pgx/v5 pooling. It validates configuration and the initial database connection before listening.
 - `GET /livez` is process liveness. `GET /readyz` and the compatibility route `GET /health` are database readiness checks.
 - Time values are stored as `TIMESTAMPTZ`; application and PostgreSQL sessions use `Asia/Jakarta`.

@@ -1,6 +1,6 @@
 module github.com/satriaardiperdana-2020/launlog-api
 
-go 1.27.1
+go 1.27.2
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.2.2
@@ -8,7 +8,7 @@ require (
 	github.com/labstack/echo/v4 v4.15.4
 	github.com/oapi-codegen/runtime v1.7.0
 	github.com/swaggo/files/v2 v2.0.1
-	golang.org/x/crypto v0.53.0
+	golang.org/x/crypto v0.57.0
 )
 
 require (
@@ -22,9 +22,9 @@ require (
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 )

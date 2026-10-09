@@ -292,7 +292,7 @@ func (q *Queries) GetActiveOrderCustomer(ctx context.Context, arg GetActiveOrder
 }
 
 const getActiveOrderOutlet = `-- name: GetActiveOrderOutlet :one
-SELECT id, code, name
+SELECT id, code, name, timezone
 FROM outlets
 WHERE business_id = $1 AND id = $2 AND is_active
 FOR SHARE
@@ -304,15 +304,21 @@ type GetActiveOrderOutletParams struct {
 }
 
 type GetActiveOrderOutletRow struct {
-	ID   int64  `json:"id"`
-	Code string `json:"code"`
-	Name string `json:"name"`
+	ID       int64  `json:"id"`
+	Code     string `json:"code"`
+	Name     string `json:"name"`
+	Timezone string `json:"timezone"`
 }
 
 func (q *Queries) GetActiveOrderOutlet(ctx context.Context, arg GetActiveOrderOutletParams) (GetActiveOrderOutletRow, error) {
 	row := q.db.QueryRow(ctx, getActiveOrderOutlet, arg.BusinessID, arg.OutletID)
 	var i GetActiveOrderOutletRow
-	err := row.Scan(&i.ID, &i.Code, &i.Name)
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.Timezone,
+	)
 	return i, err
 }
 
@@ -399,11 +405,12 @@ func (q *Queries) GetActiveStaffOrderOutlet(ctx context.Context, arg GetActiveSt
 }
 
 const getOrder = `-- name: GetOrder :one
-SELECT id, business_id, outlet_id, customer_id, invoice_number, status, payment_status,
-       total_amount, notes, received_at, due_at, created_by, created_at, updated_at
+SELECT orders.id, orders.business_id, orders.outlet_id, orders.customer_id, orders.invoice_number, orders.status, orders.payment_status,
+       orders.total_amount, orders.notes, orders.received_at, orders.due_at, orders.created_by, orders.created_at, orders.updated_at, outlet.timezone AS outlet_timezone
 FROM orders
-WHERE business_id = $1 AND id = $2
-  AND ($3::boolean OR outlet_id = ANY($4::bigint[]))
+JOIN outlets outlet ON outlet.business_id=orders.business_id AND outlet.id=orders.outlet_id
+WHERE orders.business_id = $1 AND orders.id = $2
+  AND ($3::boolean OR orders.outlet_id = ANY($4::bigint[]))
 `
 
 type GetOrderParams struct {
@@ -414,20 +421,21 @@ type GetOrderParams struct {
 }
 
 type GetOrderRow struct {
-	ID            int64              `json:"id"`
-	BusinessID    int64              `json:"business_id"`
-	OutletID      int64              `json:"outlet_id"`
-	CustomerID    int64              `json:"customer_id"`
-	InvoiceNumber string             `json:"invoice_number"`
-	Status        string             `json:"status"`
-	PaymentStatus string             `json:"payment_status"`
-	TotalAmount   int64              `json:"total_amount"`
-	Notes         pgtype.Text        `json:"notes"`
-	ReceivedAt    pgtype.Timestamptz `json:"received_at"`
-	DueAt         pgtype.Timestamptz `json:"due_at"`
-	CreatedBy     int64              `json:"created_by"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ID             int64              `json:"id"`
+	BusinessID     int64              `json:"business_id"`
+	OutletID       int64              `json:"outlet_id"`
+	CustomerID     int64              `json:"customer_id"`
+	InvoiceNumber  string             `json:"invoice_number"`
+	Status         string             `json:"status"`
+	PaymentStatus  string             `json:"payment_status"`
+	TotalAmount    int64              `json:"total_amount"`
+	Notes          pgtype.Text        `json:"notes"`
+	ReceivedAt     pgtype.Timestamptz `json:"received_at"`
+	DueAt          pgtype.Timestamptz `json:"due_at"`
+	CreatedBy      int64              `json:"created_by"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	OutletTimezone string             `json:"outlet_timezone"`
 }
 
 func (q *Queries) GetOrder(ctx context.Context, arg GetOrderParams) (GetOrderRow, error) {
@@ -453,16 +461,18 @@ func (q *Queries) GetOrder(ctx context.Context, arg GetOrderParams) (GetOrderRow
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OutletTimezone,
 	)
 	return i, err
 }
 
 const getOrderByIdempotencyKey = `-- name: GetOrderByIdempotencyKey :one
-SELECT id, business_id, outlet_id, customer_id, invoice_number, status, payment_status,
-       total_amount, notes, received_at, due_at, created_by, created_at, updated_at, request_hash
+SELECT orders.id, orders.business_id, orders.outlet_id, orders.customer_id, orders.invoice_number, orders.status, orders.payment_status,
+       orders.total_amount, orders.notes, orders.received_at, orders.due_at, orders.created_by, orders.created_at, orders.updated_at, orders.request_hash, outlet.timezone AS outlet_timezone
 FROM orders
-WHERE business_id = $1 AND outlet_id = $2
-  AND idempotency_key = $3
+JOIN outlets outlet ON outlet.business_id=orders.business_id AND outlet.id=orders.outlet_id
+WHERE orders.business_id = $1 AND orders.outlet_id = $2
+  AND orders.idempotency_key = $3
 `
 
 type GetOrderByIdempotencyKeyParams struct {
@@ -472,21 +482,22 @@ type GetOrderByIdempotencyKeyParams struct {
 }
 
 type GetOrderByIdempotencyKeyRow struct {
-	ID            int64              `json:"id"`
-	BusinessID    int64              `json:"business_id"`
-	OutletID      int64              `json:"outlet_id"`
-	CustomerID    int64              `json:"customer_id"`
-	InvoiceNumber string             `json:"invoice_number"`
-	Status        string             `json:"status"`
-	PaymentStatus string             `json:"payment_status"`
-	TotalAmount   int64              `json:"total_amount"`
-	Notes         pgtype.Text        `json:"notes"`
-	ReceivedAt    pgtype.Timestamptz `json:"received_at"`
-	DueAt         pgtype.Timestamptz `json:"due_at"`
-	CreatedBy     int64              `json:"created_by"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
-	RequestHash   []byte             `json:"request_hash"`
+	ID             int64              `json:"id"`
+	BusinessID     int64              `json:"business_id"`
+	OutletID       int64              `json:"outlet_id"`
+	CustomerID     int64              `json:"customer_id"`
+	InvoiceNumber  string             `json:"invoice_number"`
+	Status         string             `json:"status"`
+	PaymentStatus  string             `json:"payment_status"`
+	TotalAmount    int64              `json:"total_amount"`
+	Notes          pgtype.Text        `json:"notes"`
+	ReceivedAt     pgtype.Timestamptz `json:"received_at"`
+	DueAt          pgtype.Timestamptz `json:"due_at"`
+	CreatedBy      int64              `json:"created_by"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	RequestHash    []byte             `json:"request_hash"`
+	OutletTimezone string             `json:"outlet_timezone"`
 }
 
 func (q *Queries) GetOrderByIdempotencyKey(ctx context.Context, arg GetOrderByIdempotencyKeyParams) (GetOrderByIdempotencyKeyRow, error) {
@@ -508,6 +519,7 @@ func (q *Queries) GetOrderByIdempotencyKey(ctx context.Context, arg GetOrderById
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.RequestHash,
+		&i.OutletTimezone,
 	)
 	return i, err
 }
@@ -795,14 +807,15 @@ func (q *Queries) ListOrderStatusHistory(ctx context.Context, arg ListOrderStatu
 }
 
 const listOrders = `-- name: ListOrders :many
-SELECT id, business_id, outlet_id, customer_id, invoice_number, status, payment_status,
-       total_amount, notes, received_at, due_at, created_by, created_at, updated_at
+SELECT orders.id, orders.business_id, orders.outlet_id, orders.customer_id, orders.invoice_number, orders.status, orders.payment_status,
+       orders.total_amount, orders.notes, orders.received_at, orders.due_at, orders.created_by, orders.created_at, orders.updated_at, outlet.timezone AS outlet_timezone
 FROM orders
-WHERE business_id = $1
-  AND ($2::boolean OR outlet_id = ANY($3::bigint[]))
-  AND ($4::bigint IS NULL OR outlet_id = $4::bigint)
-  AND ($5::text IS NULL OR status = $5::text)
-ORDER BY created_at DESC, id DESC
+JOIN outlets outlet ON outlet.business_id=orders.business_id AND outlet.id=orders.outlet_id
+WHERE orders.business_id = $1
+  AND ($2::boolean OR orders.outlet_id = ANY($3::bigint[]))
+  AND ($4::bigint IS NULL OR orders.outlet_id = $4::bigint)
+  AND ($5::text IS NULL OR orders.status = $5::text)
+ORDER BY orders.created_at DESC, orders.id DESC
 LIMIT $7 OFFSET $6
 `
 
@@ -817,20 +830,21 @@ type ListOrdersParams struct {
 }
 
 type ListOrdersRow struct {
-	ID            int64              `json:"id"`
-	BusinessID    int64              `json:"business_id"`
-	OutletID      int64              `json:"outlet_id"`
-	CustomerID    int64              `json:"customer_id"`
-	InvoiceNumber string             `json:"invoice_number"`
-	Status        string             `json:"status"`
-	PaymentStatus string             `json:"payment_status"`
-	TotalAmount   int64              `json:"total_amount"`
-	Notes         pgtype.Text        `json:"notes"`
-	ReceivedAt    pgtype.Timestamptz `json:"received_at"`
-	DueAt         pgtype.Timestamptz `json:"due_at"`
-	CreatedBy     int64              `json:"created_by"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ID             int64              `json:"id"`
+	BusinessID     int64              `json:"business_id"`
+	OutletID       int64              `json:"outlet_id"`
+	CustomerID     int64              `json:"customer_id"`
+	InvoiceNumber  string             `json:"invoice_number"`
+	Status         string             `json:"status"`
+	PaymentStatus  string             `json:"payment_status"`
+	TotalAmount    int64              `json:"total_amount"`
+	Notes          pgtype.Text        `json:"notes"`
+	ReceivedAt     pgtype.Timestamptz `json:"received_at"`
+	DueAt          pgtype.Timestamptz `json:"due_at"`
+	CreatedBy      int64              `json:"created_by"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	OutletTimezone string             `json:"outlet_timezone"`
 }
 
 func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListOrdersRow, error) {
@@ -865,6 +879,7 @@ func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListO
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.OutletTimezone,
 		); err != nil {
 			return nil, err
 		}

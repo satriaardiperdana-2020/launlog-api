@@ -98,7 +98,7 @@ const getAuthorizedReceiptOrder = `-- name: GetAuthorizedReceiptOrder :one
 SELECT o.id, o.business_id, o.outlet_id, o.customer_id, o.invoice_number,
        o.status, o.payment_status, o.total_amount, o.received_at, o.due_at,
        o.customer_name_snapshot, o.customer_phone_snapshot, o.receipt_qr_id,
-       outlet.code AS outlet_code, outlet.name AS outlet_name,
+       outlet.timezone AS outlet_timezone, outlet.code AS outlet_code, outlet.name AS outlet_name,
        outlet.phone AS outlet_phone, outlet.address AS outlet_address,
        template.id AS receipt_template_id, template.name AS receipt_template_name,
        template.header_text AS receipt_header_text, template.footer_text AS receipt_footer_text,
@@ -148,6 +148,7 @@ type GetAuthorizedReceiptOrderRow struct {
 	CustomerNameSnapshot    string             `json:"customer_name_snapshot"`
 	CustomerPhoneSnapshot   pgtype.Text        `json:"customer_phone_snapshot"`
 	ReceiptQrID             string             `json:"receipt_qr_id"`
+	OutletTimezone          string             `json:"outlet_timezone"`
 	OutletCode              string             `json:"outlet_code"`
 	OutletName              string             `json:"outlet_name"`
 	OutletPhone             pgtype.Text        `json:"outlet_phone"`
@@ -184,6 +185,7 @@ func (q *Queries) GetAuthorizedReceiptOrder(ctx context.Context, arg GetAuthoriz
 		&i.CustomerNameSnapshot,
 		&i.CustomerPhoneSnapshot,
 		&i.ReceiptQrID,
+		&i.OutletTimezone,
 		&i.OutletCode,
 		&i.OutletName,
 		&i.OutletPhone,

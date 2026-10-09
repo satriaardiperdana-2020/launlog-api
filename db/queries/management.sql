@@ -1,27 +1,27 @@
 -- name: ListOutlets :many
-SELECT id, business_id, code, name, phone, address, is_active, created_at, updated_at
+SELECT id, business_id, code, name, phone, address, is_active, created_at, updated_at, timezone
 FROM outlets WHERE business_id = $1 ORDER BY id LIMIT $2 OFFSET $3;
 
 -- name: CountOutlets :one
 SELECT count(*) FROM outlets WHERE business_id = $1;
 
 -- name: GetOutlet :one
-SELECT id, business_id, code, name, phone, address, is_active, created_at, updated_at
+SELECT id, business_id, code, name, phone, address, is_active, created_at, updated_at, timezone
 FROM outlets WHERE business_id = $1 AND id = $2;
 
 -- name: GetOutletForUpdate :one
-SELECT id, business_id, code, name, phone, address, is_active
+SELECT id, business_id, code, name, phone, address, timezone, is_active
 FROM outlets WHERE business_id = $1 AND id = $2 FOR UPDATE;
 
 -- name: CreateOutlet :one
-INSERT INTO outlets (business_id, code, name, phone, address)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, business_id, code, name, phone, address, is_active, created_at, updated_at;
+INSERT INTO outlets (business_id, code, name, phone, address, timezone)
+VALUES ($1, $2, $3, $4, $5, COALESCE(NULLIF(btrim(sqlc.narg(timezone)::text), ''), 'Asia/Jakarta'))
+RETURNING id, business_id, code, name, phone, address, is_active, created_at, updated_at, timezone;
 
 -- name: UpdateOutlet :one
-UPDATE outlets SET code=$3, name=$4, phone=$5, address=$6, is_active=$7, updated_at=now()
+UPDATE outlets SET code=$3, name=$4, phone=$5, address=$6, is_active=$7, timezone=COALESCE(NULLIF(btrim(sqlc.narg(timezone)::text), ''), 'Asia/Jakarta'), updated_at=now()
 WHERE business_id=$1 AND id=$2
-RETURNING id, business_id, code, name, phone, address, is_active, created_at, updated_at;
+RETURNING id, business_id, code, name, phone, address, is_active, created_at, updated_at, timezone;
 
 -- name: CountActiveAssignedStaffWithoutOtherOutlet :one
 SELECT count(DISTINCT u.id)

@@ -6,7 +6,8 @@ info:
     Backend API contract for the Launlog laundry POS.
 
     Date-time values use RFC 3339 with an explicit UTC offset. Business-facing
-    timestamps use the Asia/Jakarta timezone (`+07:00`). Date-only values use
+    timestamps retain their recorded instants. Outlet timezone metadata identifies
+    the timezone for client display. Date-only values use
     ISO 8601 `YYYY-MM-DD`.
 
     Rupiah amounts are JSON integers in whole rupiah. Decimal quantities are
@@ -1264,7 +1265,7 @@ paths:
     get:
       operationId: getOutletDashboard
       summary: Get an outlet profile and today's cashflow totals
-      description: Uses the business timezone stored for the outlet (currently Asia/Jakarta). Payments are summed from rows whose status is CONFIRMED by confirmed_at; expenses are summed by expense_at. Child tables are aggregated independently. This reports gross confirmed receipts and does not implement or net refunds.
+      description: Day boundaries use the business timezone (currently Asia/Jakarta); outlet.timezone separately identifies the display timezone. Payments are summed from rows whose status is CONFIRMED by confirmed_at; expenses are summed by expense_at. Child tables are aggregated independently. This reports gross confirmed receipts and does not implement or net refunds.
       tags: [Dashboard]
       security: [{ BearerAuth: [] }]
       parameters:
@@ -2240,11 +2241,12 @@ components:
         activeAdminCount: {type: integer, format: int64}
     PlatformOutlet:
       type: object
-      required: [id, business_id, code, name, is_active]
+      required: [id, business_id, code, name, timezone, is_active]
       properties:
         id: {type: integer, format: int64}
         business_id: {type: integer, format: int64}
         code: {type: string}
+        timezone: { $ref: '#/components/schemas/OutletTimezone' }
         name: {type: string}
         phone: {type: string, nullable: true}
         address: {type: string, nullable: true}
@@ -2269,6 +2271,7 @@ components:
           additionalProperties: false
           required: [code, name]
           properties:
+            timezone: { $ref: '#/components/schemas/OutletTimezoneInput' }
             code: {type: string, minLength: 1, maxLength: 64}
             name: {type: string, minLength: 1, maxLength: 200}
             phone: {type: string, nullable: true, maxLength: 32}
@@ -2442,7 +2445,7 @@ components:
         pagination: {$ref: '#/components/schemas/PaginationMeta'}
     ReceiptPayload:
       type: object
-      description: Historical order/customer/item snapshots plus current status, payment balance, outlet profile, and template settings.
+      description: Historical order/customer/item snapshots plus current status, payment balance, outlet profile including timezone, and template settings.
       additionalProperties: true
     ReceiptTemplateInput:
       type: object
@@ -2486,7 +2489,7 @@ components:
       type: string
       format: date-time
       example: "2026-09-23T10:15:30+07:00"
-      description: RFC 3339 timestamp with an explicit offset, normally Asia/Jakarta (`+07:00`).
+      description: RFC 3339 timestamp with an explicit offset or Z. Outlet timezone changes do not rewrite this instant.
 
     LocalDate:
       type: string
@@ -2706,6 +2709,7 @@ components:
         - email
         - fullName
         - role
+        - outlets
         - outletIds
         - permissions
       properties:
@@ -2720,6 +2724,15 @@ components:
           type: string
         role:
           $ref: "#/components/schemas/UserRole"
+        outlets:
+          type: array
+          description: Active outlets assigned to this user; metadata grants no additional authorization.
+          items:
+            type: object
+            required: [id, timezone]
+            properties:
+              id: { $ref: '#/components/schemas/EntityId' }
+              timezone: { $ref: '#/components/schemas/OutletTimezone' }
         outletIds:
           type: array
           uniqueItems: true
@@ -3057,10 +3070,11 @@ components:
         notes: { type: string, nullable: true }
     Order:
       type: object
-      required: [id, business_id, outlet_id, customer_id, invoice_number, status, payment_status, total_amount, notes, received_at, due_at, created_by, created_at, updated_at, items]
+      required: [id, business_id, outlet_id, outlet_timezone, customer_id, invoice_number, status, payment_status, total_amount, notes, received_at, due_at, created_by, created_at, updated_at, items]
       properties:
         id: { $ref: "#/components/schemas/EntityId" }
         business_id: { $ref: "#/components/schemas/EntityId" }
+        outlet_timezone: { $ref: '#/components/schemas/OutletTimezone' }
         outlet_id: { $ref: "#/components/schemas/EntityId" }
         customer_id: { $ref: "#/components/schemas/EntityId" }
         invoice_number: { type: string }
@@ -3096,10 +3110,11 @@ components:
         notes: { type: string, nullable: true }
     OrderSummary:
       type: object
-      required: [id, business_id, outlet_id, customer_id, invoice_number, status, payment_status, total_amount, notes, received_at, due_at, created_by, created_at, updated_at]
+      required: [id, business_id, outlet_id, outlet_timezone, customer_id, invoice_number, status, payment_status, total_amount, notes, received_at, due_at, created_by, created_at, updated_at]
       properties:
         id: { $ref: "#/components/schemas/EntityId" }
         business_id: { $ref: "#/components/schemas/EntityId" }
+        outlet_timezone: { $ref: '#/components/schemas/OutletTimezone' }
         outlet_id: { $ref: "#/components/schemas/EntityId" }
         customer_id: { $ref: "#/components/schemas/EntityId" }
         invoice_number: { type: string }
@@ -3156,10 +3171,11 @@ components:
         pagination: { $ref: "#/components/schemas/PaginationMeta" }
     CustomerOrderSummary:
       type: object
-      required: [id, business_id, outlet_id, customer_id, invoice_number, status, payment_status, total_amount, received_at, created_at]
+      required: [id, business_id, outlet_id, outlet_timezone, customer_id, invoice_number, status, payment_status, total_amount, received_at, created_at]
       properties:
         id: { $ref: "#/components/schemas/EntityId" }
         business_id: { $ref: "#/components/schemas/EntityId" }
+        outlet_timezone: { $ref: '#/components/schemas/OutletTimezone' }
         outlet_id: { $ref: "#/components/schemas/EntityId" }
         customer_id: { $ref: "#/components/schemas/EntityId" }
         invoice_number: { type: string }
@@ -3172,13 +3188,25 @@ components:
         cancelled_at: { allOf: [{ $ref: "#/components/schemas/JakartaDateTime" }], nullable: true }
         created_at: { $ref: "#/components/schemas/JakartaDateTime" }
 
+    OutletTimezone:
+      type: string
+      minLength: 1
+      maxLength: 255
+      example: Asia/Makassar
+      description: Valid IANA timezone for client display; timestamp instants and current invoice/report day policies are unchanged.
+    OutletTimezoneInput:
+      type: string
+      nullable: true
+      default: Asia/Jakarta
+      description: Omitted, null, empty, or whitespace becomes Asia/Jakarta, including on PUT. Non-empty names are trimmed and validated; Local and unknown timezones are rejected with INVALID_TIMEZONE (400).
     Outlet:
       type: object
-      required: [id, business_id, code, name, is_active, created_at, updated_at]
+      required: [id, business_id, code, name, timezone, is_active, created_at, updated_at]
       properties:
         id: { $ref: "#/components/schemas/EntityId" }
         business_id: { $ref: "#/components/schemas/EntityId" }
         code: { type: string }
+        timezone: { $ref: '#/components/schemas/OutletTimezone' }
         name: { type: string }
         phone: { type: string, nullable: true }
         address: { type: string, nullable: true }
@@ -3190,6 +3218,7 @@ components:
       additionalProperties: false
       required: [code, name]
       properties:
+        timezone: { $ref: '#/components/schemas/OutletTimezoneInput' }
         code: { type: string, minLength: 1, maxLength: 64 }
         name: { type: string, minLength: 1, maxLength: 200 }
         phone: { type: string, maxLength: 32, nullable: true }

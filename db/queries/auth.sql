@@ -80,3 +80,9 @@ FROM refresh_tokens rt
 JOIN session_families sf ON sf.id = rt.family_id AND sf.business_id = rt.business_id AND sf.user_id = rt.user_id
 WHERE rt.id = $1 AND rt.business_id = $2 AND rt.user_id = $3
   AND rt.expires_at > now() AND sf.revoked_at IS NULL;
+
+-- name: ListUserOutlets :many
+SELECT o.id, o.timezone FROM outlets o
+JOIN user_outlets uo ON uo.business_id=o.business_id AND uo.outlet_id=o.id
+WHERE o.business_id=$1 AND uo.user_id=$2 AND o.is_active
+ORDER BY o.id;

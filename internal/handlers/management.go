@@ -20,6 +20,7 @@ import (
 	"github.com/satriaardiperdana-2020/launlog-api/internal/repository"
 	"github.com/satriaardiperdana-2020/launlog-api/internal/repository/postgresql"
 	"github.com/satriaardiperdana-2020/launlog-api/internal/security"
+	"github.com/satriaardiperdana-2020/launlog-api/internal/timezone"
 )
 
 type ManagementHandler struct{ database *repository.Postgres }
@@ -29,6 +30,7 @@ func NewManagementHandler(database *repository.Postgres) *ManagementHandler {
 }
 
 type outletInput struct {
+	Timezone *string `json:"timezone"`
 	Code     string  `json:"code"`
 	Name     string  `json:"name"`
 	Phone    *string `json:"phone"`
@@ -134,6 +136,10 @@ func (h *ManagementHandler) CreateOutlet(c echo.Context) error {
 	if !validOutlet(req) {
 		return badRequest(c, "INVALID_REQUEST", "Outlet fields exceed allowed lengths or required values are empty.")
 	}
+	outletTimezone, err := timezone.Normalize(req.Timezone)
+	if err != nil {
+		return badRequest(c, "INVALID_TIMEZONE", err.Error())
+	}
 	ctx := c.Request().Context()
 	tx, err := h.database.Begin(ctx)
 	if err != nil {
@@ -144,11 +150,11 @@ func (h *ManagementHandler) CreateOutlet(c echo.Context) error {
 	if err := lockOwnerContext(ctx, q, p); err != nil {
 		return unauthorized(c)
 	}
-	item, err := q.CreateOutlet(ctx, postgresql.CreateOutletParams{BusinessID: p.BusinessID, Code: strings.TrimSpace(req.Code), Name: strings.TrimSpace(req.Name), Phone: textArg(req.Phone), Address: textArg(req.Address)})
+	item, err := q.CreateOutlet(ctx, postgresql.CreateOutletParams{BusinessID: p.BusinessID, Code: strings.TrimSpace(req.Code), Name: strings.TrimSpace(req.Name), Phone: textArg(req.Phone), Address: textArg(req.Address), Timezone: pgtype.Text{String: outletTimezone, Valid: true}})
 	if err != nil {
 		return dbWriteError(c, err)
 	}
-	if err := writeAudit(ctx, q, p, c, "OUTLET_CREATED", "outlet", item.ID, nil, map[string]any{"id": item.ID, "code": item.Code, "name": item.Name, "isActive": item.IsActive}); err != nil {
+	if err := writeAudit(ctx, q, p, c, "OUTLET_CREATED", "outlet", item.ID, nil, map[string]any{"id": item.ID, "code": item.Code, "name": item.Name, "isActive": item.IsActive, "timezone": item.Timezone}); err != nil {
 		return internalError(c)
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -169,6 +175,10 @@ func (h *ManagementHandler) UpdateOutlet(c echo.Context) error {
 	}
 	if !validOutlet(req) || req.IsActive == nil {
 		return badRequest(c, "INVALID_REQUEST", "Outlet code, name, and isActive are required and fields must fit allowed lengths.")
+	}
+	outletTimezone, err := timezone.Normalize(req.Timezone)
+	if err != nil {
+		return badRequest(c, "INVALID_TIMEZONE", err.Error())
 	}
 	ctx := c.Request().Context()
 	tx, err := h.database.Begin(ctx)
@@ -196,11 +206,11 @@ func (h *ManagementHandler) UpdateOutlet(c echo.Context) error {
 			return conflict(c, "OUTLET_HAS_ASSIGNED_STAFF", "Reassign active staff before deactivating their only outlet.")
 		}
 	}
-	item, err := q.UpdateOutlet(ctx, postgresql.UpdateOutletParams{BusinessID: p.BusinessID, ID: id, Code: strings.TrimSpace(req.Code), Name: strings.TrimSpace(req.Name), Phone: textArg(req.Phone), Address: textArg(req.Address), IsActive: *req.IsActive})
+	item, err := q.UpdateOutlet(ctx, postgresql.UpdateOutletParams{BusinessID: p.BusinessID, ID: id, Code: strings.TrimSpace(req.Code), Name: strings.TrimSpace(req.Name), Phone: textArg(req.Phone), Address: textArg(req.Address), Timezone: pgtype.Text{String: outletTimezone, Valid: true}, IsActive: *req.IsActive})
 	if err != nil {
 		return dbWriteError(c, err)
 	}
-	if err := writeAudit(ctx, q, p, c, "OUTLET_UPDATED", "outlet", id, map[string]any{"code": old.Code, "name": old.Name, "isActive": old.IsActive}, map[string]any{"code": item.Code, "name": item.Name, "isActive": item.IsActive}); err != nil {
+	if err := writeAudit(ctx, q, p, c, "OUTLET_UPDATED", "outlet", id, map[string]any{"code": old.Code, "name": old.Name, "isActive": old.IsActive, "timezone": old.Timezone}, map[string]any{"code": item.Code, "name": item.Name, "isActive": item.IsActive, "timezone": item.Timezone}); err != nil {
 		return internalError(c)
 	}
 	if err := tx.Commit(ctx); err != nil {
