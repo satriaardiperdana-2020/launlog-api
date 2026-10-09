@@ -6,7 +6,7 @@ SQLC_VERSION := v1.31.1
 OAPI_CODEGEN_VERSION := v2.7.0
 MIGRATE_VERSION := v4.18.1
 VULNCHECK_VERSION := v1.8.0
-GOLANGCI_LINT_VERSION := v2.13.2
+GOLANGCI_LINT_VERSION := v2.14.0
 
 SQLC := $(BIN_DIR)/sqlc
 OAPI_CODEGEN := $(BIN_DIR)/oapi-codegen
@@ -38,7 +38,7 @@ $(VULNCHECK):
 
 $(GOLANGCI_LINT):
 	@mkdir -p $(BIN_DIR)
-	GOBIN=$(BIN_DIR) $(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	GOBIN=$(BIN_DIR) GOTOOLCHAIN=$$($(GO) env GOVERSION) $(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
 fmt:
 	$(GO) fmt ./...
