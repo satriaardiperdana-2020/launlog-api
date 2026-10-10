@@ -49,6 +49,23 @@ func (q *Queries) AddStaffPermission(ctx context.Context, arg AddStaffPermission
 	return err
 }
 
+const allocateOutletCode = `-- name: AllocateOutletCode :one
+INSERT INTO business_outlet_counters (business_id, last_allocated)
+VALUES ($1, 1)
+ON CONFLICT (business_id) DO UPDATE
+SET last_allocated = business_outlet_counters.last_allocated + 1
+RETURNING CASE WHEN length(last_allocated::text) < 3
+    THEN lpad(last_allocated::text, 3, '0')
+    ELSE last_allocated::text END::text AS code
+`
+
+func (q *Queries) AllocateOutletCode(ctx context.Context, businessID int64) (string, error) {
+	row := q.db.QueryRow(ctx, allocateOutletCode, businessID)
+	var code string
+	err := row.Scan(&code)
+	return code, err
+}
+
 const countActiveAssignedStaffWithoutOtherOutlet = `-- name: CountActiveAssignedStaffWithoutOtherOutlet :one
 SELECT count(DISTINCT u.id)
 FROM users u
@@ -142,7 +159,20 @@ type CreateOutletParams struct {
 	Timezone   pgtype.Text `json:"timezone"`
 }
 
-func (q *Queries) CreateOutlet(ctx context.Context, arg CreateOutletParams) (Outlet, error) {
+type CreateOutletRow struct {
+	ID         int64              `json:"id"`
+	BusinessID int64              `json:"business_id"`
+	Code       string             `json:"code"`
+	Name       string             `json:"name"`
+	Phone      pgtype.Text        `json:"phone"`
+	Address    pgtype.Text        `json:"address"`
+	IsActive   bool               `json:"is_active"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	Timezone   string             `json:"timezone"`
+}
+
+func (q *Queries) CreateOutlet(ctx context.Context, arg CreateOutletParams) (CreateOutletRow, error) {
 	row := q.db.QueryRow(ctx, createOutlet,
 		arg.BusinessID,
 		arg.Code,
@@ -151,7 +181,7 @@ func (q *Queries) CreateOutlet(ctx context.Context, arg CreateOutletParams) (Out
 		arg.Address,
 		arg.Timezone,
 	)
-	var i Outlet
+	var i CreateOutletRow
 	err := row.Scan(
 		&i.ID,
 		&i.BusinessID,
@@ -250,9 +280,22 @@ type GetOutletParams struct {
 	ID         int64 `json:"id"`
 }
 
-func (q *Queries) GetOutlet(ctx context.Context, arg GetOutletParams) (Outlet, error) {
+type GetOutletRow struct {
+	ID         int64              `json:"id"`
+	BusinessID int64              `json:"business_id"`
+	Code       string             `json:"code"`
+	Name       string             `json:"name"`
+	Phone      pgtype.Text        `json:"phone"`
+	Address    pgtype.Text        `json:"address"`
+	IsActive   bool               `json:"is_active"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	Timezone   string             `json:"timezone"`
+}
+
+func (q *Queries) GetOutlet(ctx context.Context, arg GetOutletParams) (GetOutletRow, error) {
 	row := q.db.QueryRow(ctx, getOutlet, arg.BusinessID, arg.ID)
-	var i Outlet
+	var i GetOutletRow
 	err := row.Scan(
 		&i.ID,
 		&i.BusinessID,
@@ -414,15 +457,28 @@ type ListOutletsParams struct {
 	Offset     int32 `json:"offset"`
 }
 
-func (q *Queries) ListOutlets(ctx context.Context, arg ListOutletsParams) ([]Outlet, error) {
+type ListOutletsRow struct {
+	ID         int64              `json:"id"`
+	BusinessID int64              `json:"business_id"`
+	Code       string             `json:"code"`
+	Name       string             `json:"name"`
+	Phone      pgtype.Text        `json:"phone"`
+	Address    pgtype.Text        `json:"address"`
+	IsActive   bool               `json:"is_active"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	Timezone   string             `json:"timezone"`
+}
+
+func (q *Queries) ListOutlets(ctx context.Context, arg ListOutletsParams) ([]ListOutletsRow, error) {
 	rows, err := q.db.Query(ctx, listOutlets, arg.BusinessID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Outlet
+	var items []ListOutletsRow
 	for rows.Next() {
-		var i Outlet
+		var i ListOutletsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.BusinessID,
@@ -626,7 +682,7 @@ func (q *Queries) LockActiveOutlets(ctx context.Context, arg LockActiveOutletsPa
 }
 
 const updateOutlet = `-- name: UpdateOutlet :one
-UPDATE outlets SET code=$3, name=$4, phone=$5, address=$6, is_active=$7, timezone=COALESCE(NULLIF(btrim($8::text), ''), 'Asia/Jakarta'), updated_at=now()
+UPDATE outlets SET name=$3, phone=$4, address=$5, is_active=$6, timezone=COALESCE(NULLIF(btrim($7::text), ''), 'Asia/Jakarta'), updated_at=now()
 WHERE business_id=$1 AND id=$2
 RETURNING id, business_id, code, name, phone, address, is_active, created_at, updated_at, timezone
 `
@@ -634,7 +690,6 @@ RETURNING id, business_id, code, name, phone, address, is_active, created_at, up
 type UpdateOutletParams struct {
 	BusinessID int64       `json:"business_id"`
 	ID         int64       `json:"id"`
-	Code       string      `json:"code"`
 	Name       string      `json:"name"`
 	Phone      pgtype.Text `json:"phone"`
 	Address    pgtype.Text `json:"address"`
@@ -642,18 +697,30 @@ type UpdateOutletParams struct {
 	Timezone   pgtype.Text `json:"timezone"`
 }
 
-func (q *Queries) UpdateOutlet(ctx context.Context, arg UpdateOutletParams) (Outlet, error) {
+type UpdateOutletRow struct {
+	ID         int64              `json:"id"`
+	BusinessID int64              `json:"business_id"`
+	Code       string             `json:"code"`
+	Name       string             `json:"name"`
+	Phone      pgtype.Text        `json:"phone"`
+	Address    pgtype.Text        `json:"address"`
+	IsActive   bool               `json:"is_active"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	Timezone   string             `json:"timezone"`
+}
+
+func (q *Queries) UpdateOutlet(ctx context.Context, arg UpdateOutletParams) (UpdateOutletRow, error) {
 	row := q.db.QueryRow(ctx, updateOutlet,
 		arg.BusinessID,
 		arg.ID,
-		arg.Code,
 		arg.Name,
 		arg.Phone,
 		arg.Address,
 		arg.IsActive,
 		arg.Timezone,
 	)
-	var i Outlet
+	var i UpdateOutletRow
 	err := row.Scan(
 		&i.ID,
 		&i.BusinessID,

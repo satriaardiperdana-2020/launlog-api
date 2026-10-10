@@ -39,7 +39,7 @@ func TestOutletTimezoneDefaultValidationAndTenantIsolation(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			in := map[string]any{"code": tc.name, "name": "Timezone outlet"}
+			in := map[string]any{"name": "Timezone outlet"}
 			if tc.present {
 				in["timezone"] = tc.value
 			}
@@ -60,7 +60,6 @@ func TestOutletTimezoneDefaultValidationAndTenantIsolation(t *testing.T) {
 			}
 			assertTimezone(t, body, "timezone", tc.want)
 			in["isActive"] = true
-			in["code"] = "updated-" + tc.name
 			status, body = f.managementRequest(http.MethodPut, fmt.Sprintf("/outlets/%d", f.outletID), in, token)
 			if status != 200 {
 				t.Fatalf("update: %d %s", status, body)
@@ -74,7 +73,7 @@ func TestOutletTimezoneDefaultValidationAndTenantIsolation(t *testing.T) {
 			if method == http.MethodPut {
 				path = fmt.Sprintf("/outlets/%d", f.outletID)
 			}
-			status, body := f.managementRequest(method, path, map[string]any{"code": "invalid", "name": "Invalid", "isActive": true, "timezone": input}, token)
+			status, body := f.managementRequest(method, path, map[string]any{"name": "Invalid", "isActive": true, "timezone": input}, token)
 			if status != 400 {
 				t.Fatalf("invalid %v %s: %d %s", input, method, status, body)
 			}
@@ -115,7 +114,7 @@ func TestOutletTimezoneDefaultValidationAndTenantIsolation(t *testing.T) {
 		foreign int64
 	}{{f, token, other.outletID}, {other, otherToken, f.outletID}} {
 		for _, method := range []string{http.MethodGet, http.MethodPut} {
-			status, body := pair.fixture.managementRequest(method, fmt.Sprintf("/outlets/%d", pair.foreign), map[string]any{"code": "CROSS", "name": "Cross", "isActive": true, "timezone": "Asia/Makassar"}, pair.token)
+			status, body := pair.fixture.managementRequest(method, fmt.Sprintf("/outlets/%d", pair.foreign), map[string]any{"name": "Cross", "isActive": true, "timezone": "Asia/Makassar"}, pair.token)
 			if status != 404 {
 				t.Fatalf("cross-tenant %s: %d %s", method, status, body)
 			}
@@ -195,7 +194,7 @@ func TestOutletTimezoneOrderInstantsAndReplay(t *testing.T) {
 	}
 	update := func(zone string) {
 		t.Helper()
-		status, body := f.managementRequest(http.MethodPut, fmt.Sprintf("/outlets/%d", f.outletID), map[string]any{"code": "AUTH", "name": "Auth outlet", "isActive": true, "timezone": zone}, token)
+		status, body := f.managementRequest(http.MethodPut, fmt.Sprintf("/outlets/%d", f.outletID), map[string]any{"name": "Auth outlet", "isActive": true, "timezone": zone}, token)
 		if status != 200 {
 			t.Fatalf("update outlet: %d %s", status, body)
 		}
@@ -227,6 +226,10 @@ func TestOutletTimezoneOrderInstantsAndReplay(t *testing.T) {
 	}
 	if before.OutletTimezone != "Asia/Makassar" || before.DueAt == nil {
 		t.Fatalf("order metadata: %s", body)
+	}
+	var outletCodeSnapshot string
+	if err := f.pool.QueryRow(ctx, "SELECT outlet_code_snapshot FROM orders WHERE business_id=$1 AND id=$2", f.businessID, before.ID).Scan(&outletCodeSnapshot); err != nil || outletCodeSnapshot != "AUTH" {
+		t.Fatalf("order outlet-code snapshot=%q err=%v", outletCodeSnapshot, err)
 	}
 	due, _ := time.Parse(time.RFC3339, "2099-01-01T00:30:00+08:00")
 	if !before.DueAt.Equal(due) {
@@ -350,7 +353,7 @@ func TestOutletTimezoneAuditFailureRollsBack(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	status, body := f.managementRequest(http.MethodPut, fmt.Sprintf("/outlets/%d", f.outletID), map[string]any{"code": "AUTH", "name": "Auth outlet", "isActive": true, "timezone": "Asia/Jayapura"}, token)
+	status, body := f.managementRequest(http.MethodPut, fmt.Sprintf("/outlets/%d", f.outletID), map[string]any{"name": "Auth outlet", "isActive": true, "timezone": "Asia/Jayapura"}, token)
 	if status != 500 {
 		t.Fatalf("audit failure: %d %s", status, body)
 	}

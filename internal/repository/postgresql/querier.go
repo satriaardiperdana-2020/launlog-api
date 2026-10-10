@@ -14,6 +14,7 @@ type Querier interface {
 	AddStaffOutlet(ctx context.Context, arg AddStaffOutletParams) error
 	AddStaffPermission(ctx context.Context, arg AddStaffPermissionParams) error
 	AllocateInvoiceNumber(ctx context.Context, arg AllocateInvoiceNumberParams) (AllocateInvoiceNumberRow, error)
+	AllocateOutletCode(ctx context.Context, businessID int64) (string, error)
 	BusinessAuditCount(ctx context.Context, businessID int64) (int64, error)
 	BusinessAuditView(ctx context.Context, arg BusinessAuditViewParams) ([]BusinessAuditViewRow, error)
 	BusinessWritePlatformAudit(ctx context.Context, arg BusinessWritePlatformAuditParams) error
@@ -41,7 +42,7 @@ type Querier interface {
 	CreateInitialOrderStatus(ctx context.Context, arg CreateInitialOrderStatusParams) error
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (CreateOrderRow, error)
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) error
-	CreateOutlet(ctx context.Context, arg CreateOutletParams) (Outlet, error)
+	CreateOutlet(ctx context.Context, arg CreateOutletParams) (CreateOutletRow, error)
 	CreatePerfume(ctx context.Context, arg CreatePerfumeParams) (CreatePerfumeRow, error)
 	CreatePlatformRefreshToken(ctx context.Context, arg CreatePlatformRefreshTokenParams) (CreatePlatformRefreshTokenRow, error)
 	CreatePlatformSessionFamily(ctx context.Context, platformAdminID int64) (int64, error)
@@ -81,7 +82,7 @@ type Querier interface {
 	GetOrderForUpdate(ctx context.Context, arg GetOrderForUpdateParams) (GetOrderForUpdateRow, error)
 	GetOrderPaymentForUpdate(ctx context.Context, arg GetOrderPaymentForUpdateParams) (GetOrderPaymentForUpdateRow, error)
 	GetOrderTime(ctx context.Context) (GetOrderTimeRow, error)
-	GetOutlet(ctx context.Context, arg GetOutletParams) (Outlet, error)
+	GetOutlet(ctx context.Context, arg GetOutletParams) (GetOutletRow, error)
 	GetOutletDashboard(ctx context.Context, arg GetOutletDashboardParams) (GetOutletDashboardRow, error)
 	GetOutletForUpdate(ctx context.Context, arg GetOutletForUpdateParams) (GetOutletForUpdateRow, error)
 	GetOutletReport(ctx context.Context, arg GetOutletReportParams) ([]byte, error)
@@ -119,7 +120,7 @@ type Querier interface {
 	ListOrderPayments(ctx context.Context, arg ListOrderPaymentsParams) ([]ListOrderPaymentsRow, error)
 	ListOrderStatusHistory(ctx context.Context, arg ListOrderStatusHistoryParams) ([]ListOrderStatusHistoryRow, error)
 	ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListOrdersRow, error)
-	ListOutlets(ctx context.Context, arg ListOutletsParams) ([]Outlet, error)
+	ListOutlets(ctx context.Context, arg ListOutletsParams) ([]ListOutletsRow, error)
 	ListPerfumes(ctx context.Context, arg ListPerfumesParams) ([]ListPerfumesRow, error)
 	ListPermissions(ctx context.Context) ([]ListPermissionsRow, error)
 	ListReceiptTemplates(ctx context.Context, arg ListReceiptTemplatesParams) ([]ListReceiptTemplatesRow, error)
@@ -184,7 +185,7 @@ type Querier interface {
 	UpdateExpense(ctx context.Context, arg UpdateExpenseParams) (Expense, error)
 	UpdateExpenseCategory(ctx context.Context, arg UpdateExpenseCategoryParams) (ExpenseCategory, error)
 	UpdateOrderPaymentStatus(ctx context.Context, arg UpdateOrderPaymentStatusParams) (UpdateOrderPaymentStatusRow, error)
-	UpdateOutlet(ctx context.Context, arg UpdateOutletParams) (Outlet, error)
+	UpdateOutlet(ctx context.Context, arg UpdateOutletParams) (UpdateOutletRow, error)
 	UpdatePerfume(ctx context.Context, arg UpdatePerfumeParams) (UpdatePerfumeRow, error)
 	UpdateReceiptTemplate(ctx context.Context, arg UpdateReceiptTemplateParams) (UpdateReceiptTemplateRow, error)
 	UpdateService(ctx context.Context, arg UpdateServiceParams) (UpdateServiceRow, error)

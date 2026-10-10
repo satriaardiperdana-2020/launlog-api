@@ -18,8 +18,17 @@ INSERT INTO outlets (business_id, code, name, phone, address, timezone)
 VALUES ($1, $2, $3, $4, $5, COALESCE(NULLIF(btrim(sqlc.narg(timezone)::text), ''), 'Asia/Jakarta'))
 RETURNING id, business_id, code, name, phone, address, is_active, created_at, updated_at, timezone;
 
+-- name: AllocateOutletCode :one
+INSERT INTO business_outlet_counters (business_id, last_allocated)
+VALUES ($1, 1)
+ON CONFLICT (business_id) DO UPDATE
+SET last_allocated = business_outlet_counters.last_allocated + 1
+RETURNING CASE WHEN length(last_allocated::text) < 3
+    THEN lpad(last_allocated::text, 3, '0')
+    ELSE last_allocated::text END::text AS code;
+
 -- name: UpdateOutlet :one
-UPDATE outlets SET code=$3, name=$4, phone=$5, address=$6, is_active=$7, timezone=COALESCE(NULLIF(btrim(sqlc.narg(timezone)::text), ''), 'Asia/Jakarta'), updated_at=now()
+UPDATE outlets SET name=$3, phone=$4, address=$5, is_active=$6, timezone=COALESCE(NULLIF(btrim(sqlc.narg(timezone)::text), ''), 'Asia/Jakarta'), updated_at=now()
 WHERE business_id=$1 AND id=$2
 RETURNING id, business_id, code, name, phone, address, is_active, created_at, updated_at, timezone;
 

@@ -1314,7 +1314,6 @@ type OutletAssignmentResponse struct {
 // OutletCreate defines model for OutletCreate.
 type OutletCreate struct {
 	Address *string `json:"address,omitempty"`
-	Code    string  `json:"code"`
 	Name    string  `json:"name"`
 	Phone   *string `json:"phone,omitempty"`
 
@@ -1359,7 +1358,6 @@ type OutletTimezoneInput = string
 // OutletUpdate defines model for OutletUpdate.
 type OutletUpdate struct {
 	Address  *string `json:"address,omitempty"`
-	Code     string  `json:"code"`
 	IsActive bool    `json:"isActive"`
 	Name     string  `json:"name"`
 	Phone    *string `json:"phone,omitempty"`
@@ -1370,22 +1368,11 @@ type OutletUpdate struct {
 
 // OwnerRegistrationRequest defines model for OwnerRegistrationRequest.
 type OwnerRegistrationRequest struct {
-	Business struct {
-		Address *string `json:"address,omitempty"`
-		Name    string  `json:"name"`
-		Phone   *string `json:"phone,omitempty"`
-	} `json:"business"`
-	Email       openapi_types.Email `json:"email"`
-	FirstOutlet struct {
-		Address *string `json:"address,omitempty"`
-		Code    string  `json:"code"`
-		Name    string  `json:"name"`
-		Phone   *string `json:"phone,omitempty"`
+	Email    openapi_types.Email `json:"email"`
+	FullName string              `json:"fullName"`
 
-		// Timezone Valid IANA timezone. Omitted, null, empty, or whitespace values use Asia/Jakarta.
-		Timezone *string `json:"timezone,omitempty"`
-	} `json:"firstOutlet"`
-	FullName string `json:"fullName"`
+	// OutletName Used as both the business name and first outlet name.
+	OutletName string `json:"outletName"`
 
 	// Password 8 to 128 Unicode characters; the UTF-8 encoding must not exceed 72 bytes for bcrypt. Password input is never truncated.
 	Password *string `json:"password,omitempty"`
@@ -1663,7 +1650,6 @@ type ProvisionBusinessRequest struct {
 	} `json:"firstAdmin"`
 	FirstOutlet struct {
 		Address *string `json:"address,omitempty"`
-		Code    string  `json:"code"`
 		Name    string  `json:"name"`
 		Phone   *string `json:"phone,omitempty"`
 

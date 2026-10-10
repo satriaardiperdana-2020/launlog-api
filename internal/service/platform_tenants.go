@@ -264,13 +264,13 @@ func (s *PlatformTenants) SupportOperation(ctx context.Context, a PlatformActor,
 			if target > 0 {
 				result, err = q.GetOutlet(ctx, db.GetOutletParams{BusinessID: business, ID: target})
 			} else {
-				var items []db.Outlet
+				var items []db.ListOutletsRow
 				items, err = q.ListOutlets(ctx, db.ListOutletsParams{BusinessID: business, Limit: limit, Offset: offset})
 				if err == nil {
 					var count int64
 					count, err = q.CountOutlets(ctx, business)
 					if items == nil {
-						items = []db.Outlet{}
+						items = []db.ListOutletsRow{}
 					}
 					result = platformPage(items, count, limit, offset)
 				}

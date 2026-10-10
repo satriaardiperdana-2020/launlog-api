@@ -56,11 +56,11 @@ RETURNING counter_date, (next_number - 1)::bigint AS invoice_sequence;
 
 -- name: CreateOrder :one
 INSERT INTO orders (
-    business_id, outlet_id, customer_id, invoice_number, total_amount, notes,
+    business_id, outlet_id, outlet_code_snapshot, customer_id, invoice_number, total_amount, notes,
     received_at, due_at, created_by, idempotency_key, request_hash
 )
 VALUES (
-    sqlc.arg(business_id), sqlc.arg(outlet_id), sqlc.arg(customer_id), sqlc.arg(invoice_number),
+    sqlc.arg(business_id), sqlc.arg(outlet_id), sqlc.arg(outlet_code_snapshot), sqlc.arg(customer_id), sqlc.arg(invoice_number),
     sqlc.arg(total_amount), sqlc.arg(notes), sqlc.arg(received_at), sqlc.arg(due_at),
     sqlc.arg(created_by), sqlc.arg(idempotency_key), sqlc.arg(request_hash)
 )

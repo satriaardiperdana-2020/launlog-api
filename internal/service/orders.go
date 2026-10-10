@@ -283,7 +283,7 @@ func (s *OrderCatalog) Create(ctx context.Context, actor Actor, input CreateOrde
 		dueAt = pgtype.Timestamptz{Time: *input.DueAt, Valid: true}
 	}
 	orderRow, err := q.CreateOrder(ctx, postgresql.CreateOrderParams{
-		BusinessID: actor.BusinessID, OutletID: input.OutletID, CustomerID: input.CustomerID,
+		BusinessID: actor.BusinessID, OutletID: input.OutletID, OutletCodeSnapshot: pgtype.Text{String: outlet.Code, Valid: true}, CustomerID: input.CustomerID,
 		InvoiceNumber: invoiceNumber, TotalAmount: total.Int64(), Notes: optionalText(input.Notes),
 		ReceivedAt: orderTime.ReceivedAt, DueAt: dueAt, CreatedBy: actor.UserID,
 		IdempotencyKey: pgtype.Text{String: input.IdempotencyKey, Valid: true}, RequestHash: input.RequestHash,

@@ -15,6 +15,7 @@ fi
 psql "$UPGRADE_ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
 INSERT INTO businesses (id, name) VALUES (-916001, 'Upgrade rehearsal business');
 INSERT INTO outlets (id, business_id, code, name) VALUES (-916002, -916001, 'UPG', 'Upgrade rehearsal outlet');
+INSERT INTO outlets (id, business_id, code, name, is_active) VALUES (-916007, -916001, 'MAIN', 'Inactive legacy outlet', false);
 INSERT INTO users (id, business_id, email, full_name, password_hash, role)
 VALUES (-916003, -916001, 'upgrade@example.test', 'Upgrade user', 'test-only-hash', 'ADMIN');
 INSERT INTO user_outlets (business_id, user_id, outlet_id) VALUES (-916001, -916003, -916002);
@@ -69,8 +70,20 @@ BEGIN
     RAISE EXCEPTION 'legacy outlet timezone was not backfilled';
   END IF;
   SELECT version, dirty INTO current_version, migration_dirty FROM schema_migrations;
-  IF current_version <> 20 OR migration_dirty THEN
-    RAISE EXCEPTION 'upgrade did not finish cleanly at migration 20 (version %, dirty %)', current_version, migration_dirty;
+  IF current_version <> 21 OR migration_dirty THEN
+    RAISE EXCEPTION 'upgrade did not finish cleanly at migration 21 (version %, dirty %)', current_version, migration_dirty;
+  END IF;
+  IF (SELECT code FROM outlets WHERE id=-916002) <> '001'
+     OR (SELECT legacy_code FROM outlets WHERE id=-916002) <> 'UPG'
+     OR (SELECT code FROM outlets WHERE id=-916007) <> '002'
+     OR (SELECT legacy_code FROM outlets WHERE id=-916007) <> 'MAIN'
+     OR (SELECT last_allocated FROM business_outlet_counters WHERE business_id=-916001) <> 2
+     OR (SELECT is_active FROM outlets WHERE id=-916007) THEN
+    RAISE EXCEPTION 'legacy outlet code was not deterministically remapped and retained';
+  END IF;
+  IF (SELECT outlet_code_snapshot FROM orders WHERE id=-916005) <> 'UPG'
+     OR (SELECT invoice_number FROM orders WHERE id=-916005) <> 'UPG-LEGACY-000001' THEN
+    RAISE EXCEPTION 'historical invoice number or outlet code snapshot changed';
   END IF;
 END $$;
 SQL

@@ -31,7 +31,6 @@ func NewManagementHandler(database *repository.Postgres) *ManagementHandler {
 
 type outletInput struct {
 	Timezone *string `json:"timezone"`
-	Code     string  `json:"code"`
 	Name     string  `json:"name"`
 	Phone    *string `json:"phone"`
 	Address  *string `json:"address"`
@@ -150,7 +149,11 @@ func (h *ManagementHandler) CreateOutlet(c echo.Context) error {
 	if err := lockOwnerContext(ctx, q, p); err != nil {
 		return unauthorized(c)
 	}
-	item, err := q.CreateOutlet(ctx, postgresql.CreateOutletParams{BusinessID: p.BusinessID, Code: strings.TrimSpace(req.Code), Name: strings.TrimSpace(req.Name), Phone: textArg(req.Phone), Address: textArg(req.Address), Timezone: pgtype.Text{String: outletTimezone, Valid: true}})
+	code, err := q.AllocateOutletCode(ctx, p.BusinessID)
+	if err != nil {
+		return dbWriteError(c, err)
+	}
+	item, err := q.CreateOutlet(ctx, postgresql.CreateOutletParams{BusinessID: p.BusinessID, Code: code, Name: strings.TrimSpace(req.Name), Phone: textArg(req.Phone), Address: textArg(req.Address), Timezone: pgtype.Text{String: outletTimezone, Valid: true}})
 	if err != nil {
 		return dbWriteError(c, err)
 	}
@@ -174,7 +177,7 @@ func (h *ManagementHandler) UpdateOutlet(c echo.Context) error {
 		return badRequest(c, "INVALID_REQUEST", "Outlet body is invalid.")
 	}
 	if !validOutlet(req) || req.IsActive == nil {
-		return badRequest(c, "INVALID_REQUEST", "Outlet code, name, and isActive are required and fields must fit allowed lengths.")
+		return badRequest(c, "INVALID_REQUEST", "Outlet name and isActive are required and fields must fit allowed lengths.")
 	}
 	outletTimezone, err := timezone.Normalize(req.Timezone)
 	if err != nil {
@@ -206,7 +209,7 @@ func (h *ManagementHandler) UpdateOutlet(c echo.Context) error {
 			return conflict(c, "OUTLET_HAS_ASSIGNED_STAFF", "Reassign active staff before deactivating their only outlet.")
 		}
 	}
-	item, err := q.UpdateOutlet(ctx, postgresql.UpdateOutletParams{BusinessID: p.BusinessID, ID: id, Code: strings.TrimSpace(req.Code), Name: strings.TrimSpace(req.Name), Phone: textArg(req.Phone), Address: textArg(req.Address), Timezone: pgtype.Text{String: outletTimezone, Valid: true}, IsActive: *req.IsActive})
+	item, err := q.UpdateOutlet(ctx, postgresql.UpdateOutletParams{BusinessID: p.BusinessID, ID: id, Name: strings.TrimSpace(req.Name), Phone: textArg(req.Phone), Address: textArg(req.Address), Timezone: pgtype.Text{String: outletTimezone, Valid: true}, IsActive: *req.IsActive})
 	if err != nil {
 		return dbWriteError(c, err)
 	}
@@ -543,7 +546,7 @@ func lockOwnerContext(ctx context.Context, q *postgresql.Queries, p Principal) e
 	return nil
 }
 func validOutlet(in outletInput) bool {
-	if strings.TrimSpace(in.Code) == "" || strings.TrimSpace(in.Name) == "" || len([]rune(in.Code)) > 64 || len([]rune(in.Name)) > 200 {
+	if strings.TrimSpace(in.Name) == "" || len([]rune(in.Name)) > 200 {
 		return false
 	}
 	if in.Phone != nil && len([]rune(*in.Phone)) > 32 {

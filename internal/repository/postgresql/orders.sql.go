@@ -143,30 +143,31 @@ func (q *Queries) CreateInitialOrderStatus(ctx context.Context, arg CreateInitia
 
 const createOrder = `-- name: CreateOrder :one
 INSERT INTO orders (
-    business_id, outlet_id, customer_id, invoice_number, total_amount, notes,
+    business_id, outlet_id, outlet_code_snapshot, customer_id, invoice_number, total_amount, notes,
     received_at, due_at, created_by, idempotency_key, request_hash
 )
 VALUES (
-    $1, $2, $3, $4,
-    $5, $6, $7, $8,
-    $9, $10, $11
+    $1, $2, $3, $4, $5,
+    $6, $7, $8, $9,
+    $10, $11, $12
 )
 RETURNING id, business_id, outlet_id, customer_id, invoice_number, status, payment_status,
           total_amount, notes, received_at, due_at, created_by, created_at, updated_at
 `
 
 type CreateOrderParams struct {
-	BusinessID     int64              `json:"business_id"`
-	OutletID       int64              `json:"outlet_id"`
-	CustomerID     int64              `json:"customer_id"`
-	InvoiceNumber  string             `json:"invoice_number"`
-	TotalAmount    int64              `json:"total_amount"`
-	Notes          pgtype.Text        `json:"notes"`
-	ReceivedAt     pgtype.Timestamptz `json:"received_at"`
-	DueAt          pgtype.Timestamptz `json:"due_at"`
-	CreatedBy      int64              `json:"created_by"`
-	IdempotencyKey pgtype.Text        `json:"idempotency_key"`
-	RequestHash    []byte             `json:"request_hash"`
+	BusinessID         int64              `json:"business_id"`
+	OutletID           int64              `json:"outlet_id"`
+	OutletCodeSnapshot pgtype.Text        `json:"outlet_code_snapshot"`
+	CustomerID         int64              `json:"customer_id"`
+	InvoiceNumber      string             `json:"invoice_number"`
+	TotalAmount        int64              `json:"total_amount"`
+	Notes              pgtype.Text        `json:"notes"`
+	ReceivedAt         pgtype.Timestamptz `json:"received_at"`
+	DueAt              pgtype.Timestamptz `json:"due_at"`
+	CreatedBy          int64              `json:"created_by"`
+	IdempotencyKey     pgtype.Text        `json:"idempotency_key"`
+	RequestHash        []byte             `json:"request_hash"`
 }
 
 type CreateOrderRow struct {
@@ -190,6 +191,7 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Creat
 	row := q.db.QueryRow(ctx, createOrder,
 		arg.BusinessID,
 		arg.OutletID,
+		arg.OutletCodeSnapshot,
 		arg.CustomerID,
 		arg.InvoiceNumber,
 		arg.TotalAmount,

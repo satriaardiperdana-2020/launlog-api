@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -21,16 +23,26 @@ func TestManagementTenantPermissionsAndAudit(t *testing.T) {
 		t.Fatalf("laundry staff must not manage outlets: status=%d", status)
 	}
 	ownerToken := f.ownerLogin(t)
+	if status, _ := f.managementRequest(http.MethodPost, "/outlets", map[string]any{"code": "CLIENT", "name": "Rejected"}, ownerToken); status != http.StatusBadRequest {
+		t.Fatalf("client-selected outlet code must be rejected: %d", status)
+	}
+	if status, _ := f.managementRequest(http.MethodPost, "/outlets", map[string]any{"business_id": f.businessID, "name": "Rejected"}, ownerToken); status != http.StatusBadRequest {
+		t.Fatalf("client-selected business must be rejected: %d", status)
+	}
 
-	status, response := f.managementRequest(http.MethodPost, "/outlets", map[string]any{"code": "BRANCH-2", "name": "Second Branch"}, ownerToken)
+	status, response := f.managementRequest(http.MethodPost, "/outlets", map[string]any{"name": "Second Branch"}, ownerToken)
 	if status != http.StatusCreated {
 		t.Fatalf("create outlet status=%d: %s", status, response)
 	}
 	var outlet struct {
-		ID int64 `json:"id"`
+		ID   int64  `json:"id"`
+		Code string `json:"code"`
 	}
-	if err := json.Unmarshal(response, &outlet); err != nil || outlet.ID < 1 {
-		t.Fatalf("decode created outlet: id=%d err=%v", outlet.ID, err)
+	if err := json.Unmarshal(response, &outlet); err != nil || outlet.ID < 1 || outlet.Code != "002" {
+		t.Fatalf("decode created outlet: id=%d code=%q err=%v", outlet.ID, outlet.Code, err)
+	}
+	if status, _ := f.managementRequest(http.MethodPut, fmt.Sprintf("/outlets/%d", outlet.ID), map[string]any{"code": "RENAMED", "name": "Second Branch", "isActive": true}, ownerToken); status != http.StatusBadRequest {
+		t.Fatalf("outlet code update must be rejected: %d", status)
 	}
 
 	var foreignBusinessID, foreignOutletID int64
@@ -88,6 +100,70 @@ func TestManagementTenantPermissionsAndAudit(t *testing.T) {
 	var secretsInAudit int
 	if err := f.pool.QueryRow(context.Background(), `SELECT count(*) FROM audit_logs WHERE business_id=$1 AND (COALESCE(new_values::text,'') ILIKE '%password%' OR COALESCE(old_values::text,'') ILIKE '%password%')`, f.businessID).Scan(&secretsInAudit); err != nil || secretsInAudit != 0 {
 		t.Fatalf("password material must not be audited: count=%d err=%v", secretsInAudit, err)
+	}
+}
+
+func TestManagementConcurrentOutletCodesAreBusinessScoped(t *testing.T) {
+	f := newAuthFixture(t)
+	token := f.ownerLogin(t)
+	if _, err := f.pool.Exec(context.Background(), "UPDATE business_outlet_counters SET last_allocated=998 WHERE business_id=$1", f.businessID); err != nil {
+		t.Fatal(err)
+	}
+	const requests = 40
+	codes := make(chan string, requests)
+	errs := make(chan string, requests)
+	var wg sync.WaitGroup
+	for i := 0; i < requests; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			status, body := f.managementRequest(http.MethodPost, "/outlets", map[string]any{"name": fmt.Sprintf("Concurrent %d", i)}, token)
+			if status != http.StatusCreated {
+				errs <- fmt.Sprintf("status=%d body=%s", status, body)
+				return
+			}
+			var created struct {
+				Code string `json:"code"`
+			}
+			if err := json.Unmarshal(body, &created); err != nil {
+				errs <- err.Error()
+				return
+			}
+			codes <- created.Code
+		}(i)
+	}
+	wg.Wait()
+	close(codes)
+	close(errs)
+	for err := range errs {
+		t.Error(err)
+	}
+	got := make([]string, 0, requests)
+	for code := range codes {
+		got = append(got, code)
+	}
+	if len(got) != requests {
+		t.Fatalf("created %d outlets, want %d", len(got), requests)
+	}
+	sort.Slice(got, func(i, j int) bool {
+		left, _ := strconv.Atoi(got[i])
+		right, _ := strconv.Atoi(got[j])
+		return left < right
+	})
+	for i, code := range got {
+		want := fmt.Sprintf("%03d", i+999) // Exercise 999 -> 1000 without truncation.
+		if code != want {
+			t.Fatalf("code[%d]=%q, want %q (codes=%v)", i, code, want, got)
+		}
+	}
+	var otherBusiness int64
+	if err := f.pool.QueryRow(context.Background(), `INSERT INTO businesses(name) VALUES('Independent sequence') RETURNING id`).Scan(&otherBusiness); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _, _ = f.pool.Exec(context.Background(), "DELETE FROM businesses WHERE id=$1", otherBusiness) }()
+	var first string
+	if err := f.pool.QueryRow(context.Background(), `INSERT INTO outlets(business_id,code,name) VALUES($1,'001','Independent') RETURNING code`, otherBusiness).Scan(&first); err != nil || first != "001" {
+		t.Fatalf("separate business should independently start at 001: %q %v", first, err)
 	}
 }
 
