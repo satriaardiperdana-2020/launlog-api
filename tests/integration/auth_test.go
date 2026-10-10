@@ -32,6 +32,7 @@ type authFixture struct {
 	database                     *repository.Postgres
 	echo                         *echo.Echo
 	businessID, outletID, userID int64
+	registeredBusinessIDs        []int64
 }
 
 func newAuthFixture(t *testing.T) *authFixture {
@@ -87,6 +88,17 @@ func newAuthFixture(t *testing.T) *authFixture {
 		_, _ = cleanupPool.Exec(ctx, "DELETE FROM users WHERE business_id=$1", f.businessID)
 		_, _ = cleanupPool.Exec(ctx, "DELETE FROM outlets WHERE business_id=$1", f.businessID)
 		_, _ = cleanupPool.Exec(ctx, "DELETE FROM businesses WHERE id=$1", f.businessID)
+		for _, businessID := range f.registeredBusinessIDs {
+			_, _ = cleanupPool.Exec(ctx, "ALTER TABLE audit_logs DISABLE TRIGGER audit_logs_immutable")
+			_, _ = cleanupPool.Exec(ctx, "DELETE FROM audit_logs WHERE business_id=$1", businessID)
+			_, _ = cleanupPool.Exec(ctx, "ALTER TABLE audit_logs ENABLE TRIGGER audit_logs_immutable")
+			_, _ = cleanupPool.Exec(ctx, "DELETE FROM refresh_tokens WHERE business_id=$1", businessID)
+			_, _ = cleanupPool.Exec(ctx, "DELETE FROM session_families WHERE business_id=$1", businessID)
+			_, _ = cleanupPool.Exec(ctx, "DELETE FROM user_outlets WHERE business_id=$1", businessID)
+			_, _ = cleanupPool.Exec(ctx, "DELETE FROM users WHERE business_id=$1", businessID)
+			_, _ = cleanupPool.Exec(ctx, "DELETE FROM outlets WHERE business_id=$1", businessID)
+			_, _ = cleanupPool.Exec(ctx, "DELETE FROM businesses WHERE id=$1", businessID)
+		}
 		database.Close()
 		pool.Close()
 		if f.adminPool != pool {
@@ -114,7 +126,7 @@ func newAuthFixture(t *testing.T) *authFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.echo = server.New(config.Config{ReadinessTimeout: 2 * time.Second, JWTRefreshTokenTTL: time.Hour}, database, tokens)
+	f.echo = server.New(config.Config{ReadinessTimeout: 2 * time.Second, JWTRefreshTokenTTL: time.Hour, OwnerRegistrationEnabled: true}, database, tokens)
 	return f
 }
 
@@ -127,11 +139,16 @@ func (f *authFixture) ownerLogin(t *testing.T) string {
 }
 
 func (f *authFixture) request(path string, body any, bearer string) (int, []byte) {
+	return f.requestFrom(path, body, bearer, "192.0.2.1:1234")
+}
+
+func (f *authFixture) requestFrom(path string, body any, bearer, remoteAddr string) (int, []byte) {
 	var encoded []byte
 	if body != nil {
 		encoded, _ = json.Marshal(body)
 	}
 	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(encoded))
+	req.RemoteAddr = remoteAddr
 	if path == "/auth/me" {
 		req.Method = http.MethodGet
 	}
@@ -420,5 +437,183 @@ func TestAuthCredentialFailuresAndBodyLimit(t *testing.T) {
 	f.echo.ServeHTTP(recorder, chunked)
 	if recorder.Code != 413 {
 		t.Fatalf("oversized unknown-length body accepted: %d", recorder.Code)
+	}
+}
+
+func ownerRegistrationInput(email, password string) map[string]any {
+	return map[string]any{
+		"email": email, "password": password, "fullName": "Registration Owner",
+		"business":    map[string]any{"name": "ISSUE-020 Laundry"},
+		"firstOutlet": map[string]any{"code": "MAIN", "name": "Main outlet", "timezone": nil},
+	}
+}
+
+func TestOwnerRegistrationCreatesTenantAndSessionAtomically(t *testing.T) {
+	f := newAuthFixture(t)
+	password := strings.Repeat("é", 36) // 72 UTF-8 bytes: accepted without truncation.
+	status, body := f.request("/auth/register", ownerRegistrationInput("  OWNER-020@Example.Test  ", password), "")
+	if status != http.StatusCreated {
+		t.Fatalf("registration status=%d body=%s", status, body)
+	}
+	if bytes.Contains(body, []byte(password)) || bytes.Contains(body, []byte("password_hash")) {
+		t.Fatal("registration response exposed password material")
+	}
+	var response struct {
+		Tokens struct {
+			AccessToken  string `json:"accessToken"`
+			RefreshToken string `json:"refreshToken"`
+		} `json:"tokens"`
+		User struct {
+			ID         int64   `json:"id"`
+			BusinessID int64   `json:"businessId"`
+			Email      string  `json:"email"`
+			FullName   string  `json:"fullName"`
+			Role       string  `json:"role"`
+			OutletIDs  []int64 `json:"outletIds"`
+			Outlets    []struct {
+				ID       int64  `json:"id"`
+				Timezone string `json:"timezone"`
+			} `json:"outlets"`
+		} `json:"user"`
+	}
+	if err := json.Unmarshal(body, &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.User.Email != "owner-020@example.test" || response.User.Role != "ADMIN" || response.User.BusinessID < 1 || response.User.ID < 1 || len(response.User.OutletIDs) != 1 || len(response.User.Outlets) != 1 || response.User.Outlets[0].Timezone != "Asia/Jakarta" {
+		t.Fatalf("unexpected registered owner response: %+v", response.User)
+	}
+	f.registeredBusinessIDs = append(f.registeredBusinessIDs, response.User.BusinessID)
+	var hash string
+	if err := f.pool.QueryRow(context.Background(), "SELECT password_hash FROM users WHERE business_id=$1 AND id=$2", response.User.BusinessID, response.User.ID).Scan(&hash); err != nil {
+		t.Fatal(err)
+	}
+	if err := security.VerifyPassword(hash, password); err != nil {
+		t.Fatalf("exact accepted password does not verify: %v", err)
+	}
+	var outletCount, assignmentCount, families, refreshCount, registrationAudits, sessionAudits int
+	if err := f.pool.QueryRow(context.Background(), `SELECT
+		(SELECT count(*) FROM outlets WHERE business_id=$1),
+		(SELECT count(*) FROM user_outlets WHERE business_id=$1 AND user_id=$2),
+		(SELECT count(*) FROM session_families WHERE business_id=$1 AND user_id=$2),
+		(SELECT count(*) FROM refresh_tokens WHERE business_id=$1 AND user_id=$2),
+		(SELECT count(*) FROM audit_logs WHERE business_id=$1 AND actor_user_id=$2 AND action='OWNER_REGISTERED'),
+		(SELECT count(*) FROM audit_logs WHERE business_id=$1 AND actor_user_id=$2 AND action='AUTH_SESSION_CREATED')`, response.User.BusinessID, response.User.ID).Scan(&outletCount, &assignmentCount, &families, &refreshCount, &registrationAudits, &sessionAudits); err != nil {
+		t.Fatal(err)
+	}
+	if outletCount != 1 || assignmentCount != 1 || families != 1 || refreshCount != 1 || registrationAudits != 1 || sessionAudits != 1 {
+		t.Fatalf("incomplete tenant/session/audit: outlets=%d assignments=%d families=%d refresh=%d registerAudit=%d sessionAudit=%d", outletCount, assignmentCount, families, refreshCount, registrationAudits, sessionAudits)
+	}
+	var storedHash string
+	if err := f.pool.QueryRow(context.Background(), "SELECT token_hash FROM refresh_tokens WHERE business_id=$1 AND user_id=$2", response.User.BusinessID, response.User.ID).Scan(&storedHash); err != nil {
+		t.Fatal(err)
+	}
+	if storedHash != security.HashRefreshToken(response.Tokens.RefreshToken) {
+		t.Fatal("refresh token was not stored only as its hash")
+	}
+	if code, me := f.request("/auth/me", nil, response.Tokens.AccessToken); code != http.StatusOK || !bytes.Contains(me, []byte(`"role":"ADMIN"`)) {
+		t.Fatalf("new owner session /auth/me = %d %s", code, me)
+	}
+	if code, _ := f.request("/auth/refresh", map[string]string{"refreshToken": response.Tokens.RefreshToken}, ""); code != http.StatusOK {
+		t.Fatalf("new owner refresh status=%d", code)
+	}
+}
+
+func TestOwnerRegistrationDuplicateAndConcurrentEmail(t *testing.T) {
+	f := newAuthFixture(t)
+	var existingEmail string
+	if err := f.pool.QueryRow(context.Background(), "SELECT email FROM users WHERE id=$1", f.userID).Scan(&existingEmail); err != nil {
+		t.Fatal(err)
+	}
+	var before int
+	if err := f.pool.QueryRow(context.Background(), "SELECT count(*) FROM businesses").Scan(&before); err != nil {
+		t.Fatal(err)
+	}
+	status, body := f.request("/auth/register", ownerRegistrationInput(strings.ToUpper(existingEmail), "correct-password"), "")
+	if status != http.StatusConflict || bytes.Contains(body, []byte(existingEmail)) {
+		t.Fatalf("existing email response=%d %s", status, body)
+	}
+	var after int
+	if err := f.pool.QueryRow(context.Background(), "SELECT count(*) FROM businesses").Scan(&after); err != nil || before != after {
+		t.Fatalf("duplicate email created a business: %d -> %d err=%v", before, after, err)
+	}
+
+	email := fmt.Sprintf("race-020-%d@example.test", time.Now().UnixNano())
+	var wg sync.WaitGroup
+	type result struct {
+		status int
+		body   []byte
+	}
+	results := make(chan result, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			code, body := f.request("/auth/register", ownerRegistrationInput(email, "correct-password"), "")
+			results <- result{code, body}
+		}()
+	}
+	wg.Wait()
+	close(results)
+	counts := map[int]int{}
+	for result := range results {
+		counts[result.status]++
+		if result.status == http.StatusCreated {
+			var owner struct {
+				User struct {
+					BusinessID int64 `json:"businessId"`
+				} `json:"user"`
+			}
+			if err := json.Unmarshal(result.body, &owner); err != nil {
+				t.Fatal(err)
+			}
+			f.registeredBusinessIDs = append(f.registeredBusinessIDs, owner.User.BusinessID)
+		}
+	}
+	if counts[http.StatusCreated] != 1 || counts[http.StatusConflict] != 1 {
+		t.Fatalf("same-email registration race statuses=%v", counts)
+	}
+	if err := f.pool.QueryRow(context.Background(), "SELECT count(*) FROM businesses b JOIN users u ON u.business_id=b.id WHERE u.email=$1", email).Scan(&after); err != nil || after != 1 {
+		t.Fatalf("race left partial/duplicate tenants: count=%d err=%v", after, err)
+	}
+}
+
+func TestOwnerRegistrationRollsBackEveryStage(t *testing.T) {
+	f := newAuthFixture(t)
+	ctx := context.Background()
+	tables := []string{"businesses", "outlets", "users", "user_outlets", "session_families", "refresh_tokens", "audit_logs"}
+	for i, table := range tables {
+		t.Run(table, func(t *testing.T) {
+			function := fmt.Sprintf("issue020_fail_%d", i)
+			trigger := function + "_trigger"
+			if _, err := f.adminPool.Exec(ctx, "CREATE FUNCTION "+function+"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'issue020 injected failure'; END $$"); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := f.adminPool.Exec(ctx, "CREATE TRIGGER "+trigger+" BEFORE INSERT ON "+table+" FOR EACH ROW EXECUTE FUNCTION "+function+"()"); err != nil {
+				t.Fatal(err)
+			}
+			defer func() {
+				if _, err := f.adminPool.Exec(ctx, "DROP FUNCTION "+function+"() CASCADE"); err != nil {
+					t.Error(err)
+				}
+			}()
+			var before [7]int
+			count := func() [7]int {
+				var got [7]int
+				err := f.pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM businesses),(SELECT count(*) FROM outlets),(SELECT count(*) FROM users),(SELECT count(*) FROM user_outlets),(SELECT count(*) FROM session_families),(SELECT count(*) FROM refresh_tokens),(SELECT count(*) FROM audit_logs)`).Scan(&got[0], &got[1], &got[2], &got[3], &got[4], &got[5], &got[6])
+				if err != nil {
+					t.Fatal(err)
+				}
+				return got
+			}
+			before = count()
+			input := ownerRegistrationInput(fmt.Sprintf("rollback-%d-%d@example.test", i, time.Now().UnixNano()), "correct-password")
+			status, body := f.requestFrom("/auth/register", input, "", fmt.Sprintf("192.0.2.%d:1234", i+10))
+			if status != http.StatusInternalServerError || bytes.Contains(body, []byte("injected")) {
+				t.Fatalf("failed registration response=%d %s", status, body)
+			}
+			if after := count(); after != before {
+				t.Fatalf("partial registration on %s: %v -> %v", table, before, after)
+			}
+		})
 	}
 }

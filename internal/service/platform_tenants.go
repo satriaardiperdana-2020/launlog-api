@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net/mail"
 	"strings"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/satriaardiperdana-2020/launlog-api/internal/repository"
 	db "github.com/satriaardiperdana-2020/launlog-api/internal/repository/postgresql"
 	"github.com/satriaardiperdana-2020/launlog-api/internal/security"
-	"github.com/satriaardiperdana-2020/launlog-api/internal/timezone"
 )
 
 var (
@@ -102,61 +100,24 @@ func (s *PlatformTenants) platformTx(ctx context.Context, a PlatformActor, run f
 	return result, nil
 }
 
-type ProvisionBusinessInput struct {
-	Business struct {
-		Name    string  `json:"name"`
-		Phone   *string `json:"phone"`
-		Address *string `json:"address"`
-	} `json:"business"`
-	FirstOutlet struct {
-		Timezone *string `json:"timezone"`
-		Code     string  `json:"code"`
-		Name     string  `json:"name"`
-		Phone    *string `json:"phone"`
-		Address  *string `json:"address"`
-	} `json:"firstOutlet"`
-	FirstAdmin struct {
-		Email    string `json:"email"`
-		FullName string `json:"fullName"`
-		Password string `json:"password"`
-	} `json:"firstAdmin"`
-}
-
-func validOptional(s *string, max int) bool { return s == nil || len([]rune(*s)) <= max }
 func (s *PlatformTenants) Provision(ctx context.Context, a PlatformActor, in ProvisionBusinessInput) (any, error) {
-	in.Business.Name = strings.TrimSpace(in.Business.Name)
-	in.FirstOutlet.Code = strings.TrimSpace(in.FirstOutlet.Code)
-	in.FirstOutlet.Name = strings.TrimSpace(in.FirstOutlet.Name)
-	in.FirstAdmin.Email = strings.ToLower(strings.TrimSpace(in.FirstAdmin.Email))
-	in.FirstAdmin.FullName = strings.TrimSpace(in.FirstAdmin.FullName)
-	outletTimezone, err := timezone.Normalize(in.FirstOutlet.Timezone)
+	in, err := normalizeProvisionInput(in)
 	if err != nil {
+		if errors.Is(err, ErrInvalidOwnerInput) || errors.Is(err, ErrInvalidOwnerPassword) {
+			return nil, ErrPlatformInvalid
+		}
 		return nil, err
-	}
-	email, err := mail.ParseAddress(in.FirstAdmin.Email)
-	if err != nil || email.Address != in.FirstAdmin.Email || len(in.FirstAdmin.Email) > 254 || in.Business.Name == "" || len([]rune(in.Business.Name)) > 200 || in.FirstOutlet.Code == "" || len([]rune(in.FirstOutlet.Code)) > 64 || in.FirstOutlet.Name == "" || len([]rune(in.FirstOutlet.Name)) > 200 || in.FirstAdmin.FullName == "" || len([]rune(in.FirstAdmin.FullName)) > 200 || !validOptional(in.Business.Phone, 32) || !validOptional(in.Business.Address, 500) || !validOptional(in.FirstOutlet.Phone, 32) || !validOptional(in.FirstOutlet.Address, 500) {
-		return nil, ErrPlatformInvalid
 	}
 	hash, err := security.HashPassword(in.FirstAdmin.Password)
 	if err != nil {
-		return nil, ErrPlatformInvalid
+		return nil, err
 	}
 	return s.platformTx(ctx, a, func(ctx context.Context, q *db.Queries, _ int64) (any, error) {
-		b, err := q.PlatformCreateBusiness(ctx, db.PlatformCreateBusinessParams{Name: in.Business.Name, Phone: optionalPlatformText(in.Business.Phone), Address: optionalPlatformText(in.Business.Address)})
+		tenant, err := createTenant(ctx, q, in, hash)
 		if err != nil {
 			return nil, err
 		}
-		o, err := q.CreateOutlet(ctx, db.CreateOutletParams{BusinessID: b.ID, Code: in.FirstOutlet.Code, Name: in.FirstOutlet.Name, Phone: optionalPlatformText(in.FirstOutlet.Phone), Address: optionalPlatformText(in.FirstOutlet.Address), Timezone: pgtype.Text{String: outletTimezone, Valid: true}})
-		if err != nil {
-			return nil, err
-		}
-		u, err := q.PlatformCreateFirstAdmin(ctx, db.PlatformCreateFirstAdminParams{BusinessID: b.ID, Email: in.FirstAdmin.Email, FullName: in.FirstAdmin.FullName, PasswordHash: hash})
-		if err != nil {
-			return nil, err
-		}
-		if err := q.AddStaffOutlet(ctx, db.AddStaffOutletParams{BusinessID: b.ID, UserID: u.ID, OutletID: o.ID}); err != nil {
-			return nil, err
-		}
+		b, o, u := tenant.Business, tenant.FirstOutlet, tenant.FirstAdmin
 		if err := platformBusinessAudit(ctx, q, a, 0, b.ID, 0, "Tenant onboarding", "BUSINESS_PROVISIONED", "business", b.ID, map[string]any{"outletId": o.ID, "outletTimezone": o.Timezone, "adminId": u.ID, "role": "ADMIN"}); err != nil {
 			return nil, err
 		}

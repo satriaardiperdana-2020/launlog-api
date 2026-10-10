@@ -21,6 +21,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Environment != "development" {
 		t.Errorf("Environment = %q, want development", cfg.Environment)
 	}
+	if cfg.OwnerRegistrationEnabled {
+		t.Error("owner registration must be disabled by default")
+	}
 	if cfg.HTTPAddress() != "0.0.0.0:8080" {
 		t.Errorf("HTTPAddress() = %q, want 0.0.0.0:8080", cfg.HTTPAddress())
 	}
@@ -59,6 +62,7 @@ func TestLoadOverrides(t *testing.T) {
 	t.Setenv("DATABASE_MAX_CONNS", "20")
 	t.Setenv("DATABASE_MIN_CONNS", "2")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "https://laundry.example, http://localhost:5173")
+	t.Setenv("OWNER_REGISTRATION_ENABLED", "true")
 
 	cfg, err := loadFromEnvironment()
 	if err != nil {
@@ -79,6 +83,9 @@ func TestLoadOverrides(t *testing.T) {
 	}
 	if strings.Join(cfg.CORSAllowedOrigins, ",") != "https://laundry.example,http://localhost:5173" {
 		t.Fatalf("CORS origins = %#v", cfg.CORSAllowedOrigins)
+	}
+	if !cfg.OwnerRegistrationEnabled {
+		t.Fatal("owner registration enablement was not loaded")
 	}
 }
 
@@ -104,6 +111,17 @@ func TestProductionRequiresVerifiedDatabaseTLS(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://user:password@db.example/launlog?sslmode=verify-full")
 	if _, err := loadFromEnvironment(); err != nil {
 		t.Fatalf("production rejected verified TLS: %v", err)
+	}
+}
+
+func TestProductionRejectsPublicOwnerRegistration(t *testing.T) {
+	clearConfigEnvironment(t)
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("DATABASE_URL", "postgres://user:password@db.example/launlog?sslmode=verify-full")
+	t.Setenv("JWT_SIGNING_SECRET", "01234567890123456789012345678901")
+	t.Setenv("OWNER_REGISTRATION_ENABLED", "true")
+	if _, err := loadFromEnvironment(); err == nil || !strings.Contains(err.Error(), "OWNER_REGISTRATION_ENABLED") {
+		t.Fatalf("production allowed public registration before email verification: %v", err)
 	}
 }
 
@@ -227,6 +245,7 @@ func clearConfigEnvironment(t *testing.T) {
 		"JWT_ACCESS_TOKEN_TTL",
 		"JWT_REFRESH_TOKEN_TTL",
 		"CORS_ALLOWED_ORIGINS",
+		"OWNER_REGISTRATION_ENABLED",
 	} {
 		t.Setenv(name, "")
 	}
@@ -271,5 +290,6 @@ func configEnvironmentNames() []string {
 		"JWT_ACCESS_TOKEN_TTL",
 		"JWT_REFRESH_TOKEN_TTL",
 		"CORS_ALLOWED_ORIGINS",
+		"OWNER_REGISTRATION_ENABLED",
 	}
 }
