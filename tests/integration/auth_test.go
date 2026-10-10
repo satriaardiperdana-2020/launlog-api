@@ -111,6 +111,9 @@ func newAuthFixture(t *testing.T) *authFixture {
 	if err := pool.QueryRow(ctx, "INSERT INTO outlets (business_id, code, name) VALUES ($1,'AUTH','Auth outlet') RETURNING id", f.businessID).Scan(&f.outletID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := pool.Exec(ctx, "INSERT INTO business_outlet_counters(business_id,last_allocated) VALUES($1,1)", f.businessID); err != nil {
+		t.Fatal(err)
+	}
 	hash, err := security.HashPassword("correct-password")
 	if err != nil {
 		t.Fatal(err)
@@ -443,8 +446,7 @@ func TestAuthCredentialFailuresAndBodyLimit(t *testing.T) {
 func ownerRegistrationInput(email, password string) map[string]any {
 	return map[string]any{
 		"email": email, "password": password, "fullName": "Registration Owner",
-		"business":    map[string]any{"name": "ISSUE-020 Laundry"},
-		"firstOutlet": map[string]any{"code": "MAIN", "name": "Main outlet", "timezone": nil},
+		"outletName": "ISSUE-020 Laundry",
 	}
 }
 
@@ -481,6 +483,13 @@ func TestOwnerRegistrationCreatesTenantAndSessionAtomically(t *testing.T) {
 	}
 	if response.User.Email != "owner-020@example.test" || response.User.Role != "ADMIN" || response.User.BusinessID < 1 || response.User.ID < 1 || len(response.User.OutletIDs) != 1 || len(response.User.Outlets) != 1 || response.User.Outlets[0].Timezone != "Asia/Jakarta" {
 		t.Fatalf("unexpected registered owner response: %+v", response.User)
+	}
+	var businessName, outletName, outletCode string
+	if err := f.pool.QueryRow(context.Background(), `SELECT b.name,o.name,o.code FROM businesses b JOIN outlets o ON o.business_id=b.id WHERE b.id=$1`, response.User.BusinessID).Scan(&businessName, &outletName, &outletCode); err != nil {
+		t.Fatal(err)
+	}
+	if businessName != "ISSUE-020 Laundry" || outletName != businessName || outletCode != "001" {
+		t.Fatalf("registration tenant naming/code mismatch: business=%q outlet=%q code=%q", businessName, outletName, outletCode)
 	}
 	f.registeredBusinessIDs = append(f.registeredBusinessIDs, response.User.BusinessID)
 	var hash string

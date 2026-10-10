@@ -50,7 +50,7 @@ paths:
     post:
       operationId: registerOwner
       summary: Register an owner and onboard a new business
-      description: Creates a new business, its first outlet, an ADMIN owner, outlet assignment, and tenant session atomically. Public registration is disabled by default and cannot be enabled in production until email verification is available. Passwords must contain 8 to 128 Unicode characters and at most 72 UTF-8 bytes for bcrypt.
+      description: Creates a new business and first outlet using outletName for both names, an ADMIN owner, outlet assignment, and tenant session atomically. The server assigns outlet code 001. Public registration is disabled by default and cannot be enabled in production until email verification is available. Passwords must contain 8 to 128 Unicode characters and at most 72 UTF-8 bytes for bcrypt.
       tags: [Authentication]
       security: []
       requestBody:
@@ -2234,7 +2234,7 @@ components:
     OwnerRegistrationRequest:
       type: object
       additionalProperties: false
-      required: [email, password, fullName, business, firstOutlet]
+      required: [email, password, fullName, outletName]
       properties:
         email: {type: string, format: email, maxLength: 254}
         password:
@@ -2245,28 +2245,7 @@ components:
           maxLength: 128
           description: 8 to 128 Unicode characters; the UTF-8 encoding must not exceed 72 bytes for bcrypt. Password input is never truncated.
         fullName: {type: string, minLength: 1, maxLength: 200}
-        business:
-          type: object
-          additionalProperties: false
-          required: [name]
-          properties:
-            name: {type: string, minLength: 1, maxLength: 200}
-            phone: {type: string, nullable: true, maxLength: 32}
-            address: {type: string, nullable: true, maxLength: 500}
-        firstOutlet:
-          type: object
-          additionalProperties: false
-          required: [code, name]
-          properties:
-            code: {type: string, minLength: 1, maxLength: 64}
-            name: {type: string, minLength: 1, maxLength: 200}
-            timezone:
-              type: string
-              nullable: true
-              maxLength: 255
-              description: Valid IANA timezone. Omitted, null, empty, or whitespace values use Asia/Jakarta.
-            phone: {type: string, nullable: true, maxLength: 32}
-            address: {type: string, nullable: true, maxLength: 500}
+        outletName: {type: string, minLength: 1, maxLength: 200, description: Used as both the business name and first outlet name.}
 
     BusinessAuditPage:
       type: object
@@ -2340,10 +2319,9 @@ components:
         firstOutlet:
           type: object
           additionalProperties: false
-          required: [code, name]
+          required: [name]
           properties:
             timezone: { $ref: '#/components/schemas/OutletTimezoneInput' }
-            code: {type: string, minLength: 1, maxLength: 64}
             name: {type: string, minLength: 1, maxLength: 200}
             phone: {type: string, nullable: true, maxLength: 32}
             address: {type: string, nullable: true, maxLength: 500}
@@ -3287,10 +3265,9 @@ components:
     OutletCreate:
       type: object
       additionalProperties: false
-      required: [code, name]
+      required: [name]
       properties:
         timezone: { $ref: '#/components/schemas/OutletTimezoneInput' }
-        code: { type: string, minLength: 1, maxLength: 64 }
         name: { type: string, minLength: 1, maxLength: 200 }
         phone: { type: string, maxLength: 32, nullable: true }
         address: { type: string, maxLength: 500, nullable: true }

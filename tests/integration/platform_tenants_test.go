@@ -32,7 +32,8 @@ type provisionedTenant struct {
 		ID int64 `json:"id"`
 	} `json:"business"`
 	Outlet struct {
-		ID int64 `json:"id"`
+		ID   int64  `json:"id"`
+		Code string `json:"code"`
 	} `json:"firstOutlet"`
 	Admin struct {
 		ID   int64  `json:"id"`
@@ -123,7 +124,7 @@ func (p *platformTenantFixture) expect(t *testing.T, method, path string, input 
 	return body
 }
 func provisionInput(name, email string) map[string]any {
-	return map[string]any{"business": map[string]any{"name": name}, "firstOutlet": map[string]any{"code": "MAIN", "name": name}, "firstAdmin": map[string]any{"email": email, "fullName": "Owner " + name, "password": "owner-password-123"}}
+	return map[string]any{"business": map[string]any{"name": name}, "firstOutlet": map[string]any{"name": name}, "firstAdmin": map[string]any{"email": email, "fullName": "Owner " + name, "password": "owner-password-123"}}
 }
 func (p *platformTenantFixture) provision(t *testing.T, name, email string) provisionedTenant {
 	t.Helper()
@@ -131,6 +132,9 @@ func (p *platformTenantFixture) provision(t *testing.T, name, email string) prov
 	var tenant provisionedTenant
 	if err := json.Unmarshal(body, &tenant); err != nil || tenant.Business.ID == 0 || tenant.Admin.Role != "ADMIN" {
 		t.Fatalf("provision: %s err=%v", body, err)
+	}
+	if tenant.Outlet.Code != "001" {
+		t.Fatalf("platform onboarding first outlet code=%q, want 001", tenant.Outlet.Code)
 	}
 	if strings.Contains(string(body), "owner-password-123") || strings.Contains(string(body), "password_hash") {
 		t.Fatal("onboarding response exposed credentials")
@@ -185,7 +189,7 @@ func TestPlatformTenantProvisioningIsolationAndSupport(t *testing.T) {
 		own, other := pair[0], pair[1]
 		p.expect(t, "GET", fmt.Sprintf("/outlets/%d", own.Outlet.ID), nil, own.token, 200, "")
 		p.expect(t, "GET", fmt.Sprintf("/outlets/%d", other.Outlet.ID), nil, own.token, 404, "")
-		p.expect(t, "PUT", fmt.Sprintf("/outlets/%d", other.Outlet.ID), map[string]any{"code": "MAIN", "name": "Hijacked", "isActive": true}, own.token, 404, "")
+		p.expect(t, "PUT", fmt.Sprintf("/outlets/%d", other.Outlet.ID), map[string]any{"name": "Hijacked", "isActive": true}, own.token, 404, "")
 		p.expect(t, "GET", fmt.Sprintf("/perfumes/%d", other.perfume), nil, own.token, 404, "")
 		p.expect(t, "GET", "/platform/businesses", nil, own.token, 401, "")
 	}

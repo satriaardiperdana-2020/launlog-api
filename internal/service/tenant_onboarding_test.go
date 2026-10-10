@@ -11,7 +11,7 @@ import (
 func validProvisionInput() ProvisionBusinessInput {
 	return ProvisionBusinessInput{
 		Business:    BusinessInput{Name: " Laundry "},
-		FirstOutlet: FirstOutletInput{Code: " MAIN ", Name: " Outlet ", Timezone: nil},
+		FirstOutlet: FirstOutletInput{Name: " Outlet ", Timezone: nil},
 		FirstAdmin:  FirstAdminInput{Email: " Owner@Example.Test ", FullName: " Owner ", Password: "correct-password"},
 	}
 }
@@ -21,7 +21,7 @@ func TestNormalizeProvisionInput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if in.FirstAdmin.Email != "owner@example.test" || in.FirstAdmin.FullName != "Owner" || in.Business.Name != "Laundry" || in.FirstOutlet.Code != "MAIN" || *in.FirstOutlet.Timezone != "Asia/Jakarta" {
+	if in.FirstAdmin.Email != "owner@example.test" || in.FirstAdmin.FullName != "Owner" || in.Business.Name != "Laundry" || in.FirstOutlet.Name != "Outlet" || *in.FirstOutlet.Timezone != "Asia/Jakarta" {
 		t.Fatalf("unexpected normalized provision input: %+v", in)
 	}
 

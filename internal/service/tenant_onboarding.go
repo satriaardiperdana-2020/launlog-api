@@ -25,7 +25,6 @@ type BusinessInput struct {
 }
 
 type FirstOutletInput struct {
-	Code     string  `json:"code"`
 	Name     string  `json:"name"`
 	Timezone *string `json:"timezone"`
 	Phone    *string `json:"phone"`
@@ -54,7 +53,6 @@ func validOptional(s *string, max int) bool { return s == nil || validText(*s, m
 // absent from these input types; the insert query fixes the first role to ADMIN.
 func normalizeProvisionInput(in ProvisionBusinessInput) (ProvisionBusinessInput, error) {
 	in.Business.Name = strings.TrimSpace(in.Business.Name)
-	in.FirstOutlet.Code = strings.TrimSpace(in.FirstOutlet.Code)
 	in.FirstOutlet.Name = strings.TrimSpace(in.FirstOutlet.Name)
 	in.FirstAdmin.Email = strings.ToLower(strings.TrimSpace(in.FirstAdmin.Email))
 	in.FirstAdmin.FullName = strings.TrimSpace(in.FirstAdmin.FullName)
@@ -64,7 +62,7 @@ func normalizeProvisionInput(in ProvisionBusinessInput) (ProvisionBusinessInput,
 	}
 	in.FirstOutlet.Timezone = &zone
 	email, err := mail.ParseAddress(in.FirstAdmin.Email)
-	if err != nil || email.Address != in.FirstAdmin.Email || !validText(in.FirstAdmin.Email, 254) || in.Business.Name == "" || !validText(in.Business.Name, 200) || in.FirstOutlet.Code == "" || !validText(in.FirstOutlet.Code, 64) || in.FirstOutlet.Name == "" || !validText(in.FirstOutlet.Name, 200) || in.FirstAdmin.FullName == "" || !validText(in.FirstAdmin.FullName, 200) || !validOptional(in.Business.Phone, 32) || !validOptional(in.Business.Address, 500) || !validOptional(in.FirstOutlet.Phone, 32) || !validOptional(in.FirstOutlet.Address, 500) {
+	if err != nil || email.Address != in.FirstAdmin.Email || !validText(in.FirstAdmin.Email, 254) || in.Business.Name == "" || !validText(in.Business.Name, 200) || in.FirstOutlet.Name == "" || !validText(in.FirstOutlet.Name, 200) || in.FirstAdmin.FullName == "" || !validText(in.FirstAdmin.FullName, 200) || !validOptional(in.Business.Phone, 32) || !validOptional(in.Business.Address, 500) || !validOptional(in.FirstOutlet.Phone, 32) || !validOptional(in.FirstOutlet.Address, 500) {
 		return in, ErrInvalidOwnerInput
 	}
 	if err := security.ValidateNewPassword(in.FirstAdmin.Password); err != nil {
@@ -75,7 +73,7 @@ func normalizeProvisionInput(in ProvisionBusinessInput) (ProvisionBusinessInput,
 
 type provisionedBusiness struct {
 	Business    db.Business
-	FirstOutlet db.Outlet
+	FirstOutlet db.CreateOutletRow
 	FirstAdmin  db.PlatformCreateFirstAdminRow
 }
 
@@ -86,7 +84,11 @@ func createTenant(ctx context.Context, q *db.Queries, in ProvisionBusinessInput,
 	if err != nil {
 		return result, err
 	}
-	o, err := q.CreateOutlet(ctx, db.CreateOutletParams{BusinessID: b.ID, Code: in.FirstOutlet.Code, Name: in.FirstOutlet.Name, Phone: optionalPlatformText(in.FirstOutlet.Phone), Address: optionalPlatformText(in.FirstOutlet.Address), Timezone: pgtype.Text{String: *in.FirstOutlet.Timezone, Valid: true}})
+	code, err := q.AllocateOutletCode(ctx, b.ID)
+	if err != nil {
+		return result, err
+	}
+	o, err := q.CreateOutlet(ctx, db.CreateOutletParams{BusinessID: b.ID, Code: code, Name: in.FirstOutlet.Name, Phone: optionalPlatformText(in.FirstOutlet.Phone), Address: optionalPlatformText(in.FirstOutlet.Address), Timezone: pgtype.Text{String: *in.FirstOutlet.Timezone, Valid: true}})
 	if err != nil {
 		return result, err
 	}

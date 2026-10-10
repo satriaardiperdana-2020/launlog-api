@@ -83,6 +83,12 @@ An append-oriented record of every order status transition, including actor and 
 
 Maintains the next invoice sequence per business, outlet, and date. Invoice generation uses an `INSERT ... ON CONFLICT DO UPDATE ... RETURNING` counter upsert so PostgreSQL serializes allocations for a counter key; it creates the order in the same transaction so failures roll back the allocated sequence.
 
+### `outlets.code` and `business_outlet_counters` (ISSUE-021)
+
+Outlet codes are server-generated text identifiers unique within a business. Each business starts at `001`; values are zero-padded to at least three characters and continue as `1000`, `1001`, without truncation. The unique `(business_id, code)` constraint remains the final guard. `business_outlet_counters` stores the last allocated sequence per business; one `INSERT ... ON CONFLICT DO UPDATE ... RETURNING` statement atomically allocates the next code. Allocation, outlet insert, and audit share a transaction, so failed creates do not consume a sequence. Inactive outlets retain their code permanently.
+
+Migration `000021_business_outlet_code_sequence` preserves each prior code in `outlets.legacy_code`, reassigns canonical codes deterministically by `(business_id, created_at, id)`, seeds each business counter, and backfills `orders.outlet_code_snapshot`. New orders snapshot the canonical code when created. Historical invoice numbers and outlet IDs are not rewritten; receipt reprints retain the outlet code that was associated with each order. Legacy codes are retained for traceability and are not accepted as canonical outlet codes.
+
 ## Payments
 
 ### `payments`

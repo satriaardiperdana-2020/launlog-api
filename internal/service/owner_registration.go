@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -13,11 +14,10 @@ import (
 )
 
 type OwnerRegistrationInput struct {
-	Email       string           `json:"email"`
-	Password    string           `json:"password"`
-	FullName    string           `json:"fullName"`
-	Business    BusinessInput    `json:"business"`
-	FirstOutlet FirstOutletInput `json:"firstOutlet"`
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	FullName   string `json:"fullName"`
+	OutletName string `json:"outletName"`
 }
 
 type OwnerRegistration struct {
@@ -30,7 +30,8 @@ func NewOwnerRegistration(database *repository.Postgres, tokens *security.TokenM
 }
 
 func (s *OwnerRegistration) Register(ctx context.Context, req OwnerRegistrationInput) (map[string]any, error) {
-	in, err := normalizeProvisionInput(ProvisionBusinessInput{Business: req.Business, FirstOutlet: req.FirstOutlet, FirstAdmin: FirstAdminInput{Email: req.Email, FullName: req.FullName, Password: req.Password}})
+	name := strings.TrimSpace(req.OutletName)
+	in, err := normalizeProvisionInput(ProvisionBusinessInput{Business: BusinessInput{Name: name}, FirstOutlet: FirstOutletInput{Name: name}, FirstAdmin: FirstAdminInput{Email: req.Email, FullName: req.FullName, Password: req.Password}})
 	if err != nil {
 		return nil, err
 	}

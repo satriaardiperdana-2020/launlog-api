@@ -130,8 +130,13 @@ non-production environment behind a VPN or authenticated tester gateway. Do not
 open registration to the public internet while email ownership is unverified.
 
 ```sh
-curl --fail-with-body -X POST "$API_BASE_URL/auth/register" -H 'Content-Type: application/json' -d '{"email":"owner@example.test","password":"<password>","fullName":"Owner","business":{"name":"Laundry Baru"},"firstOutlet":{"code":"MAIN","name":"Outlet Utama","timezone":null}}'
+curl --fail-with-body -X POST "$API_BASE_URL/auth/register" -H 'Content-Type: application/json' -d '{"email":"owner@example.test","password":"<password>","fullName":"Owner","outletName":"Laundry Baru"}'
 ```
+
+`outletName` becomes both `businesses.name` and the first `outlets.name`. The
+backend assigns the first outlet code `001`. `POST /outlets` accepts profile
+fields only; its business comes from the authenticated session and its code is
+allocated by the backend. Outlet codes are immutable.
 
 ## Outlet timezone (ISSUE-019)
 
