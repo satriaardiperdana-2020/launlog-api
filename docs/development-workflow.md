@@ -58,3 +58,20 @@ the down migration discards selected outlet timezones. Clients using full PUT
 must send their selected timezone or it resets to Jakarta. Generated sqlc and
 OpenAPI artifacts are regenerated with make generate; never edit them by hand.
 Order instants, invoice/report day policy, and tenant permissions are preserved.
+
+## Owner registration (ISSUE-020)
+
+`POST /auth/register` creates the first business, outlet, ADMIN owner assignment,
+and refresh session in one database transaction. The request never accepts a
+role, business ID, permission, or platform role. Email is trimmed and
+case-normalized; passwords are bcrypt-hashed and limited to bcrypt's 72-byte
+input maximum without truncation. A missing outlet timezone defaults to
+`Asia/Jakarta`.
+
+Public registration is disabled by default with `OWNER_REGISTRATION_ENABLED=false`.
+Production configuration rejects enabling it until email verification is
+available. During a pilot, enable it only in a non-production environment behind
+an authenticated VPN or gateway, with a restricted audience. The endpoint has a
+per-client rate limit and request body cap, but those controls are not a
+replacement for verification or an access gate. No schema migration is needed;
+registration reuses the existing tenant tables, queries, and session schema.

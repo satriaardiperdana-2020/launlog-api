@@ -21,7 +21,7 @@ tags:
   - name: Health
     description: Application dependency status
   - name: Authentication
-    description: Session and current-user operations
+    description: Public owner registration, session, and current-user operations
   - name: Platform authentication
     description: Separate single-platform-administrator sessions; no public registration
   - name: Outlets and staff
@@ -46,6 +46,40 @@ tags:
     description: Authorized historical receipts, owner-managed templates, and client-side printing/share preferences
 
 paths:
+  /auth/register:
+    post:
+      operationId: registerOwner
+      summary: Register an owner and onboard a new business
+      description: Creates a new business, its first outlet, an ADMIN owner, outlet assignment, and tenant session atomically. Public registration is disabled by default and cannot be enabled in production until email verification is available. Passwords must contain 8 to 128 Unicode characters and at most 72 UTF-8 bytes for bcrypt.
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OwnerRegistrationRequest' }
+      responses:
+        "201":
+          description: Owner account, business, outlet, and tenant session were created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthSessionResponse' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "409":
+          description: Email is unavailable. The response does not identify its existing account or tenant.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        "413": { $ref: '#/components/responses/RequestTooLarge' }
+        "415":
+          description: Content-Type must be application/json.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        "429": { $ref: '#/components/responses/TooManyRequests' }
+        "500": { $ref: '#/components/responses/InternalServerError' }
+
   /platform/auth/login:
     post:
       operationId: platformLogin
@@ -2178,7 +2212,7 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
     RequestTooLarge:
-      description: The authentication request body exceeds 4096 bytes.
+      description: The request exceeds the endpoint body limit; owner registration allows 16384 bytes and authentication operations allow 4096 bytes.
       content:
         application/json:
           schema:
@@ -2197,6 +2231,43 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
 
   schemas:
+    OwnerRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password, fullName, business, firstOutlet]
+      properties:
+        email: {type: string, format: email, maxLength: 254}
+        password:
+          type: string
+          format: password
+          writeOnly: true
+          minLength: 8
+          maxLength: 128
+          description: 8 to 128 Unicode characters; the UTF-8 encoding must not exceed 72 bytes for bcrypt. Password input is never truncated.
+        fullName: {type: string, minLength: 1, maxLength: 200}
+        business:
+          type: object
+          additionalProperties: false
+          required: [name]
+          properties:
+            name: {type: string, minLength: 1, maxLength: 200}
+            phone: {type: string, nullable: true, maxLength: 32}
+            address: {type: string, nullable: true, maxLength: 500}
+        firstOutlet:
+          type: object
+          additionalProperties: false
+          required: [code, name]
+          properties:
+            code: {type: string, minLength: 1, maxLength: 64}
+            name: {type: string, minLength: 1, maxLength: 200}
+            timezone:
+              type: string
+              nullable: true
+              maxLength: 255
+              description: Valid IANA timezone. Omitted, null, empty, or whitespace values use Asia/Jakarta.
+            phone: {type: string, nullable: true, maxLength: 32}
+            address: {type: string, nullable: true, maxLength: 500}
+
     BusinessAuditPage:
       type: object
       required: [items, pagination]

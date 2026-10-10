@@ -46,6 +46,7 @@ type Config struct {
 	JWTAccessTokenTTL        time.Duration
 	JWTRefreshTokenTTL       time.Duration
 	CORSAllowedOrigins       []string
+	OwnerRegistrationEnabled bool
 }
 
 // Load reads optional dotenv files and validates environment configuration.
@@ -65,12 +66,15 @@ func loadFromEnvironment() (Config, error) {
 		JWTSigningSecret:         os.Getenv("JWT_SIGNING_SECRET"),
 		PlatformJWTSigningSecret: os.Getenv("PLATFORM_JWT_SIGNING_SECRET"),
 	}
+	var err error
+	if cfg.OwnerRegistrationEnabled, err = boolValue("OWNER_REGISTRATION_ENABLED", false); err != nil {
+		return Config{}, err
+	}
 	var originErr error
 	if cfg.CORSAllowedOrigins, originErr = corsOrigins(os.Getenv("CORS_ALLOWED_ORIGINS")); originErr != nil {
 		return Config{}, originErr
 	}
 
-	var err error
 	if cfg.HTTPPort, err = intValue("HTTP_PORT", defaultHTTPPort); err != nil {
 		return Config{}, err
 	}
@@ -194,6 +198,9 @@ func (c Config) validate() error {
 		return errors.New("DATABASE_URL is required")
 	}
 	if strings.EqualFold(c.Environment, "production") {
+		if c.OwnerRegistrationEnabled {
+			return errors.New("OWNER_REGISTRATION_ENABLED cannot be true in production before email verification is implemented")
+		}
 		databaseURL, err := url.Parse(c.DatabaseURL)
 		if err != nil || databaseURL.Query().Get("sslmode") != "verify-full" {
 			return errors.New("production DATABASE_URL must require sslmode=verify-full")
@@ -287,6 +294,18 @@ func durationValue(name string, fallback time.Duration) (time.Duration, error) {
 	parsed, err := time.ParseDuration(value)
 	if err != nil {
 		return 0, fmt.Errorf("%s must be a duration: %w", name, err)
+	}
+	return parsed, nil
+}
+
+func boolValue(name string, fallback bool) (bool, error) {
+	value := os.Getenv(name)
+	if value == "" {
+		return fallback, nil
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, fmt.Errorf("%s must be a boolean", name)
 	}
 	return parsed, nil
 }

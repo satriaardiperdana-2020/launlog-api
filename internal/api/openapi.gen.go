@@ -1368,6 +1368,29 @@ type OutletUpdate struct {
 	Timezone *OutletTimezoneInput `json:"timezone,omitempty"`
 }
 
+// OwnerRegistrationRequest defines model for OwnerRegistrationRequest.
+type OwnerRegistrationRequest struct {
+	Business struct {
+		Address *string `json:"address,omitempty"`
+		Name    string  `json:"name"`
+		Phone   *string `json:"phone,omitempty"`
+	} `json:"business"`
+	Email       openapi_types.Email `json:"email"`
+	FirstOutlet struct {
+		Address *string `json:"address,omitempty"`
+		Code    string  `json:"code"`
+		Name    string  `json:"name"`
+		Phone   *string `json:"phone,omitempty"`
+
+		// Timezone Valid IANA timezone. Omitted, null, empty, or whitespace values use Asia/Jakarta.
+		Timezone *string `json:"timezone,omitempty"`
+	} `json:"firstOutlet"`
+	FullName string `json:"fullName"`
+
+	// Password 8 to 128 Unicode characters; the UTF-8 encoding must not exceed 72 bytes for bcrypt. Password input is never truncated.
+	Password *string `json:"password,omitempty"`
+}
+
 // OwnerSupportRequest defines model for OwnerSupportRequest.
 type OwnerSupportRequest struct {
 	AccessScope          OwnerSupportRequestAccessScope `json:"accessScope"`
@@ -2290,6 +2313,9 @@ type LogoutJSONRequestBody = LogoutRequest
 // RefreshTokenJSONRequestBody defines body for RefreshToken for application/json ContentType.
 type RefreshTokenJSONRequestBody = RefreshRequest
 
+// RegisterOwnerJSONRequestBody defines body for RegisterOwner for application/json ContentType.
+type RegisterOwnerJSONRequestBody = OwnerRegistrationRequest
+
 // CreateCustomerJSONRequestBody defines body for CreateCustomer for application/json ContentType.
 type CreateCustomerJSONRequestBody = CustomerInput
 
@@ -2409,6 +2435,9 @@ type ServerInterface interface {
 	// Refresh an authentication session
 	// (POST /auth/refresh)
 	RefreshToken(ctx echo.Context) error
+	// Register an owner and onboard a new business
+	// (POST /auth/register)
+	RegisterOwner(ctx echo.Context) error
 	// Search or list customers in the authenticated business
 	// (GET /customers)
 	ListCustomers(ctx echo.Context, params ListCustomersParams) error
@@ -2744,6 +2773,15 @@ func (w *ServerInterfaceWrapper) RefreshToken(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.RefreshToken(ctx)
+	return err
+}
+
+// RegisterOwner converts echo context to params.
+func (w *ServerInterfaceWrapper) RegisterOwner(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RegisterOwner(ctx)
 	return err
 }
 
@@ -4885,6 +4923,7 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.POST(options.BaseURL+"/auth/logout", wrapper.Logout, options.OperationMiddlewares["logout"]...)
 	router.GET(options.BaseURL+"/auth/me", wrapper.GetCurrentUser, options.OperationMiddlewares["getCurrentUser"]...)
 	router.POST(options.BaseURL+"/auth/refresh", wrapper.RefreshToken, options.OperationMiddlewares["refreshToken"]...)
+	router.POST(options.BaseURL+"/auth/register", wrapper.RegisterOwner, options.OperationMiddlewares["registerOwner"]...)
 	router.GET(options.BaseURL+"/customers", wrapper.ListCustomers, options.OperationMiddlewares["listCustomers"]...)
 	router.POST(options.BaseURL+"/customers", wrapper.CreateCustomer, options.OperationMiddlewares["createCustomer"]...)
 	router.DELETE(options.BaseURL+"/customers/:customerId", wrapper.DeactivateCustomer, options.OperationMiddlewares["deactivateCustomer"]...)
@@ -5425,6 +5464,131 @@ type RefreshToken500JSONResponse struct {
 }
 
 func (response RefreshToken500JSONResponse) VisitRefreshTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterOwnerRequestObject struct {
+	Body *RegisterOwnerJSONRequestBody
+}
+
+type RegisterOwnerResponseObject interface {
+	VisitRegisterOwnerResponse(w http.ResponseWriter) error
+}
+
+type RegisterOwner201JSONResponse AuthSessionResponse
+
+func (response RegisterOwner201JSONResponse) VisitRegisterOwnerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterOwner400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response RegisterOwner400JSONResponse) VisitRegisterOwnerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterOwner403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response RegisterOwner403JSONResponse) VisitRegisterOwnerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterOwner409JSONResponse ErrorResponse
+
+func (response RegisterOwner409JSONResponse) VisitRegisterOwnerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterOwner413JSONResponse struct{ RequestTooLargeJSONResponse }
+
+func (response RegisterOwner413JSONResponse) VisitRegisterOwnerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterOwner415JSONResponse ErrorResponse
+
+func (response RegisterOwner415JSONResponse) VisitRegisterOwnerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(415)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterOwner429JSONResponse struct{ TooManyRequestsJSONResponse }
+
+func (response RegisterOwner429JSONResponse) VisitRegisterOwnerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.RetryAfter != nil {
+		w.Header().Set("Retry-After", fmt.Sprint(*response.Headers.RetryAfter))
+	}
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterOwner500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response RegisterOwner500JSONResponse) VisitRegisterOwnerResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -13976,6 +14140,9 @@ type StrictServerInterface interface {
 	// Refresh an authentication session
 	// (POST /auth/refresh)
 	RefreshToken(ctx context.Context, request RefreshTokenRequestObject) (RefreshTokenResponseObject, error)
+	// Register an owner and onboard a new business
+	// (POST /auth/register)
+	RegisterOwner(ctx context.Context, request RegisterOwnerRequestObject) (RegisterOwnerResponseObject, error)
 	// Search or list customers in the authenticated business
 	// (GET /customers)
 	ListCustomers(ctx context.Context, request ListCustomersRequestObject) (ListCustomersResponseObject, error)
@@ -14383,6 +14550,35 @@ func (sh *strictHandler) RefreshToken(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(RefreshTokenResponseObject); ok {
 		return validResponse.VisitRefreshTokenResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RegisterOwner operation middleware
+func (sh *strictHandler) RegisterOwner(ctx echo.Context) error {
+	var request RegisterOwnerRequestObject
+
+	var body RegisterOwnerJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RegisterOwner(ctx.Request().Context(), request.(RegisterOwnerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RegisterOwner")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RegisterOwnerResponseObject); ok {
+		return validResponse.VisitRegisterOwnerResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

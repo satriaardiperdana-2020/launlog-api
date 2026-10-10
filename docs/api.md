@@ -100,13 +100,38 @@ owner `/support-requests`, `/support-sessions`, and `/support-audit` use tenant
 BearerAuth and require ADMIN.
 
 Platform onboarding creates business, first outlet, ADMIN, assignment, and both
-audit streams in one transaction. There is no public registration. Owner requests
+audit streams in one transaction. Public owner registration is described below. Owner requests
 must record reason, accessScope READ_ONLY/READ_WRITE, expiresAt within one hour,
 and confirmationPassword. Platform start accepts only supportRequestId: it cannot
 choose a stronger scope or later expiry. Every support path includes businessId
 and sessionId, checked against the stored grant. READ_WRITE only adds perfume
 description updates with `If-Match: "<version>"`; financial and identity mutations
 remain unavailable. `/support-audit` gives the owner a tenant-filtered activity view.
+
+## ISSUE-020 owner registration
+
+`POST /auth/register` accepts an email, password, full name, and new business and
+first-outlet details. It creates the business, outlet, `ADMIN` owner, outlet
+assignment, tenant session, and audit records in one transaction. The response
+uses the same `{tokens, user}` envelope as login. The server always sets `ADMIN`;
+the request does not accept role, business ID, permission, or platform identity.
+Email is trimmed and lowercased. An unavailable address returns a generic
+`EMAIL_UNAVAILABLE` response without naming the existing tenant. Empty outlet
+timezone values use `Asia/Jakarta`.
+
+New passwords require 8–128 Unicode characters and no more than 72 UTF-8 bytes
+for bcrypt. Input is never truncated. The raw refresh token is returned once;
+only its SHA-256 hash is stored. Requests are limited to 16 KiB and three per
+minute per direct peer, and responses use `Cache-Control: no-store`.
+
+Registration is disabled unless `OWNER_REGISTRATION_ENABLED=true`. Production
+startup rejects enabling it until email verification exists. For a pilot, use a
+non-production environment behind a VPN or authenticated tester gateway. Do not
+open registration to the public internet while email ownership is unverified.
+
+```sh
+curl --fail-with-body -X POST "$API_BASE_URL/auth/register" -H 'Content-Type: application/json' -d '{"email":"owner@example.test","password":"<password>","fullName":"Owner","business":{"name":"Laundry Baru"},"firstOutlet":{"code":"MAIN","name":"Outlet Utama","timezone":null}}'
+```
 
 ## Outlet timezone (ISSUE-019)
 

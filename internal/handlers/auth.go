@@ -17,16 +17,17 @@ import (
 	"github.com/satriaardiperdana-2020/launlog-api/internal/repository"
 	"github.com/satriaardiperdana-2020/launlog-api/internal/repository/postgresql"
 	"github.com/satriaardiperdana-2020/launlog-api/internal/security"
+	"github.com/satriaardiperdana-2020/launlog-api/internal/service"
 )
 
 type AuthHandler struct {
 	database   *repository.Postgres
-	tokens     *security.TokenManager
+	sessions   *service.TenantSessions
 	refreshTTL time.Duration
 }
 
 func NewAuthHandler(d *repository.Postgres, t *security.TokenManager, refreshTTL time.Duration) *AuthHandler {
-	return &AuthHandler{d, t, refreshTTL}
+	return &AuthHandler{d, service.NewTenantSessions(t, refreshTTL), refreshTTL}
 }
 
 type loginRequest struct {
@@ -45,6 +46,9 @@ func decodeAuthBody(c echo.Context, dst any) error {
 	}
 	var extra any
 	if err := decoder.Decode(&extra); err != io.EOF {
+		if err != nil {
+			return err
+		}
 		return errors.New("unexpected content after JSON object")
 	}
 	return nil
@@ -155,7 +159,7 @@ func (h *AuthHandler) Refresh(c echo.Context) error {
 	if err != nil {
 		return internalError(c)
 	}
-	response, err := h.sessionResponse(ctx, q, u.ID, u.BusinessID, u.Email, u.FullName, u.Role, newSession.ID, raw, newSession.ExpiresAt.Time, outs, perms)
+	response, err := h.sessions.Response(ctx, q, service.TenantIdentity{ID: u.ID, BusinessID: u.BusinessID, Email: u.Email, FullName: u.FullName, Role: u.Role}, newSession.ID, raw, newSession.ExpiresAt.Time, outs, perms)
 	if err != nil {
 		return internalError(c)
 	}
@@ -244,22 +248,8 @@ func (h *AuthHandler) issue(c echo.Context, id, bid int64, email, name, role str
 	if err != nil {
 		return unauthorized(c)
 	}
-	familyID, err := q.CreateSessionFamily(ctx, postgresql.CreateSessionFamilyParams{BusinessID: bid, UserID: id})
-	if err != nil {
-		return internalError(c)
-	}
-	raw, hash, err := security.NewRefreshToken()
-	if err != nil {
-		return internalError(c)
-	}
-	session, err := q.CreateRefreshToken(ctx, postgresql.CreateRefreshTokenParams{
-		BusinessID: bid, UserID: id, FamilyID: familyID, TokenHash: hash,
-		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(h.refreshTTL), Valid: true},
-	})
-	if err != nil {
-		return internalError(c)
-	}
-	response, err := h.sessionResponse(ctx, q, id, bid, email, name, role, session.ID, raw, session.ExpiresAt.Time, outs, perms)
+	identity := service.TenantIdentity{ID: id, BusinessID: bid, Email: email, FullName: name, Role: role}
+	response, familyID, err := h.sessions.Create(ctx, q, identity, outs, perms)
 	if err != nil {
 		return internalError(c)
 	}
@@ -302,21 +292,6 @@ func (h *AuthHandler) authorization(ctx context.Context, q *postgresql.Queries, 
 	}
 	perms, err := q.ListUserPermissionCodes(ctx, postgresql.ListUserPermissionCodesParams{BusinessID: bid, UserID: uid})
 	return outs, perms, err
-}
-
-func (h *AuthHandler) sessionResponse(ctx context.Context, q *postgresql.Queries, id, bid int64, email, name, role string, sid int64, refresh string, refreshExpiry time.Time, outs []int64, perms []string) (map[string]any, error) {
-	outlets, err := q.ListUserOutlets(ctx, postgresql.ListUserOutletsParams{BusinessID: bid, UserID: id})
-	if err != nil {
-		return nil, err
-	}
-	if outlets == nil {
-		outlets = []postgresql.ListUserOutletsRow{}
-	}
-	access, accessExp, err := h.tokens.NewAccessToken(id, bid, sid, role, outs, time.Now())
-	if err != nil {
-		return nil, err
-	}
-	return map[string]any{"tokens": map[string]any{"accessToken": access, "refreshToken": refresh, "tokenType": "Bearer", "accessTokenExpiresAt": accessExp, "refreshTokenExpiresAt": refreshExpiry}, "user": map[string]any{"outlets": outlets, "id": id, "businessId": bid, "email": email, "fullName": name, "role": role, "outletIds": outs, "permissions": perms}}, nil
 }
 
 func badRequest(c echo.Context, code, msg string) error {
